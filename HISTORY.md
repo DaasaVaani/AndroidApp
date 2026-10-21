@@ -1,5 +1,53 @@
 # Documentation history
 
+## 2026-10-22: official Unicode16 native personal-name consumer
+
+- Started from clean native main `7258cbc8e537314d56d1c4e4edfa76ab55a469e1`
+  with independently pinned Shared `8bd8793afb9f2fd43d52b62bc5436bbd4da1b0ce`;
+  neither the pin nor Shared files changed. Published Shared main run
+  `39679540067` was independently checked as completed/success at that exact
+  revision. Website work and original lyric sources were outside this batch.
+- Owner selected `official-unicode-16` with preserving adoption. Added the
+  portable scalar-only native adapter and versioned on-demand `ListSnapshot.nameKey`
+  for codec/file/link/process-local preview snapshots. Original names, entries,
+  video IDs, real lyric UUIDs, display, export bytes/format and existing validation
+  errors remain unchanged. Room schema2 contains only favorites/preferences:
+  no durable lists or persisted name keys exist, so no database migration or
+  collision-driven rename/merge was performed or invented. Durable list flows,
+  duplicate-warning/reuse UI and future preserving migrations remain open.
+- Core resource processing packages the exact committed generated Shared JSON,
+  manifest and Unicode License V3. Native build guards verify selected metadata,
+  pipeline, byte lengths/hashes, provenance and six original upstream identities;
+  runtime rejects missing/corrupt/unsupported profile/data without a platform
+  fallback. No new dependency, copied table or platform name normalization/fold.
+- Full local validation on JDK21, configured SDK36 and the existing intended
+  API36 `emulator-5556`, with the existing Website server responding HTTP200:
+  `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon`
+  passed. XML reports contain **31 core tests and 21 connected tests, zero
+  failures/errors/skips**. App JVM tasks remain NO-SOURCE, not test passes;
+  Kotlin plugin-configuration checks are inapplicable SKIPPED tasks, not skipped
+  test cases. Build/lint include both debug and release variants.
+- Native tests execute all Shared independent vectors/comparisons/invalid UTF16,
+  all **19,965** official normalization rows/equations and unlisted scalar
+  invariants, and exhaustive C/F folding/identity for **1,112,064** scalars.
+  Added supplementary/version/locale/canonical-ordering/composition/Hangul,
+  input-limit/fold-expansion, literal file/link preservation and packaged
+  resource/hash/profile tests; connected coverage verifies the actual Android
+  packaged adapter. This establishes algorithm/packaging conformance, not
+  linguistic approval, durable-list acceptance or production release readiness.
+- Focused `.\gradlew.bat :core:test --tests '*PersonalNamesTest' --tests '*ListTransferTest' --no-daemon`
+  passed after fixing an initial Kotlin compile failure caused by a bare `data`
+  expression. The editor test tool found no native tests; actual configured
+  Gradle runners supplied the evidence. No failed run was counted as passing.
+- `node tools/verify-unicode.mjs`, `python tools\check_repository.py`,
+  `git --no-pager diff --check` and `git --no-pager diff --cached --check` passed.
+  All five `.github` YAML documents, including the workflow, parsed using the
+  installed pinned `yaml` package with `uniqueKeys:true`; repository hygiene
+  also checks immutable action pins. Main's branch-protection REST endpoint
+  returned 404 (no legacy branch-protection object); the documented unchanged-SHA
+  validation-branch preflight and actual required job still apply without bypass.
+
 ## 2026-10-22: bounded prelaunch stable-ID native reading
 
 - Archived superseded README opening: "Current implementation is a native fixture

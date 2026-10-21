@@ -27,6 +27,27 @@ class ListTransferTest {
     private fun file(bytes: ByteArray) = codec.decodeFile(ByteArrayInputStream(bytes))
     private fun reject(block: () -> Unit) { assertFailsWith<TransferFailure> { block() } }
 
+    @Test fun namesHaveVersionedDerivedKeysWithoutChangingLiteralTransportOrBounds() {
+        val a = sample.copy(name = "Straße E\u0301 \uD801\uDC00")
+        val b = sample.copy(name = "STRASSE É \uD801\uDC28")
+        assertNotEquals(a.name, b.name)
+        assertEquals(a.nameKey, b.nameKey)
+        for (original in listOf(a, b, sample.copy(name = "\uD801\uDC00".repeat(bounds.name)),
+            sample.copy(name = "\u00df".repeat(bounds.name)))) {
+            assertEquals(original, file(codec.encodeFile(original)))
+            assertEquals(original, codec.decodeLink(codec.encodeLink(original)))
+            assertEquals(original.nameKey, file(codec.encodeFile(original)).nameKey)
+        }
+        // The original scalar limit applies before derivation, even when folding expands it.
+        assertEquals(bounds.name * 2, sample.copy(name = "\u00df".repeat(bounds.name)).nameKey.value.length)
+        reject { codec.json(sample.copy(name = "\uD801\uDC00".repeat(bounds.name + 1))) }
+        reject { codec.json(sample.copy(name = "")) }
+        reject { codec.json(sample.copy(name = "A\nB")) }
+        reject { codec.json(sample.copy(name = "\uD800")) }
+        assertNotEquals(sample.copy(name = " A ").nameKey, sample.copy(name = "A").nameKey)
+        assertNotEquals(sample.copy(name = "Ａ").nameKey, sample.copy(name = "A").nameKey)
+    }
+
     @Test fun literalRepeatedRoundtrips() {
         assertEquals(sample, file(codec.encodeFile(sample)))
         assertEquals(sample, codec.decodeLink(codec.encodeLink(sample)))

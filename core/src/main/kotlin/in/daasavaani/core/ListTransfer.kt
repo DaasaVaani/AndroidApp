@@ -14,7 +14,9 @@ import kotlinx.serialization.encodeToString
 
 data class TransferBounds(val encoded: Int, val decoded: Int, val url: Int, val name: Int, val text: Int, val entries: Int)
 data class ListEntry(val kind: String, val videoId: String? = null, val fallback: String? = null, val text: String? = null)
-data class ListSnapshot(val name: String, val entries: List<ListEntry>)
+data class ListSnapshot(val name: String, val entries: List<ListEntry>) {
+    val nameKey: PersonalNameKey get() = PersonalNames.key(name)
+}
 class TransferFailure(val reason: String) : IllegalArgumentException(reason)
 
 /** Transport decoding never trusts a file's reported size, extension or MIME type. */

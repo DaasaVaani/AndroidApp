@@ -186,6 +186,45 @@ automatic recovery of a preview after process death. This is partial
 XFER-01/02/03/05/06/08 evidence, not full transfer acceptance, native feature parity,
 full backup correctness or release readiness.
 
+### Portable personal/list-name comparison
+
+Native personal-name comparison selects **official-unicode-16**, using the pinned
+[Shared contract](shared/docs/unicode-name-matching.md):
+`NFC16(default-full-C/F-fold16(NFC16(original)))`, profile
+`unicode16-default-full-nfc-v1`. `PersonalNames.key` returns an explicitly versioned
+derived `PersonalNameKey`; every `ListSnapshot` (JSON/file/link decoding and the
+process-local preview model) exposes `nameKey` on demand. This is comparison only:
+the codec, preview display and re-exports preserve exact original names and entries.
+No trimming, compatibility normalization, translation, platform ICU/Normalizer,
+lowercasing or host Unicode-property tables participate in these keys.
+The existing single-line/scalar/count validation and error reasons are unchanged;
+the normalization primitive itself also accepts empty strings/noncharacters and
+explicitly rejects unpaired surrogates.
+Recursive decomposition and stable insertion ordering use O(d) working storage
+and O(d²) worst-case ordering time for d decomposed scalars; indexed folding and
+composition are linear. Existing transfer name limits bound consumer inputs.
+
+Core packages the exact committed Shared generated JSON/manifest and Unicode
+License V3, not copied/versionless native tables or a new runtime dependency.
+Every resource-processing build runs `node tools/verify-unicode.mjs`, checking
+profile/pipeline, artifact/vector lengths and SHA256, metadata provenance and all
+six upstream source identities against Shared settings. Runtime loading verifies
+the packaged profile and data hash; missing/corrupt/unsupported resources fail
+explicitly, with no platform fallback.
+
+There are **no durable lists or persisted list-name keys** in Room schema2:
+only favorites and language/theme preferences are stored. No database migration,
+key rewrite or collision repair is needed or performed. Newly equal names remain
+independent snapshots; no list is automatically renamed or merged. Future durable
+create/import/rename/duplicate flows must preserve names/IDs/data and use this
+profile with explicit independent-reuse confirmation and a tested preserving
+migration if they introduce stored derived keys. This batch does not implement
+those flows or invent duplicate-name UI where no Save exists.
+Fixture lyric search and the separate prelaunch literal title filter keep their
+existing policies; real lyric UUIDs, legacy personal video IDs and Shared pins
+are unchanged. Partial mapping: LIB-01..11, XFER-01..10 and SET-01 comparison
+prerequisite only, not durable-list or full requirement acceptance.
+
 ### Remaining approved slices
 
 This batch does **not** implement persistent recitation lists/list-import Save, full personal
@@ -226,7 +265,8 @@ the Website demo at the endpoint in settings/android.yml. Configuration is gener
 from owned settings and pinned Shared policy. Never target another user's device.
 The Gradle wrapper distribution and wrapper JAR have checked SHA256 pins.
 
-Core JVM tests cover search, first-use/override locale selection, prelaunch lyric
+Core JVM tests cover search, first-use/override locale selection, portable
+personal-name comparison, prelaunch lyric
 contracts/encoded verification and the transfer codec. Prelaunch vectors use only
 synthetic text and cover strict fields/version/capabilities, duplicate UUIDs/JSON
 members, malformed UTF-8/scalars, reference/path/size/hash limits, summary mismatch,
@@ -251,6 +291,14 @@ catalog states, complete link re-export and unchanged favorites/preferences/them
 Document picker/provider interoperability across real devices, destination failure
 semantics, signed App Links and OS sharing remain required later acceptance gates;
 injected local streams do not establish those claims.
+Personal-name tests execute the identical Shared independent integer vectors,
+all official Unicode16 NFC/NFD equations and unlisted scalar invariants, and
+exhaustive default C/F folding/identity for every scalar. They cover supplementary
+characters, recursive decomposition, canonical ordering/blocking/exclusions,
+Hangul, stage order, locale-independent/version-specific differences, malformed
+UTF16, packaged byte/hash/profile guards and original name limits despite fold
+expansion. A connected test exercises the actual packaged tables and unchanged
+file/link snapshot round trips on Android; this is not durable-list acceptance.
 App JVM tests currently have no sources; do not count NO-SOURCE as a pass.
 The debug APK allows cleartext only for the local fixture endpoint; release does not.
 Install the debug APK from app/build/outputs/apk/debug/app-debug.apk for a local
