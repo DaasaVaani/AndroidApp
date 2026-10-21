@@ -9,6 +9,10 @@ descriptorUrl: http://10.0.2.2:5173/demo/latest.json
 connectTimeoutMs: 30000
 readTimeoutMs: 30000
 fixtureOnly: true
+canonicalBaseUrl: https://daasavaani.github.io/
+listLinkPath: open/
+listFileName: list.dvlist.json.gz
+listCompressionLevel: 6
 ui:
   spacingDp: 8
   contentPaddingDp: 16

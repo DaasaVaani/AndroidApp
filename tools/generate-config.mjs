@@ -5,7 +5,8 @@ const config = strictYaml(await readFile(new URL("settings/android.yml", root), 
 const bounds = strictYaml(await readFile(new URL("shared/settings/publication-policy.yml", root), "utf8"));
 const search = strictYaml(await readFile(new URL("shared/settings/search.yml", root), "utf8"));
 const personal = strictYaml(await readFile(new URL("shared/settings/personal-transfer.yml", root), "utf8"));
-if (personal.formatVersion !== 1 || !["maxFavorites", "maxPersonalStoredBytes"]
+if (personal.formatVersion !== 1 || !["maxFavorites", "maxPersonalStoredBytes", "maxListEncodedBytes",
+    "maxListDecodedBytes", "maxSharedUrlAscii", "maxListNameCodePoints", "maxEntryTextCodePoints", "maxEntriesPerList"]
     .every(key => Number.isSafeInteger(personal[key]) && personal[key] > 0)) throw new Error("Invalid personal settings");
 if (!search || search.formatVersion !== 1 || !Number.isInteger(search.maxQueryCodePoints) ||
     !Number.isInteger(search.maxTerms) || !Number.isInteger(search.pageSize)) throw new Error("Invalid trusted search settings");
@@ -21,6 +22,12 @@ if (!config || typeof config !== "object" || config.formatVersion !== 1 || confi
       .every(key => typeof config.ui.colors[key] === "string" && /^#[0-9a-fA-F]{6}$/.test(config.ui.colors[key]))) throw new Error("Invalid Android fixture settings");
 const url = new URL(config.descriptorUrl);
 if (!["http:", "https:"].includes(url.protocol)) throw new Error("Invalid descriptor URL");
+const canonical = new URL(config.canonicalBaseUrl);
+if (canonical.protocol !== "https:" || canonical.username || canonical.password || canonical.search || canonical.hash ||
+    canonical.pathname !== "/" || typeof config.listLinkPath !== "string" || !/^[A-Za-z0-9_-]+\/$/.test(config.listLinkPath) ||
+    typeof config.listFileName !== "string" || !/^[A-Za-z0-9._-]+\.dvlist\.json\.gz$/.test(config.listFileName) ||
+    !Number.isInteger(config.listCompressionLevel) || config.listCompressionLevel < 0 || config.listCompressionLevel > 9)
+  throw new Error("Invalid list transport settings");
 await mkdir(new URL("build/generated", root), { recursive: true });
 await writeFile(new URL("build/generated/config.properties", root),
   Object.entries(config).filter(([, value]) => typeof value !== "object")
@@ -30,9 +37,12 @@ await mkdir(new URL("app/build/generated/settings/values", root), { recursive: t
 await writeFile(new URL("app/build/generated/settings/values/config.xml", root),
   `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n` +
   `<string name="descriptor_url" translatable="false">${xml(config.descriptorUrl)}</string>\n` +
+  `<string name="canonical_base_url" translatable="false">${xml(config.canonicalBaseUrl)}</string>\n` +
+  `<string name="list_link_path" translatable="false">${xml(config.listLinkPath)}</string>\n` +
+  `<string name="list_file_name" translatable="false">${xml(config.listFileName)}</string>\n` +
   Object.entries({ ...bounds, ...config.ui, connectTimeoutMs: config.connectTimeoutMs, readTimeoutMs: config.readTimeoutMs,
     trustedMaxQueryCodePoints: search.maxQueryCodePoints, trustedMaxTerms: search.maxTerms, trustedMaxPageSize: search.pageSize,
-    maxFavorites: personal.maxFavorites, maxPersonalStoredBytes: personal.maxPersonalStoredBytes })
+    ...personal, listCompressionLevel: config.listCompressionLevel })
     .filter(([, value]) => typeof value === "number")
     .map(([key, value]) => `<integer name="${key.replace(/[A-Z]/g, c => "_" + c.toLowerCase())}">${value}</integer>`).join("\n") +
   "\n" + Object.entries(config.ui.colors).map(([key, value]) => `<color name="theme_${key}">${xml(value)}</color>`).join("\n") +

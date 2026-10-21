@@ -8,6 +8,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -55,7 +56,8 @@ class MainActivity : ComponentActivity() {
                 primary = colorResource(R.color.theme_primary), background = colorResource(R.color.theme_background),
                 surface = colorResource(R.color.theme_surface), onBackground = colorResource(R.color.theme_text),
                 onSurface = colorResource(R.color.theme_text)) else lightColorScheme()
-            CompositionLocalProvider(LocalContext provides localized, LocalConfiguration provides configuration) {
+            CompositionLocalProvider(LocalContext provides localized, LocalConfiguration provides configuration,
+                LocalActivityResultRegistryOwner provides this@MainActivity) {
                 MaterialTheme(colorScheme = colors) { LibraryScreen(model) }
             }
         }
@@ -89,8 +91,14 @@ fun LibraryScreen(model: LibraryViewModel = viewModel()) {
             val personal = state.personal
             val canSave = personal != null && state.personalError == null && !state.saving
             val selected = state.selected
-            if (state.section == "settings") {
+            if (state.section == "transfer") {
+                Column(Modifier.weight(1f)) {
+                    TextButton(onClick = { model.section("settings") }) { Text(stringResource(R.string.back)) }
+                    TransferScreen(state.prepared)
+                }
+            } else if (state.section == "settings") {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    OutlinedButton(onClick = { model.section("transfer") }) { Text(stringResource(R.string.transfer_title)) }
                     Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
                     listOf("device" to stringResource(R.string.follow_device), "en" to "English", "kn" to "ಕನ್ನಡ").forEach { (value, label) ->
                         Row {

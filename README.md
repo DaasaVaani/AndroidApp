@@ -5,7 +5,9 @@ Application ID in.daasavaani.app. **Current implementation is a native fixture d
 not a production/offline release.** Explicit preparation verifies all synthetic
 records before canonical Kannada reading and indexed search. Prepared data is
 memory-only. Favorites and UI language/theme use one durable Room database; durable
-offline activation and complete feature parity remain unimplemented.
+offline activation and complete feature parity remain unimplemented. Settings also
+offers process-local minimal-list preview and complete file/link re-export without
+saving lists or preparing/downloading lyrics.
 Staged implementation is authorized; production gates remain.
 
 Start with [AGENTS.md](AGENTS.md),
@@ -72,9 +74,64 @@ ordinary write failures expose explicit retry without advising data deletion.
 Loading, follow-device, Warm and unavailable-favorite labels use the pinned
 bilingual Shared catalog.
 
+### Minimal list preview and re-export
+
+Settings → List snapshot preview is reachable before preparation and regardless of
+personal-storage availability. Choose a local document or explicitly paste a
+complete HTTPS snapshot link. The picker grants access only to the selected document;
+the app takes no persistent document permission. No incoming intent/App Link
+association is added. Preview and re-export never write Room, fetch lyrics, mark
+content ready, match text to catalog items or upload lists.
+
+Pure Kotlin `core/ListTransfer.kt` implements the pinned
+[minimal v1 contract](shared/docs/list-transfer.md). Names, placeholder text,
+explicit user fallback, opaque reference IDs, repetitions and order remain literal.
+Only the exact format/version/name/entries allowlist is accepted, with exact entry
+allowlists. Strict JSON syntax, duplicate fields, malformed UTF8/scalars, C0/C1
+controls and line separators are rejected. One optional leading BOM counts toward
+the decoded byte limit. Compact exported UTF8 has no BOM; canonical Kannada synthetic
+test text is not translated or normalized.
+
+Owning `shared/settings/personal-transfer.yml` supplies encoded9MiB, decoded8MiB,
+whole-link2048 ASCII, code-point and occurrence bounds through `npm run config`.
+`settings/android.yml` independently owns canonical HTTPS base, open path, export
+filename and compression level. The current canonical wire is
+`https://daasavaani.github.io/open/#/list/<raw-deflate-base64url>`; the same HTTPS
+origin's root path is also accepted. Credentials, query, whitespace, other paths,
+noncanonical base64url/pad bits and trailing compressed data are errors. No link
+is shortened, truncated or silently changed into another transport.
+
+Gzip decoding parses the header and bounded optional fields, validates optional
+header CRC, raw DEFLATE termination, CRC32 and unsigned length, and requires exactly
+one member with no trailing byte. It does not use concatenation-accepting
+`GZIPInputStream`. No compression-ratio rejection is invented. Input is counted
+before retention past the encoded ceiling; inflation stops on decoded ceiling+1.
+Parsing has fixed structural depth and bounds every string/entry before retention.
+Work is O(encoded + decoded + occurrences), with memory bounded by the configured
+input/output ceilings plus bounded parsed strings/entries. Fixed-size I/O/inflate/
+deflate chunks, header/string/whitespace/entry loops check cancellation off the UI
+thread. A cancelled document operation also closes its active stream.
+
+Rows distinguish not-yet-resolved references before preparation, known references
+against only the verified in-memory catalog, and absence from that available catalog.
+Literal placeholders never become references. Known catalog titles are display-only
+and never copied into transfer payloads; no offline availability is inferred.
+Complete gzip export uses Android's Create Document adapter; complete canonical
+links are displayed/selectable and can be explicitly copied. Oversized links explain
+the lossless file fallback. System provider/clipboard errors are explicit, not
+reported as success. A failed/cancelled document write attempts deletion of only its
+new destination; providers can retain an incomplete copy, so destination cleanup and
+retry remain necessary. No delivery guarantee, encryption, revocation or verified
+OS share/App Link interoperability is claimed.
+
+There is deliberately **no Save/import-to-library control**, list persistence or
+automatic recovery of a preview after process death. This is partial
+XFER-01/02/03/05/06/08 evidence, not full transfer acceptance, native feature parity,
+full backup correctness or release readiness.
+
 ### Remaining approved slices
 
-This batch does **not** implement recitation lists/list transfer, full personal
+This batch does **not** implement persistent recitation lists/list-import Save, full personal
 backup/restore, system backup, bookmarks/recents/learning state, persistent offline
 snapshots, production migrations or full Android parity. Android system backup is
 still disabled rather than backing up false content readiness. Remaining selected
@@ -112,10 +169,23 @@ the Website demo at the endpoint in settings/android.yml. Configuration is gener
 from owned settings and pinned Shared policy. Never target another user's device.
 The Gradle wrapper distribution and wrapper JAR have checked SHA256 pins.
 
-Core JVM tests cover search and first-use/override locale selection. Instrumentation
+Core JVM tests cover search, first-use/override locale selection and the transfer
+codec. Transfer tests use actual9MiB/8MiB/2048 ceilings and ceiling+1 (including a
+valid9MiB single gzip member, valid high-compression8MiB JSON and complete2048/
+2049 canonical URLs), literal/repeated round trips, pinned Shared acceptance/
+rejection fixtures and an independent Node/zlib deterministic fixture vector.
+They reject malformed JSON/UTF8/Unicode, duplicate/unknown fields, unsupported
+versions, gzip truncation/CRC/length/concatenation/trailing bytes and observe
+cancellation. Instrumentation
 uses real Room/SQLite and Compose: reopen persistence, unavailable IDs, limits,
 stale writers, rejected records/schemas, future-version preservation, v1 migration,
 settings/favorites before preparation and preparation-to-canonical-reading.
+The native transfer journey covers pre-preparation link/file-stream preview,
+no Save, cancellation, invalid input/provider failure, known/pending/unavailable
+catalog states, complete link re-export and unchanged favorites/preferences/theme.
+Document picker/provider interoperability across real devices, destination failure
+semantics, signed App Links and OS sharing remain required later acceptance gates;
+injected local streams do not establish those claims.
 App JVM tests currently have no sources; do not count NO-SOURCE as a pass.
 The debug APK allows cleartext only for the local fixture endpoint; release does not.
 Install the debug APK from app/build/outputs/apk/debug/app-debug.apk for a local

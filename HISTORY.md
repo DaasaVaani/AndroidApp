@@ -1,5 +1,74 @@
 # Documentation history
 
+## 2026-10-22: bounded native minimal-list preview
+
+- Archived superseded README scope: "This batch does not implement recitation
+  lists/list transfer". Minimal process-local preview/re-export is now implemented;
+  list persistence/import Save, full backups, native offline parity, real OS
+  interoperability and signed App Links remain open.
+- Authorized scope is only Android and its independently pinned nested Shared.
+  Parent supplied exact already published/validated Shared
+  `88f15095339ea6a9617845fa2439084f62a64fe9` for native preview/cancellation/export
+  labels (reported preflight39654732880/main39654821792). No owner Shared,
+  Website or Library source was accessed/edited.
+- Added pure Kotlin bounded strict single-member gzip and raw-DEFLATE canonical
+  hash-link codecs, fixed-depth duplicate-aware JSON parsing, local preview and
+  native document/copy adapters. All portable ceilings use pinned owner settings;
+  native host/path/filename/compression settings mirror the parent-supplied
+  approved Website wire without accessing Website source.
+- Independent deterministic `core/src/test/resources/list-transfer-v1.json` uses
+  Node built-in zlib level6 over literal Kannada synthetic minimal JSON. Kotlin
+  tests require exact JSON, decode its raw-deflate link/gzip bytes and require
+  deterministic native re-export. JVM/Node zlib block selection differs for this
+  input, so compressed-byte equality is not a portable wire requirement.
+  This is codec fixture interoperability, not real OS delivery or linguistic proof.
+- Incremental `npm run config`, `.\gradlew.bat :core:test :app:assembleDebug --no-daemon --console=plain`
+  passed. First connected run exposed localized Compose context losing the
+  ActivityResultRegistryOwner (15 existing tests passed; new transfer test failed).
+  Supplied the actual activity owner explicitly, then
+  `.\gradlew.bat :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.TransferUiTest --no-daemon --console=plain`
+  passed (one real native Compose journey). Neither the failed run nor this focused
+  rerun is substituted for the required final full-tree gate.
+- Parent subsequently published the requested truthful partial-document failure/
+  cancellation label at exact Shared
+  `add95cb8f9beadc0f1250d73d710b1f656d4ca37` (reported preflight39656574060/
+  main39656647990, Shared14 tests). Independently adopted only that revision.
+  Its additive portable theme token catalog matches existing native
+  light/dark/warm/device; native follow-device default is unchanged.
+- The initial Node-vector test incorrectly required identical compressed bytes
+  across different zlib implementations. Replaced that non-contract assertion
+  with exact JSON plus deterministic native output, actual Kotlin decoding of
+  the committed Node raw-deflate/gzip vectors, and actual Node built-in zlib
+  decoding of Kotlin output. `.\gradlew.bat :core:test --no-daemon --console=plain`
+  then passed14 tests, including all real configured transport ceilings.
+- `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed using existing JDK21/SDK36 and explicitly selected emulator-5556/API36:
+  core14 tests and connected16 tests, zero failures/errors/skips. Debug/release
+  lint had zero errors and79/80 warnings (including unused full Shared strings,
+  existing icon/backup/toolchain/dependency guidance). App JVM tests remain
+  NO-SOURCE, not passes. SDK XML-version/native-library tooling warnings remain.
+  The complete gate is rerun on the final staged tree, including the additional
+  actual clipboard assertion and equivalent HTTPS-origin/default-port checks,
+  before publication; no focused run substitutes for it.
+- `python tools/check_repository.py` passed53 tracked files. actionlint1.7.12
+  with ShellCheck0.11.0 on `.github/workflows/hygiene.yml`, strict pinned Shared
+  `strictYaml` parsing of all5 `.github` YAML files, a tracked Markdown local-link/
+  anchor/fence audit of5 files, `git --no-pager diff --check` and
+  `git --no-pager diff --cached --check` passed.
+- Outside instrumentation, reinstalled the debug APK on the same owned emulator
+  and used the actual Open Document picker to select only the generated synthetic
+  `.dvlist.json.gz` from Downloads before preparation. Preview preserved literal
+  Kannada, markup-looking placeholder, spaces and repeated unresolved references.
+  Used actual Create Document to write `list.dvlist.json.gz`; pulled its complete
+  bytes and independently verified exact minimal JSON with Node `gunzipSync`.
+  Independently decoded the actual displayed complete canonical HTTPS link with
+  Python raw zlib and compared exact fixture JSON. Screenshots:
+  `app/build/native-transfer-preview.png` and `app/build/native-transfer-link.png`.
+  This one emulator/provider demonstration is not supported-device/OS-interoperability
+  acceptance. Final debug APK remains `app/build/outputs/apk/debug/app-debug.apk`;
+  required explicit preparation is restored after the final connected run.
+
 ## 2026-10-21: durable fixture personal foundation
 
 - Archived temporary current blocker: "Publication blocker: the pinned catalog
