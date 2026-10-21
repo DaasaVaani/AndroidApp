@@ -9,7 +9,9 @@ Start with [AGENTS.md](AGENTS.md),
 [current specification](https://github.com/DaasaVaani/shared/blob/main/docs/implementation-specification.md)
 and [validation policy](https://github.com/DaasaVaani/DaasaVaani.github.io/blob/main/docs/testing-and-release.md).
 Shared at shared/ is independently pinned contracts/fixtures/settings/UI resources,
-not an app runtime. Clone recursively or initialize the submodule.
+not an app runtime. Clone recursively or initialize the submodule. Authorized pin
+updates follow the [Shared-first publication order](https://github.com/DaasaVaani/DaasaVaani.github.io/blob/main/docs/testing-and-release.md#shared-submodule-updates):
+publish and validate Shared before committing tested consumer pins.
 
 ## Current boundaries
 

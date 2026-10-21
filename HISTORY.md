@@ -37,6 +37,25 @@ without PRs. Scope: README, root AI instructions and history; no Android code,
 Gradle tooling, release or Shared-pin update. Rerun all available documentation/
 bootstrap checks before publication; absent Android builds/tests are not passes.
 
+## 2026-10-21: coordinated Shared pin correction
+
+- The owner authorized correcting the stale Shared pin from
+  `5a2446c31ffb97c9899a7ba3a287e58b2b2eb490` to
+  `dbaac0d4c5d255a0c6663d9c21fa2b918761e027`. That exact target was already
+  published and passed Shared Repository hygiene run39576588515 before the
+  consumer update. Intervening upstream changes are documentation only.
+- Updated the gitlink and linked the Shared-first publication procedure; kept
+  the submodule detached at the exact target, with no local modifications.
+- `python tools\check_repository.py`: passed16 consumer files.
+  `python shared\tools\check_repository.py`: passed15 pinned Shared files.
+  `git --no-pager diff --check`: passed.
+- `python <session-folder>\files\validate-shared-pins.py`: passed58 Markdown files
+  including the three pinned checkouts, links/anchors/fences/encoding/whitespace,
+  exact clean Shared revisions and153 unchanged Website requirement IDs.
+- No Android build/JVM/instrumentation or contract runner exists; no such pass
+  is claimed. No workflow YAML changed and local YAML tooling is unavailable.
+  Scope is documentation/gitlink metadata under the bootstrap exception.
+
 ## Snapshot: README.md
 
 # DaasaVaani Android
