@@ -42,7 +42,11 @@ jobs:
         run: |
           compile_sdk=$(sed -n 's/^compileSdk=//p' build/generated/config.properties)
           test -n "$compile_sdk"
-          sdkmanager "platforms;${compile_sdk}"
+          build_tools=$(python3 -c 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path("gradle/libs.versions.toml").read_text())["versions"]["buildTools"])')
+          android --sdk="$ANDROID_HOME" sdk install "platforms/android-${compile_sdk}"
+          android --sdk="$ANDROID_HOME" sdk install "build-tools/${build_tools}"
+          test -f "$ANDROID_HOME/platforms/android-${compile_sdk}/android.jar"
+          test -f "$ANDROID_HOME/build-tools/${build_tools}/source.properties"
       - name: Build all variants and run JVM and lint suites
         run: ./gradlew :core:build :app:build :app:lintDebug :app:lintRelease --no-daemon
       - name: Check repository files

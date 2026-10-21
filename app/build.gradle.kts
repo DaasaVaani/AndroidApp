@@ -6,6 +6,7 @@ val settings = Properties().apply {
 android {
     namespace = settings.getProperty("applicationId")
     compileSdk = settings.getProperty("compileSdk").toInt()
+    buildToolsVersion = libs.versions.buildTools.get()
     defaultConfig {
         applicationId = settings.getProperty("applicationId")
         minSdk = settings.getProperty("minSdk").toInt()

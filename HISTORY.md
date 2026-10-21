@@ -47,6 +47,12 @@
   still reads generated owning settings; no duplicated compile-SDK default.
 - This changes CI dependency provisioning, not application content, package
   identity, signing policy or the requirement for local connected-device validation.
+- Run39592875300 then reached SDK installation but the deprecated sdkmanager could
+  not locate the legacy `platforms;36` identifier. Verified the actual current
+  Android CLI help and used its `platforms/android-36` / `build-tools/36.0.0`
+  package form. Centralized build-tools36.0.0 in the native version catalog for
+  Gradle/CI and added concrete installed-file checks; no missing SDK is silently
+  treated as a successful setup.
 
 ## Archive policy
 
