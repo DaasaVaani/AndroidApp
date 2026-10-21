@@ -1,5 +1,83 @@
 # Documentation history
 
+## 2026-10-21: durable fixture personal foundation
+
+- Archived temporary current blocker: "Publication blocker: the pinned catalog
+  currently gives generic personal-storage errors and labels the follow-device
+  options with the platform name. Dedicated bilingual future-schema/recovery,
+  follow-device and Warm labels have been requested from the Shared owner. Do not
+  publish this batch until that upstream validated catalog is pinned, integrated
+  and the complete native gate rerun."
+- Parent published the requested six bilingual native labels at exact Shared
+  `91d33100fce2f2bb7f1ea98a5ebc566fcf1690b5`; reported Shared13 tests and actual
+  required hosted jobs passed in preflight39650044785 and main39650129581.
+  Fetched and independently pinned only this clean nested checkout. Integrated
+  actionable future/schema errors, loading, follow-device, Warm and unavailable
+  favorite labels. Extended the Compose restart journey to retain Warm after
+  proving the initial saved Dark choice.
+- After the final catalog integration, `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed again (BUILD SUCCESSFUL,3m44s): core4 tests and connected15 tests with zero
+  failures/errors/skips on explicitly selected emulator-5556/API36; both lint
+  variants have zero errors. App JVM tasks still have NO-SOURCE. Reinstalled the
+  final debug APK and completed required preparation through the actual device UI;
+  the synthetic demo and existing services remain available.
+
+- Superseded README introduction: prepared data was memory-only and there was
+  "no Room personal state, durable offline activation or complete feature parity."
+  Preparation is still memory-only; only favorites/UI language/theme now persist.
+- Superseded executable coverage described only core search tests and one Compose
+  preparation-to-reading journey. The previous boundaries listed the selected
+  Room/backup/epoch/locale and UIDT34+/FGS26-33 directions together with implemented
+  fixture behavior. Those remain approved obligations, not completed features.
+- Owner authorized one bounded Android durable-personal batch, independently
+  updated published Shared pin, full local/hosted validation and direct-main
+  publication under the existing admin exception. No protection change is made.
+- The initial environment had no responsive emulator-5556 or localhost5173
+  service. Created an isolated `app/build/owned-avd` configuration from the
+  already installed API36 Google APIs image and started only port5556. Restored
+  read-only serving of the existing Website `dist` artifacts on5173; no Website/
+  Library files or unrelated user AVD were modified. No new toolchain was installed.
+- Incremental `npm run config` and
+  `.\gradlew.bat :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon`
+  passed. An intermediate full core/build/debug+release lint command passed.
+  The first complete connected run exposed incorrectly nested JUnit test methods
+  (one initialization error; the two real Compose journeys passed). The nesting
+  was corrected. A second connected run caught the same nesting mistake in one
+  newly added test; it was corrected and all13 repository tests plus the two
+  Compose journeys subsequently passed (15 tests, zero failures/errors/skips).
+  The failed runs are not finalization evidence.
+- Disabled App Bundle locale splits because the in-app override must retain both
+  committed UI catalogs. This addresses the new AppBundleLocaleChanges lint
+  warning without a runtime language-download dependency. Remaining lint warnings
+  include unused full Shared resources, baseline icon/backup-rule guidance and
+  dependency/toolchain update notices; they are not production acceptance.
+- Independently adopted clean published Shared
+  `db5c49bd9e2dc830f4364862c3e4464584c0c3af`, from
+  `b0950e2f01823c471b18fff8abb49ce176d8f26e`. Requested dedicated bilingual
+  future-schema/recovery/follow-device/Warm labels from the Shared owner; no local
+  Shared catalog changes or floating owner-repository pin were used.
+- Final current-code local gate: `npm run config` then
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed (BUILD SUCCESSFUL). JDK21, SDK36 and owned emulator-5556/API36 were
+  explicitly selected. Core:4 tests, connected:15 tests, all zero failures/errors/
+  skips. Both lint variants have zero errors; the dynamic-locale warning is gone.
+  App JVM suites have NO-SOURCE, not a claimed app-JVM pass. SDK XML/unstripped
+  native-library warnings remain disclosed.
+- `python tools/check_repository.py`, actionlint1.7.12 with ShellCheck0.11.0,
+  Node/YAML parsing of every `.github` YAML file, tracked Markdown link/anchor/fence
+  audit and unstaged/staged `git diff --check` passed. Room's standard generated
+  schema JSON is validated as JSON/versioned metadata and is narrowly exempt from
+  the terminal-newline rule; other text/whitespace checks remain unchanged.
+- Restored `app/build/outputs/apk/debug/app-debug.apk` after instrumentation
+  uninstalled it, launched only `in.daasavaani.app` and explicitly completed fixture
+  preparation through its actual device UI. Synthetic browsing is visible.
+  The owned emulator and read-only fixture server remain available.
+- At the initial handoff publication was blocked on Shared catalog labels. No native
+  commit/push or hosted preflight/main result is claimed. Production lists/backups/
+  offline activation, OS-locale restore, supported-device matrix and release
+  signing remain outside this bounded batch.
+
 ## 2026-10-21: native fixture simulator milestone
 
 - The owner authorized the recommended staged implementation and real simulator

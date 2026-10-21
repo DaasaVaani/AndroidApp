@@ -44,8 +44,8 @@ approved details; history is never implementation authorization or present evide
 - Incremental changes may use focused checks; finalization/confirmation and every
   push require complete applicable builds and all configured tests/checks of the
   final change set, not only targeted tests. Include dependent contract evidence.
-- Available now: settings generation, core JVM tests, debug build/lint, connected
-  Compose test, `python tools/check_repository.py`, workflow YAML/whitespace checks
+- Available now: settings generation, core JVM tests, all-variant build/lint, connected
+  Room/Compose tests, `python tools/check_repository.py`, workflow YAML/whitespace checks
   described in [README](README.md#validation). App JVM tests have NO-SOURCE.
 - Documentation-only work is not automatically exempt now that tooling exists.
   State unimplemented/untested production and device coverage explicitly.

@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import hashlib
+import json
 
 
 def main():
@@ -40,7 +41,16 @@ def main():
         except UnicodeError:
             errors.append(f"{name}: expected UTF-8 bootstrap text")
             continue
-        if text and not text.endswith("\n"):
+        room_schema = name.startswith("app/schemas/in.daasavaani.app.PersonalDatabase/") and path.suffix == ".json"
+        if room_schema:
+            try:
+                schema = json.loads(text)
+                if schema["formatVersion"] != 1 or schema["database"]["version"] != int(path.stem):
+                    errors.append(f"{name}: invalid Room schema version")
+            except (ValueError, KeyError, TypeError):
+                errors.append(f"{name}: invalid generated Room schema")
+        # Room's annotation processor emits JSON without a terminal newline.
+        if text and not text.endswith("\n") and not room_schema:
             errors.append(f"{name}: missing final newline")
         for number, line in enumerate(text.splitlines(), 1):
             if line.rstrip() != line:

@@ -4,6 +4,9 @@ const root = new URL("../", import.meta.url);
 const config = strictYaml(await readFile(new URL("settings/android.yml", root), "utf8"));
 const bounds = strictYaml(await readFile(new URL("shared/settings/publication-policy.yml", root), "utf8"));
 const search = strictYaml(await readFile(new URL("shared/settings/search.yml", root), "utf8"));
+const personal = strictYaml(await readFile(new URL("shared/settings/personal-transfer.yml", root), "utf8"));
+if (personal.formatVersion !== 1 || !["maxFavorites", "maxPersonalStoredBytes"]
+    .every(key => Number.isSafeInteger(personal[key]) && personal[key] > 0)) throw new Error("Invalid personal settings");
 if (!search || search.formatVersion !== 1 || !Number.isInteger(search.maxQueryCodePoints) ||
     !Number.isInteger(search.maxTerms) || !Number.isInteger(search.pageSize)) throw new Error("Invalid trusted search settings");
 if (!config || typeof config !== "object" || config.formatVersion !== 1 || config.fixtureOnly !== true ||
@@ -28,7 +31,8 @@ await writeFile(new URL("app/build/generated/settings/values/config.xml", root),
   `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n` +
   `<string name="descriptor_url" translatable="false">${xml(config.descriptorUrl)}</string>\n` +
   Object.entries({ ...bounds, ...config.ui, connectTimeoutMs: config.connectTimeoutMs, readTimeoutMs: config.readTimeoutMs,
-    trustedMaxQueryCodePoints: search.maxQueryCodePoints, trustedMaxTerms: search.maxTerms, trustedMaxPageSize: search.pageSize })
+    trustedMaxQueryCodePoints: search.maxQueryCodePoints, trustedMaxTerms: search.maxTerms, trustedMaxPageSize: search.pageSize,
+    maxFavorites: personal.maxFavorites, maxPersonalStoredBytes: personal.maxPersonalStoredBytes })
     .filter(([, value]) => typeof value === "number")
     .map(([key, value]) => `<integer name="${key.replace(/[A-Z]/g, c => "_" + c.toLowerCase())}">${value}</integer>`).join("\n") +
   "\n" + Object.entries(config.ui.colors).map(([key, value]) => `<color name="theme_${key}">${xml(value)}</color>`).join("\n") +

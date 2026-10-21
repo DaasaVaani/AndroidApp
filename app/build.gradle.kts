@@ -14,9 +14,15 @@ android {
         versionCode = settings.getProperty("versionCode").toInt()
         versionName = settings.getProperty("versionName")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments["room.schemaLocation"] = "$projectDir/schemas"
+            }
+        }
     }
     sourceSets["main"].res.srcDirs("../shared/generated/android", "build/generated/settings")
     buildFeatures { compose = true }
+    bundle { language { enableSplit = false } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_21; targetCompatibility = JavaVersion.VERSION_21 }
 }
 dependencies {
@@ -28,6 +34,8 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
+    implementation(libs.room.runtime)
+    annotationProcessor(libs.room.compiler)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test)
     androidTestImplementation(libs.androidx.test.junit)
