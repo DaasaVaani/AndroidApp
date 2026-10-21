@@ -1,8 +1,9 @@
 # DaasaVaani Android
 
 Native Kotlin/Compose/Material3 app targeting API26+, app -> pure Kotlin core.
-Application ID in.daasavaani.app. **Current implementation is a native fixture demo,
-not a production/offline release.** Explicit preparation verifies all synthetic
+Application ID in.daasavaani.app. **Current implementation includes a native fixture
+demo and separate read-only prelaunch lyric review, not a production/offline release.**
+Explicit fixture preparation verifies all synthetic
 records before canonical Kannada reading and indexed search. Prepared data is
 memory-only. Favorites and UI language/theme use one durable Room database; durable
 offline activation and complete feature parity remain unimplemented. Settings also
@@ -18,6 +19,62 @@ Shared at shared/ is independently pinned contracts/fixtures/settings/UI resourc
 not an app runtime. Clone recursively or initialize the submodule. Authorized pin
 updates follow the [Shared-first publication order](https://github.com/DaasaVaani/DaasaVaani.github.io/blob/main/docs/testing-and-release.md#shared-submodule-updates):
 publish and validate Shared before committing tested consumer pins.
+
+## Prelaunch owner-supplied lyric review
+
+The **Owner-supplied lyrics** entry is independent of fixture preparation, favorites,
+Settings and list preview. Opening it does not download anything. Its explicit
+**Prepare reading library** consent downloads and validates the complete canonical library
+from the configured HTTPS descriptor at
+`https://daasavaani.github.io/library/lyrics/latest.json`. No catalog browsing or
+reading is available until every referenced item verifies. Selecting a prepared
+title performs no network request. A title-substring filter is literal and case-insensitive,
+not the fixture search index, a transliteration profile or portable Unicode folding.
+Although the pinned Shared now supplies Unicode16 data, this reader does not adopt
+personal-name keys or perform a Unicode/personal-data migration.
+There is no video/image request, HTML rendering, link execution, generated text,
+script switching or personal-save control on this surface.
+
+This is the distinct
+[Shared prelaunch contract](shared/schemas/lyric-publication.schema.json) and
+[identity/layout definition](shared/docs/lyric-identity.md):
+`lyric-preview-v1`, canonical Kannada, stable lyric UUIDs and explicit `line` versus
+`layout` records. Real UUIDs never enter legacy `videoId` favorites/list records.
+Text is rendered literally with spaces, tabs, blank layout records and line breaks
+preserved. Visible bilingual notices disclose the prelaunch stage and incomplete
+full-launch gates. It shares the existing UI locale and theme only.
+
+`settings/android.yml` owns the endpoint and native safety ceilings: descriptor,
+encoded/decoded manifest/item bytes, catalog count, line count, text code points,
+tag count, title-query code points, JSON depth and aggregate encoded/decoded item
+budgets checked before complete preparation. Network requests have bounded
+connect/read/overall call timeouts, reject redirects/nonidentity HTTP encodings and stay on the configured
+HTTPS origin with hash-derived object paths. The reader checks strict fields,
+format/version/stage/capabilities, encoded SHA256 and exact encoded/decoded sizes,
+UUID uniqueness, summary agreement, UTF-8/Unicode scalar validity, duplicate JSON
+members and nesting limits before exposing content. Unsupported/oversized/invalid
+data fails visibly; cancel/retry is explicit. Failed or cancelled preparation retains
+the preceding completely validated set; partial catalogs/items are never activated.
+Duplicate line identities are also rejected across the complete set.
+Query rejection retains the last accepted query,
+clears results and displays failure rather than truncating input.
+Native byte ceilings are also checked against the pinned Shared portable role
+maxima during configuration generation; they cannot silently raise portable bounds.
+
+This data is process-local, read-only review state, **not durable offline preparation
+or an activated snapshot**. Real-ID favorites/lists, durable snapshots, script/search
+profiles, bookmarks, recents, density/font preferences and production linguistic/
+release acceptance remain open. A pre-consent size preview and durable snapshot/
+storage preparation remain later OFF-10 work; byte safety budgets and item progress
+here are not claims of those features. Publication availability and actual real-content
+native reading are separate gates; a missing feed is a blocker, never a fixture
+fallback or evidence of successful owner-text review.
+
+Partial requirement mapping: UX-01 (bounded canonical reader only), UX-03 (explicit
+line/layout preservation without inferring verses), LANG-01 (no translation),
+OFF-01/OFF-10 (explicit complete canonical preparation gate only),
+I18N-01/02/03 and current theme preferences. This does not close their complete
+acceptance criteria or authorize a personal-contract migration.
 
 ## Current fixture behavior and boundaries
 
@@ -169,8 +226,16 @@ the Website demo at the endpoint in settings/android.yml. Configuration is gener
 from owned settings and pinned Shared policy. Never target another user's device.
 The Gradle wrapper distribution and wrapper JAR have checked SHA256 pins.
 
-Core JVM tests cover search, first-use/override locale selection and the transfer
-codec. Transfer tests use actual9MiB/8MiB/2048 ceilings and ceiling+1 (including a
+Core JVM tests cover search, first-use/override locale selection, prelaunch lyric
+contracts/encoded verification and the transfer codec. Prelaunch vectors use only
+synthetic text and cover strict fields/version/capabilities, duplicate UUIDs/JSON
+members, malformed UTF-8/scalars, reference/path/size/hash limits, summary mismatch,
+line/layout distinctions, literal whitespace, query bounds, cancellation and retry.
+Native synthetic instrumentation also exercises the complete descriptor/manifest/item
+chain, explicit complete-preparation gating, read-only UI/personal isolation,
+filter/reader text and cancel/retry/reload-failure preservation. It is not a live
+feed or real-content demo.
+Transfer tests use actual9MiB/8MiB/2048 ceilings and ceiling+1 (including a
 valid9MiB single gzip member, valid high-compression8MiB JSON and complete2048/
 2049 canonical URLs), literal/repeated round trips, pinned Shared acceptance/
 rejection fixtures and an independent Node/zlib deterministic fixture vector.
@@ -189,8 +254,9 @@ injected local streams do not establish those claims.
 App JVM tests currently have no sources; do not count NO-SOURCE as a pass.
 The debug APK allows cleartext only for the local fixture endpoint; release does not.
 Install the debug APK from app/build/outputs/apk/debug/app-debug.apk for a local
-simulator demo; it contains no lyrics. The current demo requires the local Website
-server and explicitly discloses synthetic content and unavailable features.
+simulator demo; it contains no lyrics. The fixture demo requires the local Website
+server and explicitly discloses synthetic content and unavailable features. The
+separate owner-supplied reader uses the configured live HTTPS publication instead.
 
 CI builds all variants/core/JVM/lint; it does not claim a connected-device run.
 The identical named job runs on `validation/**` pushes before direct-main

@@ -1,5 +1,106 @@
 # Documentation history
 
+## 2026-10-22: bounded prelaunch stable-ID native reading
+
+- Archived superseded README opening: "Current implementation is a native fixture
+  demo, not a production/offline release." The fixture remains isolated and all
+  prior preparation/reader/favorite/list-preview paths are retained; a separate
+  read-only `lyric-preview-v1` catalog/reader is now implemented.
+- Independently verified published Shared main `26a02b3423060d8efa7897cd92844a79ffdacc9c`
+  with `gh run view 39672859078 --repo DaasaVaani/shared --json conclusion,headSha,status`:
+  completed/success at exactly that SHA. Clean nested checkout was verified before
+  adopting that independently pinned revision. No Library sources/raw Markdown were
+  accessed, copied or generated. No other consumer pin changed.
+- Added native-owned endpoint/bounds generation, strict bounded UUID catalog/item
+  validation, encoded-gzip verification, explicit whole-library preparation/cancel/retry, literal
+  title filtering and canonical line/layout reading. Existing Shared bilingual
+  labels and existing locale/theme are reused; no actual content or generated
+  variants are committed. Portable Unicode and durable lists remain separate
+  policy/implementation blockers, not acceptance claims of this slice.
+- Incremental validation: `npm run config` passed;
+  `.\gradlew.bat :core:test :app:compileDebugKotlin --no-daemon --console=plain`
+  passed; `.\gradlew.bat :core:test :app:compileDebugAndroidTestKotlin --no-daemon --console=plain`
+  passed. These are incremental checks, not substitutes for the full gate.
+- First full command
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  built both variants and ran both lints, but connected tests failed (18 run,
+  2 failures, 0 skipped): the new test used a synthetic legacy favorite with an
+  invalid length; the later locale journey also raised a Compose wrong-thread
+  failure while the new test used an automatic host. Corrected the fixture to the
+  existing valid unavailable ID and used the
+  established empty-rule/explicit-activity pattern. No product validation was
+  weakened and the failed run is not counted as passing evidence.
+- Full rerun of that exact Gradle command passed with JDK21 and SDK36 on owned
+  `emulator-5556` (API36, boot complete); fixture
+  `http://localhost:5173/demo/latest.json` returned HTTP200 before execution.
+  Core JVM:25 tests,0 failures/errors/skips. Connected Room/Compose/API36:19 tests,
+  0 failures/errors/skips, including3 new synthetic lyric instrumentation tests.
+  Debug/release builds passed. Both configured lints passed (debug0 errors/
+  79 resource/dependency/manifest warnings, release0 errors/80 warnings).
+  App JVM tasks are NO-SOURCE, not a passed app JVM suite. Plugin configuration
+  placeholder/prebuild SKIPPED tasks are not omitted configured test suites.
+- `python tools\check_repository.py` passed for59 tracked files; strict Node/yaml
+  parsing passed for all5 GitHub YAML files; `git --no-pager diff --check` and
+  `git --no-pager diff --cached --check` passed. Editor diagnostics on the new
+  production core/native source and instrumentation file reported no errors.
+  No dependencies or toolchains were installed.
+- Library live publication/native real-content demonstration is pending. No main
+  push is authorized until the parent confirms the feed is live and actual native
+  reading is independently verified. Synthetic tests are not owner-text review,
+  a durable offline claim or a public launch.
+- The parent reaffirmed Android's complete-library consent requirement before
+  publication. Replaced the initial uncommitted on-demand item-selection behavior:
+  explicit preparation now verifies all canonical items and aggregate budgets
+  before exposing any catalog/reader, selecting prepared content is network-free,
+  and cancelled/failed replacement retains the complete prior set. The earlier
+  successful checks above were incremental evidence before this gate correction;
+  complete post-correction validation is required separately.
+- Owner subsequently confirmed review of all published lyrics; this is the owner's
+  text review, not a claim of full product/release acceptance. The parent reported
+  Library deploy39676226551 and complete229-item/5450-line live integrity checks.
+  Native source/reader scope remains canonical-only; source metadata placeholders
+  and portable Unicode/durable-list migration are not implemented in this slice.
+- Complete post-gate command
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed:25 core JVM tests and20 connected tests,0 failures/errors/skips, both
+  debug/release builds and configured lints. Four synthetic native lyric tests
+  cover complete preparation, aggregate budgets/cross-item duplicate lines,
+  literal read-only UI/personal isolation and cancellation/replacement retention.
+- On owned API36 emulator5556, installed the debug APK, woke/unlocked the
+  test-run screen, verified no title filter/reader before explicit consent, and
+  selected Prepare reading library against the live HTTPS feed. Complete native
+  preparation succeeded. After clearing an ephemeral title query, selected a
+  prepared published title and verified Back to lyrics, a multiline canonical
+  Kannada body, and absence of the fixture canonical-test label/personal-save
+  controls. No published lyric text was logged or committed. Initial automatic
+  title selection hit navigation instead; the explicit corrected reader check,
+  not that earlier attempt, is the successful demo evidence.
+- The runtime still used the earlier Shared notice pending the parent's neutral
+  prelaunch-label publication. This successful feed/reader check does not authorize
+  main publication or replace final validation after adopting that revision.
+- Adopted the final approved Shared
+  `8bd8793afb9f2fd43d52b62bc5436bbd4da1b0ce` after independently checking
+  `gh run view 39679248387 --repo DaasaVaani/shared --json conclusion,headSha,status`
+  and `gh run view 39679540067 --repo DaasaVaani/shared --json conclusion,headSha,status`:
+  both completed/success at exactly that SHA. Verified the clean nested checkout
+  before adoption. Its neutral prelaunch notice now reflects completed owner text
+  review; limits explicitly disclose whole-library consent and memory-only,
+  nonpersistent preparation. Shared's Unicode16 files are not consumer migration
+  authorization or implementation in this read-only slice.
+- At that final Shared pin, `npm run config` and the complete configured Gradle
+  command above passed again:25 core JVM tests,20 API36 connected tests,0
+  failures/errors/skips; debug/release builds and both full lints passed. Native
+  hygiene passed59 tracked files, strict parsing passed5 GitHub YAML files and
+  staged/unstaged whitespace checks passed. Existing resource/dependency/manifest
+  lint warnings and app JVM NO-SOURCE remain disclosed, not converted into passes.
+- Reinstalled the final debug APK on owned emulator5556 and independently verified
+  the neutral notice, explicit whole-library consent/memory-only limits, no
+  browsing before preparation, complete live preparation and a selected multiline
+  canonical Kannada reader with no fixture label or personal-save controls.
+  No feed count/hash is hardcoded in product logic and no published text is
+  committed/logged. Durable snapshots/lists, Unicode migration, pre-consent size
+  preview and full production/release acceptance remain outside this slice.
+
 ## 2026-10-22: bounded native minimal-list preview
 
 - Archived superseded README scope: "This batch does not implement recitation

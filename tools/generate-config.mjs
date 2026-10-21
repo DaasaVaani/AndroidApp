@@ -22,6 +22,23 @@ if (!config || typeof config !== "object" || config.formatVersion !== 1 || confi
       .every(key => typeof config.ui.colors[key] === "string" && /^#[0-9a-fA-F]{6}$/.test(config.ui.colors[key]))) throw new Error("Invalid Android fixture settings");
 const url = new URL(config.descriptorUrl);
 if (!["http:", "https:"].includes(url.protocol)) throw new Error("Invalid descriptor URL");
+const lyricUrl = new URL(config.lyricDescriptorUrl);
+const lyricBounds = Object.fromEntries(Object.entries(config).filter(([key]) => key.startsWith("lyric") && key !== "lyricDescriptorUrl"));
+if (lyricUrl.protocol !== "https:" || lyricUrl.username || lyricUrl.password || lyricUrl.search || lyricUrl.hash ||
+    !lyricUrl.pathname.endsWith("/latest.json") ||
+    !["lyricDescriptorBytes", "lyricManifestEncodedBytes", "lyricManifestDecodedBytes", "lyricItemEncodedBytes",
+      "lyricItemDecodedBytes", "lyricCatalogItems", "lyricLines", "lyricTextCodePoints", "lyricTags", "lyricQueryCodePoints",
+      "lyricJsonDepth", "lyricCallTimeoutMs", "lyricPreparedEncodedBytes", "lyricPreparedDecodedBytes"]
+      .every(key => Number.isSafeInteger(lyricBounds[key]) && lyricBounds[key] > 0 && lyricBounds[key] <= 2147483647))
+  throw new Error("Invalid prelaunch lyric settings");
+for (const [native, portable] of Object.entries({
+  lyricDescriptorBytes: "maxDescriptorBytes", lyricManifestEncodedBytes: "maxManifestEncodedBytes",
+  lyricManifestDecodedBytes: "maxManifestDecodedBytes", lyricItemEncodedBytes: "maxItemEncodedBytes",
+  lyricItemDecodedBytes: "maxItemDecodedBytes",
+})) {
+  if (!Number.isSafeInteger(bounds[portable]) || lyricBounds[native] > bounds[portable])
+    throw new Error(`Native lyric bound exceeds portable policy: ${native}`);
+}
 const canonical = new URL(config.canonicalBaseUrl);
 if (canonical.protocol !== "https:" || canonical.username || canonical.password || canonical.search || canonical.hash ||
     canonical.pathname !== "/" || typeof config.listLinkPath !== "string" || !/^[A-Za-z0-9_-]+\/$/.test(config.listLinkPath) ||
@@ -37,12 +54,13 @@ await mkdir(new URL("app/build/generated/settings/values", root), { recursive: t
 await writeFile(new URL("app/build/generated/settings/values/config.xml", root),
   `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n` +
   `<string name="descriptor_url" translatable="false">${xml(config.descriptorUrl)}</string>\n` +
+  `<string name="lyric_descriptor_url" translatable="false">${xml(config.lyricDescriptorUrl)}</string>\n` +
   `<string name="canonical_base_url" translatable="false">${xml(config.canonicalBaseUrl)}</string>\n` +
   `<string name="list_link_path" translatable="false">${xml(config.listLinkPath)}</string>\n` +
   `<string name="list_file_name" translatable="false">${xml(config.listFileName)}</string>\n` +
   Object.entries({ ...bounds, ...config.ui, connectTimeoutMs: config.connectTimeoutMs, readTimeoutMs: config.readTimeoutMs,
     trustedMaxQueryCodePoints: search.maxQueryCodePoints, trustedMaxTerms: search.maxTerms, trustedMaxPageSize: search.pageSize,
-    ...personal, listCompressionLevel: config.listCompressionLevel })
+    ...personal, ...lyricBounds, listCompressionLevel: config.listCompressionLevel })
     .filter(([, value]) => typeof value === "number")
     .map(([key, value]) => `<integer name="${key.replace(/[A-Z]/g, c => "_" + c.toLowerCase())}">${value}</integer>`).join("\n") +
   "\n" + Object.entries(config.ui.colors).map(([key, value]) => `<color name="theme_${key}">${xml(value)}</color>`).join("\n") +

@@ -74,10 +74,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel()) {
     BackHandler(enabled = state.selected != null) { model.select(null) }
     Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(contentPadding), verticalArrangement = Arrangement.spacedBy(space * 2)) {
-            Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
+            if (state.section != "lyrics") Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
                 Text(stringResource(R.string.fixture_notice), Modifier.padding(space * 1.5f), style = MaterialTheme.typography.bodySmall)
             }
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            if (state.section != "lyrics") state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             state.personalError?.let {
                 Text(stringResource(if (it == R.string.personal_invalid) R.string.personal_schema else it), color = MaterialTheme.colorScheme.error)
                 OutlinedButton(onClick = model::retryPersonal, enabled = !state.saving) { Text(stringResource(R.string.retry)) }
@@ -91,7 +91,12 @@ fun LibraryScreen(model: LibraryViewModel = viewModel()) {
             val personal = state.personal
             val canSave = personal != null && state.personalError == null && !state.saving
             val selected = state.selected
-            if (state.section == "transfer") {
+            TextButton(onClick = { model.section("lyrics") }, modifier = Modifier.testTag("owner-lyrics")) {
+                Text(stringResource(R.string.owner_lyrics))
+            }
+            if (state.section == "lyrics") {
+                Column(Modifier.weight(1f)) { LyricPreviewScreen() }
+            } else if (state.section == "transfer") {
                 Column(Modifier.weight(1f)) {
                     TextButton(onClick = { model.section("settings") }) { Text(stringResource(R.string.back)) }
                     TransferScreen(state.prepared)
