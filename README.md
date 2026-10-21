@@ -62,6 +62,8 @@ simulator demo; it contains no lyrics. The current demo requires the local Websi
 server and explicitly discloses synthetic content and unavailable features.
 
 CI builds all variants/core/JVM/lint; it does not claim a connected-device run.
+Its Ubuntu24.04 host and SDK bootstrap action are pinned; SDK availability is
+provisioned explicitly, not inferred from a runner image or PATH.
 The configured connected suite is required locally before finalization/push.
 Unsigned release compilation is not a signed release or complete release evidence.
 CI also parses .github YAML. Include new files and all documentation links/fences.

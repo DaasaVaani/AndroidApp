@@ -12,7 +12,7 @@ permissions:
 jobs:
   hygiene:
     name: Bootstrap files and YAML syntax
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source and pinned contracts
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -34,6 +34,10 @@ jobs:
         run: |
           npm ci
           npm run config
+      - name: Set up Android SDK tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          log-accepted-android-sdk-licenses: 'false'
       - name: Install configured Android platform
         run: |
           compile_sdk=$(sed -n 's/^compileSdk=//p' build/generated/config.properties)

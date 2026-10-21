@@ -35,6 +35,19 @@
   The debug-only cleartext endpoint serves local fixtures; release forbids it.
   No signing keys, real content migration or production readiness was claimed.
 
+## 2026-10-21: explicit hosted SDK provisioning
+
+- The first published native CI run39591629209 failed at Android platform setup:
+  `sdkmanager: command not found`. No successful hosted build was claimed.
+  The ubuntu-latest migration made inherited SDK availability unreliable.
+- Pinned the native host to Ubuntu24.04 and added explicit SDK bootstrap through
+  android-actions/setup-android v4 at immutable revision
+  `be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd`. Its actual input defaults and Node24
+  runtime were verified from that revision's action metadata. Platform selection
+  still reads generated owning settings; no duplicated compile-SDK default.
+- This changes CI dependency provisioning, not application content, package
+  identity, signing policy or the requirement for local connected-device validation.
+
 ## Archive policy
 
 This is the sole archive for past decisions, superseded guidance, dated
