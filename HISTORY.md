@@ -1,5 +1,40 @@
 # Documentation history
 
+## 2026-10-21: native fixture simulator milestone
+
+- The owner authorized the recommended staged implementation and real simulator
+  demonstration. Restored official checksum-verified JDK21/Gradle9.1/SDK tools
+  into user-local DaasaVaani tooling and created an owned hardware-accelerated
+  API36 medium_phone AVD at emulator-5556. No other device was targeted.
+- Implemented native Compose/Material3 preparation, full fixture validation before
+  reading, real cancellable HTTP requests/search, canonical Kannada reader and
+  pure Kotlin contracts/search core. UI/configuration resources use owned settings
+  and committed Shared catalogs. No WebView or bundled lyrics.
+- Adopted published, exact-CI-validated Shared
+  `b0950e2f01823c471b18fff8abb49ce176d8f26e`. Generated the official Gradle wrapper;
+  verified its JAR against the official9.1.0 SHA256 and added binary-safe checksum
+  validation rather than weakening UTF8 checks for arbitrary files.
+- `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`:
+  BUILD SUCCESSFUL. Debug/unsigned-release compilation and both lint variants
+  passed; core test results recorded2 tests with0 failures/errors/skips. One real
+  API36 Compose preparation-to-reading test passed with0 failures/errors/skips.
+  App JVM tasks had NO-SOURCE, not a claimed test pass.
+- Actual emulator UI preparation and canonical reading were exercised outside
+  instrumentation and captured. Visual inspection identified low-contrast system
+  status icons; system-bar appearance was derived from the configured background,
+  then the complete native command above passed again.
+- Expanded CI to restore declared dependencies, generate settings, build all
+  variants and run core/JVM/both lint variants. CI has no connected-device pass;
+  the real local connected suite remains required for finalization/push.
+  Local actionlint1.7.12/ShellCheck0.11.0 passed. Repository hygiene checked40
+  staged tracked files, including the verified wrapper; staged whitespace passed.
+- SDK XML-version and unstripped native-library warnings were not hidden. API26/
+  other devices, Room/personal parity, persistent offline snapshots, complete
+  navigation/DI, linguistic profiles and release signing remain incomplete.
+  The debug-only cleartext endpoint serves local fixtures; release forbids it.
+  No signing keys, real content migration or production readiness was claimed.
+
 ## Archive policy
 
 This is the sole archive for past decisions, superseded guidance, dated

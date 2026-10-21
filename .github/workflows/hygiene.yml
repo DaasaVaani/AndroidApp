@@ -14,10 +14,33 @@ jobs:
     name: Bootstrap files and YAML syntax
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source without fetching submodules
+      - name: Checkout source and pinned contracts
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          submodules: recursive
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.15.0
+          cache: npm
+      - name: Set up JDK
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: Generate owned configuration
+        run: |
+          npm ci
+          npm run config
+      - name: Install configured Android platform
+        run: |
+          compile_sdk=$(sed -n 's/^compileSdk=//p' build/generated/config.properties)
+          test -n "$compile_sdk"
+          sdkmanager "platforms;${compile_sdk}"
+      - name: Build all variants and run JVM and lint suites
+        run: ./gradlew :core:build :app:build :app:lintDebug :app:lintRelease --no-daemon
       - name: Check repository files
         run: python3 tools/check_repository.py
       - name: Parse YAML configuration and issue forms

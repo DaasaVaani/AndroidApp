@@ -1,0 +1,21 @@
+formatVersion: 1
+applicationId: in.daasavaani.app
+minSdk: 26
+compileSdk: 36
+targetSdk: 36
+versionCode: 1
+versionName: 0.1.0-fixture
+descriptorUrl: http://10.0.2.2:5173/demo/latest.json
+connectTimeoutMs: 30000
+readTimeoutMs: 30000
+fixtureOnly: true
+ui:
+  spacingDp: 8
+  contentPaddingDp: 16
+  readerFontSizeSp: 28
+  readerLineHeightSp: 48
+  colors:
+    background: "#f6f3eb"
+    surface: "#fffdf8"
+    text: "#242e29"
+    primary: "#285642"

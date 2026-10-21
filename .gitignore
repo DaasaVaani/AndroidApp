@@ -1,5 +1,6 @@
 # Gradle (wrapper and version catalogs stay tracked)
 .gradle/
+node_modules/
 build/
 .kotlin/
 

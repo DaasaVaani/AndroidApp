@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import hashlib
 
 
 def main():
@@ -25,6 +26,15 @@ def main():
         if path.is_dir():
             continue
         count += 1
+        if name == "gradle/wrapper/gradle-wrapper.jar":
+            checksum = root / "gradle/wrapper/gradle-wrapper.jar.sha256"
+            if not checksum.is_file():
+                errors.append(f"{name}: missing wrapper SHA256")
+                continue
+            expected = checksum.read_text(encoding="utf-8").strip()
+            if not re.fullmatch(r"[0-9a-f]{64}", expected) or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+                errors.append(f"{name}: wrapper SHA256 mismatch")
+            continue
         try:
             text = path.read_text(encoding="utf-8")
         except UnicodeError:
