@@ -14,6 +14,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.Closeable
 import java.util.UUID
+import java.util.concurrent.CopyOnWriteArraySet
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -113,6 +114,7 @@ class PersonalStore(
                         db.execSQL("CREATE TABLE learning (kind TEXT NOT NULL, value TEXT NOT NULL, label TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(kind, value))")
                     }
                 })
+            .enableMultiInstanceInvalidation()
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     db.execSQL("INSERT INTO preferences (id, language, theme, revision, recentHistoryEnabled, lyricFontSizeSp, readingDensity) VALUES (1, 'device', 'device', 0, ?, ?, ?)",
@@ -309,6 +311,17 @@ class PersonalStore(
         requireNotNull(result)
     }
 
+    @Synchronized fun observeLists(changed: () -> Unit): AutoCloseable = guarded {
+        val tracker = open().invalidationTracker
+        val observer = object : androidx.room.InvalidationTracker.Observer("lists", "occurrences") {
+            override fun onInvalidated(tables: Set<String>) { changed() }
+        }
+        tracker.addObserver(observer)
+        val local = context.getDatabasePath(name).absolutePath to changed
+        listObservers.add(local)
+        AutoCloseable { listObservers.remove(local); tracker.removeObserver(observer) }
+    }
+
     @Synchronized fun change(expected: PersonalSnapshot, language: String? = null, theme: String? = null,
         favorite: String? = null, reference: PersonalReference? = null): PersonalSnapshot =
         transact(expected.revision, expected.epoch) { before ->
@@ -381,6 +394,7 @@ class PersonalStore(
         val db = open()
         if (expectedEpoch != epoch) throw PersonalFailure(R.string.personal_stale)
         var result: PersonalSnapshot? = null
+        var listsChanged = false
         db.runInTransaction {
             val before = read(db)
             if (before.revision != revision) throw PersonalFailure(R.string.personal_stale)
@@ -392,6 +406,7 @@ class PersonalStore(
             if (revision == Long.MAX_VALUE) capacity()
             val after = candidate.copy(revision = revision + 1)
             validate(after)
+            listsChanged = before.lists != after.lists
             val dao = db.records()
             if (learningOnly) {
                 dao.clearLearning()
@@ -425,6 +440,11 @@ class PersonalStore(
             dao.updatePreference(after.language, after.theme, after.revision, after.recentHistory.enabled)
             result = read(db)
         }
+        if (listsChanged) {
+            // Room's cross-instance service may still be binding for a newly opened local writer.
+            val path = context.getDatabasePath(name).absolutePath
+            listObservers.filter { it.first == path }.forEach { it.second() }
+        }
         requireNotNull(result)
     }
 
@@ -455,6 +475,8 @@ class PersonalStore(
     }
 
     companion object {
+        private val listObservers = CopyOnWriteArraySet<Pair<String, () -> Unit>>()
+
         fun storedBytes(snapshot: PersonalSnapshot, formatVersion: Int = 6): Int {
             require(formatVersion in 3..6)
             var bytes = 0L

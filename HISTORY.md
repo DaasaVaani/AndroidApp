@@ -1321,3 +1321,124 @@ See [SECURITY.md](SECURITY.md) for private vulnerability reporting.
   readiness, full backup/restore or production/release acceptance. Synthetic
   API36 instrumentation is not real-device/font-shaping/accessibility acceptance.
   No main push is performed; parent owns publication gates.
+# Ordered saved-list Recite (REC-03)
+
+- Authorized Native-only work started from published
+  `dd1551a8c7b042fae372af3ed1d3fbd611e2f354`; its independently authorized Shared
+  consumer pin advances from52564f6 to published
+  `397988ff2b74a1cc14152ecc706441b28b6d4556` (seven additive list captions,
+  unchanged preceding captions/settings/schemas/types/fixtures).
+- Archived prior README limitation: the individual Recite notice said list
+  traversal and Continue were unimplemented; individual focus was not REC-03/04.
+  Native now uses the additive list notice rather than the obsolete
+  list-unimplemented caption, while Continue and durable offline remain unavailable.
+- Implemented process-local exact saved-occurrence traversal with explicit
+  preparation gate, empty/start/end states, typed unresolved/fallback/placeholder
+  positions, shared literal reader rendering, distinct successful-open history
+  semantics and a continuous owned native wake session. Back/Exit restores list
+  context; navigation/background/disposal cleanup and stale-list refusal remain
+  explicit. No Room/personal/settings/default changes or REC-04 record.
+- Added pure traversal and synthetic connected cases; retained all preceding
+  individual Recite/failure/ownership cases, updating only their honest approved
+  notice expectation. Validation results follow after the final source checks.
+- First pre-device configuration passed; the clean core/all-build/lint command
+  failed at Kotlin compilation because the initial saved-list branch edit placed
+  a closing brace inside the selected-list actions. Corrected the branch rather
+  than narrowing validation. No device/HTTP work was run.
+- No Website source/build/dist/HTTP, device/adb or server operation is authorized
+  before the parent grants its fresh frozen-dist/device slot. No Library or
+  Shared-main edits; no push or validation-ref publication is authorized.
+- Added an active-session Room invalidation observer (including multi-instance
+  notifications) and explicit validated rereads on entry/traversal/foreground.
+  These preserve all schemas and stale-write fences and do not silently refresh
+  a changed occurrence. Observer disposal is scoped to list Recite.
+- The second incremental build compiled all new instrumentation and passed51
+  core cases, but lint read moving source during observer work and reported two
+  incorrect old source-line indentation locations. No suppressions, baseline or
+  assertion weakening was added. Froze Native source and reran the entire
+  pre-device command rather than accepting that interim result.
+- Frozen pre-device command `npm run config` and
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  passed (BUILD SUCCESSFUL,2m59s). Actual XML:51 core tests, zero failures/errors/
+  skips; all variants, debug/release lint and complete instrumentation APK
+  compilation passed. Lint debug58/release59 warnings, zero errors. Four compiler
+  emissions are the two existing migration-array inference warnings in each
+  variant; one existing SDK XML-version warning was also reported.
+  App JVM tasks were NO-SOURCE, not successful application unit tests.
+- Pre-device ancillary commands passed: `python tools\check_repository.py`
+  (101 tracked files), exact README Node strict unique-key YAML command (all5),
+  `actionlint -shellcheck <installed ShellCheck0.11.0> .github\workflows\hygiene.yml`
+  (actionlint1.7.12), `git --no-pager diff --check`,
+  `git --no-pager diff --cached --check` and
+  `git --no-pager log --all --format= --check`.
+- Pre-device readiness only: all seven new connected cases are compiled but
+  unexecuted; the entire existing88 plus new7 connected suite and final full
+  validation remain required after the parent's explicit fresh Website dist/
+  device/HTTP grant. No commit/push was made and no device/HTTP/helper was used.
+- Parent explicitly granted the exclusive frozen-dist/device/HTTP slot after its
+  fresh Website check passed121 units/384 browsers and the strict build. Verified
+  existing userPID3840, intended emulator5556/API36 and actual configured local
+  `/demo/latest.json` HTTP200; did not start or replace a helper/server/device.
+  Native successful-open history projects `ListEntry.reference()` to a strict
+  `PersonalReference(kind,id)`, never occurrence IDs or fallback/text metadata.
+- First granted complete command:
+  `npm run config` and
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  ran all95 connected cases (27m27s):88 passed, seven failures, zero errors/skips.
+  All51 core cases/build/lint tasks passed. Six new cases shared an invalid
+  synthetic source with duplicated globally unique line IDs across two lyrics;
+  retained literal text/layout while assigning distinct line IDs to the second
+  synthetic item. The pending-navigation case dispatched Back before its mounted
+  destination settled; synchronized the mounted screen before Back, without
+  changing assertions or timeouts. Full final validation remains required.
+- Targeted correction verification:
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.ListReciteUiTest' --no-daemon --console=plain`
+  passed all7 actual new connected cases (5m58s), zero failures/errors/skips.
+  This includes real multi-instance active-list notifications, continuous/prior
+  native wake ownership, exact mixed typed history and pending Back. No source
+  behavior, assertion, timeout or suite scope was weakened to obtain the result.
+- The second complete command ran all95 connected cases (26m31s):94 passed,
+  one failure, zero errors/skips. The unchanged external-writer test exposed a
+  real cold cross-instance service-binding race: a newly opened writer could
+  commit before Room registered its remote invalidation connection. Explicit
+  traversal fences still refused stale order, but immediate active-session
+  notification was not reliable. This was not accepted as a flaky-test pass.
+- Added database-path-scoped same-process post-commit list-change notifications
+  alongside Room cross-instance invalidation, with immediate validation after
+  observer registration. Notifications carry no personal data; only committed
+  actual list changes notify local listeners, removed on disposal. Registration
+  cleanup also covers cancellation during IO handoff. No tests/timeouts were
+  weakened, no schemas/defaults/dependencies changed. The second failed command
+  stopped before emitting new core test XML, so it is not counted as another
+  completed core-suite pass. A fresh complete final run remains required.
+- Reran the identical seven-case connected selector after the runtime
+  notification fix: all7 passed (4m50s), zero failures/errors/skips, including
+  the unchanged immediate external-order/deletion assertions. The next complete
+  run uses frozen final Native source; no smaller selector substitutes for it.
+- Final corrected frozen-source validation:
+  `npm run config` and
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed (BUILD SUCCESSFUL,27m4s). Actual final XML:51 core tests and95 connected
+  tests, each zero failures/errors/skips; all88 preceding device cases and all7
+  new cases executed successfully. All app variants and both required lint tasks
+  passed: debug58/release59 warnings, zero errors. The final command emitted the
+  two existing migration-array inference warnings during release compilation
+  (debug compilation was already current), plus the existing SDK XML-version
+  warning. App JVM test tasks were NO-SOURCE, not a passing app unit suite.
+- Final ancillary checks passed on frozen source: repository hygiene101 tracked
+  files; the exact README strict unique-key Node YAML command parsed all5
+  workflow/configuration files under `.github`; actionlint1.7.12 explicitly using
+  installed ShellCheck0.11.0 passed `.github\workflows\hygiene.yml`; both working/
+  staged whitespace checks and `git --no-pager log --all --format= --check`
+  passed. The evidence-only HISTORY update receives those same ancillary checks.
+  Editor diagnostics reported no errors in changed implementation/tests.
+- Preserved userPID3840 and emulator5556; final actual configured
+  `/demo/latest.json` remained HTTP200 and the emulator remained `device`.
+  No helper/server/browser was started or stopped, no Website/Library/Shared-main
+  file or other consumer pin was changed. Owned `rec03-final.log` and
+  `rec03-targeted.log` are removed after extracting the actual counts; standard
+  ignored Gradle reports remain. Parent owns all pushes/publication gates.
+- Coverage is bounded REC-03/LIB-08–10/UX-13/OFF-10 and regression preservation
+  of REC-01/02, not REC-04 latest-position persistence, unsaved-preview list
+  Recite, durable offline activation, Practice, full backups, linguistic proof,
+  physical-device/accessibility acceptance or a release-ready claim.

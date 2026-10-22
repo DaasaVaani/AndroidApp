@@ -9,7 +9,7 @@ memory-only. Typed lyric/legacy favorites, recitation lists/independent occurren
 and UI language/theme/lyric reading preferences use one durable Room database. Settings offers process-local
 v1/v2 minimal-list preview, confirmed new-list-only import and complete file/link
 export. None of these operations prepares/downloads lyrics. Durable offline
-activation, recitation playback/resume and complete feature parity remain unimplemented.
+activation, audio/verse playback, Continue recitation and complete feature parity remain unimplemented.
 Device-only Recently opened records the latest configured distinct successful
 explicit reader opens, independently of favorites/lists and content preparation.
 Optional device-local self-assigned learning labels use the same personal database.
@@ -204,10 +204,68 @@ security-denied requests use the pinned Shared unavailable/failed captions; Reci
 remains usable. Release failure is not reported as off/success. This synchronous
 view adapter has no asynchronous acquisition or pending operation.
 
-The visible Shared notice explicitly states that list traversal and Continue
-recitation are unimplemented. This is bounded individual focus, not REC-03/04,
+The visible Shared notice describes exact list order and explicitly states that
+Continue recitation and durable offline lyrics are unimplemented. This is bounded individual focus, not REC-04,
 verse inference, Practice, durable offline readiness, complete power-policy/device
 support or full recitation/release acceptance.
+
+### Ordered saved-list Recite
+
+REC-03 adds an explicit **Recite list** action only for a selected saved list,
+after at least one compatible canonical/fixture library has been completely
+prepared in memory. A saved list is never content readiness. Before preparation,
+Settings, list management and literal placeholder/pending-reference preview remain
+available without automatic downloads. Unsaved/transfer previews retain their
+existing reader/share workflows and have no list-Recite action.
+
+One process-local session owns exact saved occurrence identities and order.
+Large native **Previous entry**/**Next entry** buttons show localized position/
+total, disabled first/last boundaries and explicit start/end labels without
+wrapping. Empty lists have an explicit empty state, no invented entry. Consecutive
+identical typed references or placeholder text remain separate occurrences.
+Canonical UUID and legacy video identity never match across kinds, even for
+UUID-looking legacy IDs. Each unavailable reference retains its exact typed ID
+and literal user fallback; placeholders retain literal text. Both show the
+standard unavailable-lyrics message in their own position, never deduplicate,
+skip, infer a match or become another entry type.
+
+Prepared items reuse individual canonical/fixture text rendering, preserving
+line/layout data, Kannada, typography, density, theme and locale. Explicit
+successful visible reader exposure uses existing bounded distinct history;
+consecutive opens of the same reference remain a history no-op. Missing,
+placeholder or cancelled/unexposed entries create no receipt. History-disabled
+traversal leaves the complete personal snapshot unchanged. Mode, awake and
+preference changes do not replay an exposure, including after history clearing.
+List Recite never creates a schema, preference, latest-position record or durable
+content cache.
+
+The list owns one focus/awake session across explicit traversal; replacing an
+entry neither exits nor reacquires its optional request. Back/**Exit Recite**
+returns to the selected list and valid in-composition drafts. Settings/other
+navigation and disposal end the mode and release its owned flag; foreground
+return never reacquires. Fresh explicit entry starts at the first occurrence,
+awake off; launch/recreation does not enter automatically. Normal individual
+reader replacement/departure behavior is unchanged. External list deletion or
+any changed saved identity/content/order ends Recite with the existing stale-data
+message, retains a valid selected-list context, and requires explicit fresh
+entry rather than silently continuing/resetting to a different occurrence.
+An active-session Room invalidation observer revalidates external list writes;
+entry, traversal and foreground return also reread the validated personal store.
+Scoped same-process post-commit notifications cover a newly opened writer before
+Room's multi-instance service binds; registration also immediately revalidates
+the current snapshot. Both observers are removed on departure. Notifications
+carry no personal snapshot and do not alter schemas, write records, auto-resolve
+drafts or bypass existing stale-writer fences.
+
+The pure traversal step is O(1). Its explicit persisted-snapshot fence uses the
+existing bounded complete personal read/validation, O(personal records/text).
+The saved-list snapshot retains occurrences, not copied lyric bodies;
+exact list comparison is O(list entries), canonical lookup
+uses its verified item map and fixture lookup scans the prepared fixture items.
+The additive Shared pin/captions change no personal, publication or fixture
+contracts. Coverage is bounded REC-03/LIB-08–10/UX-13/OFF-10, not REC-04,
+durable offline recitation, Practice, audio/video, orientation/fullscreen
+coercion, real-content linguistic proof or release acceptance.
 
 - No bundled lyrics. Explicit validated full preparation gates lyrics, not
   Settings/recovery/list preview. Preserve destinations without automatic saving.
@@ -423,8 +481,8 @@ that exact UUID if available. Failure/cancel preserves personal state and the
 prior validated set; unavailable UUIDs remain visible. Back to list returns to the
 same list and process-local list viewport. Legacy IDs are never matched to real lyrics. The separately labeled
 fixture favorite reader retains its old synthetic lookup, isolated from real
-list resolution. User text stays plain text. Individual Recite does not implement
-list traversal or Continue recitation.
+list resolution. User text stays plain text. Saved-list Recite is a separate
+explicit session; Continue recitation remains unimplemented.
 
 Settings → List snapshot preview is reachable before preparation and regardless of
 personal-storage availability. Choose a local document or explicitly paste a
@@ -558,7 +616,7 @@ signing key belongs in CI/repository/logs.
 Partial requirement coverage: LIB-01/02/03/04/05/08/09/10/11,
 XFER-01/02/03/04/05/06/08, I18N-01/02/03,
 LEARN-04 (optional self-assigned local labels only),
-REC-01/02 (focused individual reading and optional scoped native awake request only),
+REC-01/02/03 (focused individual/ordered saved-list reading and optional scoped native awake request only),
 SET-04 (UI language/theme/lyric typography/labels only), UX-02/03/14 (bounded lyric
 typography/layout only), QUAL-05/06 (local-only state and explicit errors).
 Canonical Kannada and required preparation remain unchanged. This is neither
@@ -601,8 +659,15 @@ unchanged complete personal/history state without exposure replay, ordinary
 Catalog/collection/Learning/unsaved-preview Back origins, Settings/replacement/
 navigation cleanup, actual native flag ownership including a prior true flag,
 background release/no foreground reacquisition, detached/denied/rejected requests
-and explicit release failure. These are current-platform adapter proofs, not
-physical-device power-policy, real-content, full accessibility or REC-03/04 proof.
+and explicit release failure. Ordered-list core/Compose cases additionally cover
+mixed canonical/fixture lists, repeated typed references/placeholders, exact
+UUID-looking legacy/unresolved identity, literal fallbacks/layout, empty/first/
+last/no-wrap states, complete preparation gating, network-free prepared sessions,
+history disabled/enabled/no-op/clear behavior, functional font/density controls,
+one awake owner across traversal, prior-owner preservation, background/Settings/
+route/recreation cleanup and explicit stale-list/deletion refusal. These are
+current-platform adapter proofs, not physical-device power-policy, real-content,
+full accessibility, durable offline readiness or REC-04 proof.
 
 Reading preference core/Room/Compose cases cover configured default/bounds/step,
 all three density states, no-op revisions, persistence/restart, exact old/current

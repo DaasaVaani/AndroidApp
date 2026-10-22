@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -18,7 +17,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import `in`.daasavaani.core.LyricSummary
 import `in`.daasavaani.core.PersonalReference
@@ -135,10 +133,7 @@ fun LyricPreviewContent(
             val lyric = state.item
             if (lyric != null) {
                 item(key = "lyric-text") {
-                    SelectionContainer {
-                        Text(lyric.lines.joinToString("\n") { it.text }, Modifier.testTag("lyric-text"),
-                            fontSize = reading.fontSizeSp.sp, lineHeight = reading.lineHeightSp().sp)
-                    }
+                    CanonicalLyricText(lyric, reading)
                 }
             }
         } else if (state.prepared != null) {

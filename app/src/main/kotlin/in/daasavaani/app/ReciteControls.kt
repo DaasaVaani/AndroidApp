@@ -68,7 +68,8 @@ class ReciteState {
 }
 
 @Composable
-internal fun ReciteControls(state: ReciteState, exposed: Boolean, view: View = LocalView.current) {
+internal fun ReciteControls(state: ReciteState, exposed: Boolean, view: View = LocalView.current,
+    notice: Int = R.string.list_recite_notice) {
     if (!exposed) return
     if (!state.active) {
         OutlinedButton(onClick = { state.controls = false; state.active = true },
@@ -104,7 +105,7 @@ internal fun ReciteControls(state: ReciteState, exposed: Boolean, view: View = L
                 Text(stringResource(if (state.controls) R.string.hide_reading_controls else R.string.show_reading_controls))
             }
         }
-        Text(stringResource(R.string.recite_notice), Modifier.testTag("recite-notice"))
+        Text(stringResource(notice), Modifier.testTag("recite-notice"))
         Row {
             Switch(checked = adapter.requested,
                 onCheckedChange = { requested ->

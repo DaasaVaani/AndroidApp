@@ -10,6 +10,8 @@ import `in`.daasavaani.core.RecitationList
 import `in`.daasavaani.core.ListSnapshot
 import `in`.daasavaani.core.PersonalPolicy
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -125,6 +127,34 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     fun selectList(id: String?) { mutable.update { it.copy(selectedListId = id) } }
+    fun observeRecitationLists(changed: () -> Unit): Job = viewModelScope.launch {
+        val observerScope = this
+        var observer: AutoCloseable? = null
+        try {
+            withContext(Dispatchers.IO) {
+                observer = personalStore.observeLists { observerScope.launch { changed() } }
+            }
+            changed()
+            awaitCancellation()
+        } catch (error: PersonalFailure) {
+            mutable.update { it.copy(personalError = error.label) }
+        } finally { withContext(NonCancellable + Dispatchers.IO) { observer?.close() } }
+    }
+    fun checkRecitationList(list: RecitationList, done: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            mutable.first { !it.saving }
+            mutable.update { it.copy(saving = true) }
+            try {
+                val current = withContext(Dispatchers.IO) { personalStore.load() }
+                mutable.update { it.copy(personal = current, personalError = null) }
+                done(mutable.value.section == "lists" && mutable.value.selectedListId == list.id &&
+                    current.lists.find { it.id == list.id } == list)
+            } catch (error: PersonalFailure) {
+                mutable.update { it.copy(personalError = error.label) }
+                done(false)
+            } finally { mutable.update { it.copy(saving = false) } }
+        }
+    }
     fun retryPersonal() {
         if (mutable.value.saving) return
         mutable.update { it.copy(saving = true) }

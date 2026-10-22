@@ -68,7 +68,7 @@ class ReciteUiTest {
     private fun enter() {
         compose.onNodeWithTag("enter-recite").performClick()
         compose.onNodeWithTag("exit-recite").assertIsDisplayed()
-        compose.onNodeWithTag("recite-notice").assertTextEquals(context.getString(R.string.recite_notice))
+        compose.onNodeWithTag("recite-notice").assertTextEquals(context.getString(R.string.list_recite_notice))
         compose.onNodeWithTag("screen-awake").assertIsOff()
     }
     private fun layout(): TextLayoutResult {

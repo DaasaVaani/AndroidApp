@@ -29,7 +29,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Locale
 import `in`.daasavaani.core.uiLanguage
@@ -209,7 +208,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 Column(Modifier.weight(1f)) {
                     ListsScreen(model, lyrics, ::openReference, export = { snapshot ->
                         transferModel.showSnapshot(snapshot); model.section("transfer")
-                    }, scrollState = listScroll)
+                    }, scrollState = listScroll, recite = recite)
                 }
             } else if (state.section == "transfer") {
                 Column(Modifier.weight(1f)) {
@@ -260,8 +259,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                         Modifier.weight(1f), compact = true)
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(reading.lineSpacingDp().dp)) {
-                    selected.lines.forEach { line -> Text(line.text, Modifier.testTag("fixture-line-${line.id}"),
-                        fontSize = reading.fontSizeSp.sp, lineHeight = reading.lineHeightSp().sp) }
+                    FixtureLyricText(selected, reading)
                 }
             } else if (state.section == "favorites") {
                 if (personal?.favorites?.isEmpty() == true) Text(stringResource(R.string.empty_favorites))

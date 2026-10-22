@@ -21,7 +21,8 @@ private data class ListDraft(val base: PersonalSnapshot, val list: RecitationLis
 
 @Composable
 fun ListsScreen(model: LibraryViewModel, lyrics: LyricPreviewState, open: (PersonalReference) -> Unit,
-    export: (ListSnapshot) -> Unit, scrollState: LazyListState = rememberLazyListState()) {
+    export: (ListSnapshot) -> Unit, scrollState: LazyListState = rememberLazyListState(),
+    recite: ReciteState = remember { ReciteState() }) {
     val state by model.state.collectAsState()
     val personal = state.personal
     val enabled = personal != null && state.personalError == null && !state.saving
@@ -30,10 +31,39 @@ fun ListsScreen(model: LibraryViewModel, lyrics: LyricPreviewState, open: (Perso
     var draft by remember { mutableStateOf<ListDraft?>(null) }
     var deleting by remember { mutableStateOf<ListDraft?>(null) }
     var editing by remember { mutableStateOf<Pair<PersonalSnapshot, Pair<RecitationList, Occurrence?>>?>(null) }
+    var session by remember { mutableStateOf<OrderedRecitation?>(null) }
+    var stale by remember { mutableStateOf(false) }
+    val currentSession = session
+    val validSession = currentSession?.valid(selected) == true && state.personalError == null
+    fun verify(active: OrderedRecitation, accept: () -> Unit) {
+        model.checkRecitationList(active.list) { valid ->
+            if (session == active && recite.active) {
+                if (valid) accept() else {
+                    recite.exit()
+                    session = null
+                    stale = true
+                }
+            }
+        }
+    }
+    LaunchedEffect(recite.active, validSession) {
+        if (recite.active && currentSession != null && !validSession) {
+            recite.exit()
+            session = null
+            stale = true
+        }
+    }
     val space = integerResource(R.integer.spacing_dp).dp
-    LazyColumn(Modifier.fillMaxSize().testTag("saved-lists"), state = scrollState, verticalArrangement = Arrangement.spacedBy(space)) {
+    if (recite.active && currentSession != null && validSession) {
+        ListReciteScreen(currentSession, recite, state, lyrics, model,
+            previous = { verify(currentSession) { session = currentSession.previous() } },
+            next = { verify(currentSession) { session = currentSession.next() } },
+            validate = { verify(currentSession) {} })
+    } else LazyColumn(Modifier.fillMaxSize().testTag("saved-lists"), state = scrollState, verticalArrangement = Arrangement.spacedBy(space)) {
         item {
             Text(stringResource(R.string.lists), style = MaterialTheme.typography.titleLarge)
+            if (stale) Text(stringResource(R.string.personal_stale), Modifier.testTag("list-recite-stale"),
+                color = MaterialTheme.colorScheme.error)
             state.mutationError?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
             if (selected == null) {
                 OutlinedButton(enabled = enabled, onClick = {
@@ -44,6 +74,16 @@ fun ListsScreen(model: LibraryViewModel, lyrics: LyricPreviewState, open: (Perso
             } else {
                 TextButton(onClick = { model.selectList(null) }) { Text(stringResource(R.string.back)) }
                 Text(selected.name, style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(enabled = enabled && (state.prepared != null || lyrics.prepared != null), onClick = {
+                    model.checkRecitationList(selected) { valid ->
+                        if (valid) {
+                            session = OrderedRecitation(selected)
+                            stale = false
+                            recite.controls = false
+                            recite.active = true
+                        } else stale = true
+                    }
+                }, modifier = Modifier.testTag("recite-list")) { Text(stringResource(R.string.recite_list)) }
                 OutlinedButton(enabled = enabled, onClick = {
                     model.clearMutationError(); draft = ListDraft(requireNotNull(personal), selected, false)
                 }) { Text(stringResource(R.string.rename_list)) }
