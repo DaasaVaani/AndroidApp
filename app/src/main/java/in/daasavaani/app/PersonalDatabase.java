@@ -1,6 +1,7 @@
 package in.daasavaani.app;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.Dao;
 import androidx.room.ColumnInfo;
 import androidx.room.Database;
@@ -11,8 +12,9 @@ import androidx.room.Query;
 import androidx.room.RoomDatabase;
 import java.util.List;
 
-@Database(entities = {PersonalDatabase.Preference.class, PersonalDatabase.Favorite.class},
-        version = 2, exportSchema = true)
+@Database(entities = {PersonalDatabase.Preference.class, PersonalDatabase.Favorite.class,
+        PersonalDatabase.SavedList.class, PersonalDatabase.Entry.class},
+        version = 3, exportSchema = true)
 public abstract class PersonalDatabase extends RoomDatabase {
     public abstract Records records();
 
@@ -24,18 +26,45 @@ public abstract class PersonalDatabase extends RoomDatabase {
         public long revision;
     }
 
-    @Entity(tableName = "favorites")
+    @Entity(tableName = "favorites", primaryKeys = {"kind", "value"})
     public static class Favorite {
-        @PrimaryKey @NonNull public String videoId = "";
+        @NonNull public String kind = "";
+        @NonNull public String value = "";
+        public int position;
+    }
+
+    @Entity(tableName = "lists")
+    public static class SavedList {
+        @PrimaryKey @NonNull public String id = "";
+        @NonNull public String name = "";
+        public int position;
+    }
+
+    @Entity(tableName = "occurrences")
+    public static class Entry {
+        @PrimaryKey @NonNull public String id = "";
+        @NonNull public String listId = "";
+        public int position;
+        @NonNull public String kind = "";
+        @Nullable public String videoId;
+        @Nullable public String lyricId;
+        @Nullable public String fallback;
+        @Nullable public String text;
     }
 
     @Dao
     public interface Records {
         @Query("SELECT * FROM preferences") List<Preference> preferences();
-        @Query("SELECT * FROM favorites ORDER BY videoId") List<Favorite> favorites();
+        @Query("SELECT * FROM favorites ORDER BY position") List<Favorite> favorites();
+        @Query("SELECT * FROM lists ORDER BY position") List<SavedList> lists();
+        @Query("SELECT * FROM occurrences ORDER BY position") List<Entry> entries();
         @Query("UPDATE preferences SET language = :language, theme = :theme, revision = :revision WHERE id = 1")
         void updatePreference(String language, String theme, long revision);
         @Insert void insertFavorite(Favorite favorite);
-        @Query("DELETE FROM favorites WHERE videoId = :videoId") void deleteFavorite(String videoId);
+        @Insert void insertList(SavedList list);
+        @Insert void insertEntry(Entry entry);
+        @Query("DELETE FROM favorites") void clearFavorites();
+        @Query("DELETE FROM lists") void clearLists();
+        @Query("DELETE FROM occurrences") void clearEntries();
     }
 }

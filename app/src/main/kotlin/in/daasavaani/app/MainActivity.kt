@@ -12,6 +12,7 @@ import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Locale
 import `in`.daasavaani.core.uiLanguage
+import `in`.daasavaani.core.PersonalReference
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,8 +67,22 @@ class MainActivity : ComponentActivity() {
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LibraryScreen(model: LibraryViewModel = viewModel()) {
+fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPreviewViewModel = viewModel(),
+    transferModel: TransferViewModel = viewModel()) {
     val state by model.state.collectAsState()
+    val lyrics by lyricModel.state.collectAsState()
+    val listScroll = rememberLazyListState()
+    LaunchedEffect(state.selectedListId) { listScroll.scrollToItem(0) }
+    var adding by remember { mutableStateOf<PersonalReference?>(null) }
+    var fromList by remember { mutableStateOf(false) }
+    fun openReference(reference: PersonalReference) {
+        if (reference.kind == "lyric") {
+            fromList = state.section == "lists"
+            lyricModel.request(reference.id)
+            model.section("lyrics")
+        }
+    }
+    adding?.let { reference -> AddToListDialog(model, reference) { adding = null } }
     val space = integerResource(R.integer.spacing_dp).dp
     val contentPadding = integerResource(R.integer.content_padding_dp).dp
     val readerFont = integerResource(R.integer.reader_font_size_sp).sp
@@ -74,7 +90,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel()) {
     BackHandler(enabled = state.selected != null) { model.select(null) }
     Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(contentPadding), verticalArrangement = Arrangement.spacedBy(space * 2)) {
-            if (state.section != "lyrics") Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
+            if (state.section == "library" || state.selected != null) Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
                 Text(stringResource(R.string.fixture_notice), Modifier.padding(space * 1.5f), style = MaterialTheme.typography.bodySmall)
             }
             if (state.section != "lyrics") state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -83,9 +99,14 @@ fun LibraryScreen(model: LibraryViewModel = viewModel()) {
                 OutlinedButton(onClick = model::retryPersonal, enabled = !state.saving) { Text(stringResource(R.string.retry)) }
             }
             if (state.personal == null && state.saving) Text(stringResource(R.string.personal_loading))
+            if (state.mutationError == R.string.personal_stale) {
+                Text(stringResource(R.string.personal_stale), color = MaterialTheme.colorScheme.error)
+                TextButton(enabled = !state.saving, onClick = model::retryPersonal) { Text(stringResource(R.string.retry)) }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(space)) {
                 TextButton(onClick = { model.section("library") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.library)) }
                 TextButton(onClick = { model.section("favorites") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.favorites)) }
+                TextButton(onClick = { model.section("lists") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.lists)) }
                 TextButton(onClick = { model.section("settings") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.settings)) }
             }
             val personal = state.personal
@@ -95,11 +116,22 @@ fun LibraryScreen(model: LibraryViewModel = viewModel()) {
                 Text(stringResource(R.string.owner_lyrics))
             }
             if (state.section == "lyrics") {
-                Column(Modifier.weight(1f)) { LyricPreviewScreen() }
+                Column(Modifier.weight(1f)) {
+                    if (fromList) TextButton(onClick = { model.section("lists"); fromList = false }) { Text(stringResource(R.string.back_to_list)) }
+                    LyricPreviewScreen(lyricModel, personal, canSave, { model.changePersonal(reference = it) },
+                        { model.clearMutationError(); adding = it },
+                        if (fromList) ({ model.section("lists"); fromList = false }) else null)
+                }
+            } else if (state.section == "lists") {
+                Column(Modifier.weight(1f)) {
+                    ListsScreen(model, lyrics, ::openReference, export = { snapshot ->
+                        transferModel.showSnapshot(snapshot); model.section("transfer")
+                    }, scrollState = listScroll)
+                }
             } else if (state.section == "transfer") {
                 Column(Modifier.weight(1f)) {
                     TextButton(onClick = { model.section("settings") }) { Text(stringResource(R.string.back)) }
-                    TransferScreen(state.prepared)
+                    TransferScreen(state.prepared, transferModel, model, lyrics, ::openReference)
                 }
             } else if (state.section == "settings") {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -127,7 +159,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel()) {
                 Text(selected.title, style = MaterialTheme.typography.headlineSmall)
                 Text(stringResource(R.string.canonical), style = MaterialTheme.typography.labelSmall)
                 OutlinedButton(enabled = canSave, onClick = { model.changePersonal(favorite = selected.videoId) }) {
-                    Text(stringResource(if (selected.videoId in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
+                    Text(stringResource(if (PersonalReference.legacy(selected.videoId) in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(space * 2.5f)) {
                     selected.lines.forEach { line -> Text(line.text, fontSize = readerFont, lineHeight = readerLineHeight) }
@@ -135,15 +167,25 @@ fun LibraryScreen(model: LibraryViewModel = viewModel()) {
             } else if (state.section == "favorites") {
                 if (personal?.favorites?.isEmpty() == true) Text(stringResource(R.string.empty_favorites))
                 LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(space)) {
-                    items(personal?.favorites.orEmpty().sorted(), key = { it }) { id ->
-                        val item = state.prepared?.items?.find { it.videoId == id }
+                    items(personal?.favorites.orEmpty().toList(), key = { it.kind + ":" + it.id }) { reference ->
+                        val item = if (reference.kind == "legacyVideo") state.prepared?.items?.find { it.videoId == reference.id } else null
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(space)) {
-                                Text(item?.title ?: id)
-                                if (item == null) Text(stringResource(if (state.prepared == null) R.string.preparation_notice else R.string.unavailable_favorite))
-                                else TextButton(onClick = { model.select(item) }) { Text(stringResource(R.string.open)) }
-                                TextButton(enabled = canSave, onClick = { model.changePersonal(favorite = id) }) {
+                                if (reference.kind == "lyric") ReferenceContent(reference.entry(), lyrics, ::openReference)
+                                else {
+                                    Text(item?.title ?: reference.id)
+                                    Text(stringResource(R.string.legacy_reference))
+                                    if (item == null) Text(stringResource(if (state.prepared == null) R.string.preparation_notice else R.string.unavailable_favorite))
+                                    else {
+                                        Text(stringResource(R.string.fixture_notice), style = MaterialTheme.typography.bodySmall)
+                                        TextButton(onClick = { model.select(item) }) { Text(stringResource(R.string.open)) }
+                                    }
+                                }
+                                TextButton(enabled = canSave, onClick = { model.changePersonal(reference = reference) }) {
                                     Text(stringResource(R.string.remove_favorite))
+                                }
+                                TextButton(enabled = canSave, onClick = { model.clearMutationError(); adding = reference }) {
+                                    Text(stringResource(R.string.add_to_list))
                                 }
                             }
                         }

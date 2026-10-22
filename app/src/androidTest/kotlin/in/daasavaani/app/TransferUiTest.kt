@@ -21,10 +21,10 @@ class TransferUiTest {
     @Test fun localPreviewCancellationFailuresAndCatalogStatesPreservePersonalData() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         context.deleteDatabase("personal.db")
-        val before = PersonalStore(context).use { it.change(it.load().revision, language = "en", theme = "warm", favorite = "UNAVAILABLE") }
+        val before = PersonalStore(context).use { it.change(it.load(), language = "en", theme = "warm", favorite = "UNAVAILABLE") }
         val codec = transferCodec(context.resources)
-        val snapshot = ListSnapshot("  ಕೃತಕ ಪಟ್ಟಿ 😀  ", listOf(ListEntry("item", "missing_fixture"),
-            ListEntry("placeholder", text = "<b>ಕೃತಕ</b>"), ListEntry("item", "missing_fixture")))
+        val snapshot = ListSnapshot("  ಕೃತಕ ಪಟ್ಟಿ 😀  ", listOf(ListEntry("legacyVideo", "missing_fixture"),
+            ListEntry("placeholder", text = "<b>ಕೃತಕ</b>"), ListEntry("legacyVideo", "missing_fixture")))
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             lateinit var model: TransferViewModel
             lateinit var library: LibraryViewModel
@@ -35,7 +35,7 @@ class TransferUiTest {
             compose.waitUntil(10000) { library.state.value.personal != null }
             compose.onNodeWithText(context.getString(R.string.settings)).performClick()
             compose.onNodeWithText(context.getString(R.string.transfer_title)).performClick()
-            compose.onNodeWithText(context.getString(R.string.transfer_preview_only)).assertIsDisplayed()
+            compose.onNodeWithText(context.getString(R.string.transfer_notice)).assertIsDisplayed()
             compose.onNodeWithText(context.getString(R.string.save_list)).assertDoesNotExist()
             compose.onNodeWithTag("transfer-link-input").performTextInput(codec.encodeLink(snapshot))
             compose.onNodeWithText(context.getString(R.string.transfer_preview)).performClick()
@@ -92,7 +92,7 @@ class TransferUiTest {
             compose.waitUntil(60000) { library.state.value.prepared != null }
             val known = requireNotNull(library.state.value.prepared).items.first().videoId
             scenario.onActivity {
-                model.input(codec.encodeLink(snapshot.copy(entries = listOf(ListEntry("item", known), ListEntry("item", "missing_fixture")))))
+                model.input(codec.encodeLink(snapshot.copy(entries = listOf(ListEntry("legacyVideo", known), ListEntry("legacyVideo", "missing_fixture")))))
                 model.previewLink()
                 library.section("transfer")
             }

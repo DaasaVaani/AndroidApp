@@ -1,5 +1,141 @@
 # Documentation history
 
+## 2026-10-22: typed real references and durable native recitation lists
+
+- Owner authorized Android-only parallel implementation and fully validated
+  direct-main publication. Baseline was clean main
+  `207a3ccad6c2f814b1d886b5b7f7f7cd1844a9d2`. Adopted independently published
+  Shared `7ad993c8362231aec95bb1b980ebd3b386059488` from the preceding
+  `8bd8793afb9f2fd43d52b62bc5436bbd4da1b0ce` pin after checking the nested tree.
+  Shared main run `39706731354` was independently verified completed/success at
+  that exact SHA. No Website, Shared source, Library or original lyric source
+  was edited; tests use synthetic permitted text.
+- Archived superseded native boundaries: schema2 stored only strict11-character
+  video favorites and language/theme; the separate prelaunch reader had no
+  personal-save actions; Settings exposed process-local v1 preview/re-export
+  with deliberately no Save or durable lists. No durable name keys existed,
+  so the preceding Unicode16 batch performed no database/key migration,
+  duplicate-name UI or collision-driven rename/merge. Those statements remain
+  historical evidence, not the current native behavior.
+- Room schema3 structurally preserves the validated actual v1/v2 favorites and
+  preferences, with old `ORDER BY videoId` retained as the initial explicit
+  favorite order. Typed `(kind,ID)` favorite uniqueness, durable lists and
+  independent occurrences now share one transactional database. Lists preserve
+  raw names/text/order/repetitions; editing/replacement preserves occurrence IDs;
+  explicit duplication/import creates fresh independent IDs. No media, aliases,
+  bookmarks/verses or source mapping was invented. Official Unicode16 matching
+  remains on demand with explicit same-name confirmation and no cached keys.
+- The native logical storage envelope is independently versioned3, with compact
+  UTF8 incremental accounting including preferences/revision/local IDs. Epochs
+  are process-local write fences, refreshed when a store closes/reopens, not
+  transport fields or backup/recovery claims. Every personal mutation requires
+  its original epoch and monotonic revision. Migration validates both old and
+  projected capacity before any structural change and rechecks actual old schema/
+  records inside the migration transaction; no destructive fallback exists.
+- v1 transport remains a frozen external shape, structurally adapted only to
+  legacy references, including UUID-looking values. Original v1 previews can
+  re-export v1; typed saved lists export v2 only. New-list-only confirmed import
+  permits choosing the name and never appends, merges or overwrites. Complete
+  gzip/link boundaries and error/cancellation behavior remain in force.
+- Reader Favorite/Add to list, typed favorites and list resolution use only
+  explicit complete memory-only canonical preparation. Opening an unresolved
+  lyric retains the pending exact UUID/list destination without downloading.
+  No legacy-to-real lookup is inferred. The synthetic favorite reader remains
+  visibly separate. No signed release, persistent offline content, recitation
+  mode/resume, full backup/system-backup parity or production linguistic proof
+  is claimed.
+- Incremental validation: `npm run config` passed.
+  `.\gradlew.bat :core:test :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  initially failed on the frozen v1 fixture that calls an empty version2
+  envelope unsupported; the dual decoder now explicitly tests its supported
+  empty-v2 adaptation and refuses version3. A subsequent failure exposed a test
+  vector serialization replacing a lone surrogate before reaching the decoder;
+  retained the escaped surrogate in the test. The same command then passed
+  **32 core tests** and compiled both device APKs.
+- First incremental `.\gradlew.bat :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  ran29 tests with2 failures: structural list validation occurred after the
+  duplicate-name check, and an old preview-only assertion no longer described
+  the actual Save-enabled UI. Structural validation now precedes collision
+  checks and the UI assertion verifies preview-before-saving/no implicit writes.
+  Failed runs are not counted as passing evidence.
+- Targeted
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.ListsStoreTest,in.daasavaani.app.ListsUiTest,in.daasavaani.app.LyricPreviewTest,in.daasavaani.app.TransferUiTest' --no-daemon --console=plain`
+  ran18 cases with1 failure: the test selector matched both the import dialog title
+  and its Save button. Required a clickable dialog node in the test; no app
+  validation or suite coverage was weakened. Added actual configured collection/
+  64MiB UTF8 boundary fixtures and preserving v2/default-schema checks afterward.
+- Owner supplied actual production-built Website-worker exports of the mixed
+  Shared v2 accepted vector for cross-client checking, not a Node-produced stand-in.
+  Added an optional base64-argument Android instrumentation adapter with a pinned
+  default vector, no permanent external/session-path dependency and no personal
+  writes. Real native byte/link output can be decoded by the Website worker in
+  the reverse direction; transport evidence is separate from OS sharing/App Links.
+- Initial actual-peer instrumentation ran1 case and failed because the owner's
+  `.url` evidence file included a final LF outside the wire URL. JSON and gzip
+  decoding had already passed. The test-only evidence adapter now removes at
+  most one terminal LF/CRLF file delimiter; production URL validation remains
+  strict and all user names/text remain byte-for-byte unchanged.
+- After that adapter correction, the same actual-peer Gradle selector passed
+  **1 connected case**. Gradle's managed connected runner removes its installed
+  test app afterward, so private output retrieval required explicitly installing
+  the built debug/test APKs and rerunning
+  `adb -s emulator-5556 shell am instrument -w -r -e class in.daasavaani.app.ListInteropTest -e webGzipBase64 <actual-file-base64> -e webLinkBase64 <actual-text-file-base64> -e webJsonBase64 <actual-json-file-base64> in.daasavaani.app.test/androidx.test.runner.AndroidJUnitRunner`;
+  that native run also passed **1 case**. Binary-safe `adb exec-out run-as`
+  retrieval and independent Node gzip/raw-deflate decoding matched the owner's
+  exact expected object, including lyric/UUID-looking legacy distinction,
+  repetition, spaces, emoji, combining text and literal markup.
+- Input actual Website gzip:236 bytes, SHA256
+  `daf71b2db19f862c0ee9edf29fe000658cd10af7240c1feb93990e761f75ad4a`.
+  Actual native gzip:237 bytes, SHA256
+  `f0acf892c49e0c8cdd9bbfba5cf69ed410ea8991c9d026b6567288165e2dd7e9`;
+  native full link:333 bytes, SHA256
+  `f94413a91fa6ddb9e0fd6e1d7e6e810f13dffcc83a3983fbcbdec67ba0e6b79f`.
+  Owner-requested evidence files were delivered in the session evidence directory,
+  not committed or used as permanent test dependencies. Reverse Website-worker/UI
+  acceptance is owned by the Website coordinator and not claimed by this run.
+- Final contract review separated structural field/count validation from
+  transport byte serialization: a valid durable list is governed by the64MiB
+  aggregate stored budget, not an accidental per-list8MiB transfer cap. Added
+  core separation coverage and an actual configured >8MiB single-list native
+  save/reopen test whose attempted export explicitly refuses without mutations.
+- A later full run completed36 cases with1 UI-test failure: after retaining
+  the list viewport, a repeated unscoped Edit label could select another composed
+  occurrence. Scoped edit/move/remove test actions to the intended stable
+  occurrence row and its clickable control, retaining every original state/
+  ordering assertion. The real-reader return-to-list viewport assertion passed.
+  This failed full run is not passing final validation.
+- The subsequent4-case focused selector passed its3 UI/interop cases but exposed
+  an accidentally nested new capacity-test method as a JUnit initialization
+  error. Moved it to a proper instance test method; no case was dropped.
+- Final local gate on existing JDK21/SDK36 and intended API36
+  `emulator-5556`, with the unchanged fixture server verified HTTP200:
+  `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed. XML reports contain **33 core tests and37 connected tests, zero
+  failures/errors/skips**. Debug/release builds and both explicit lint tasks
+  passed; each lint report has0 errors/54 warnings. App JVM tasks remain
+  NO-SOURCE, not test passes. Auxiliary inapplicable SKIPPED Gradle tasks are
+  not skipped test cases. The existing local SDK XML-version warning remains
+  nonfatal; no toolchain/dependency installation was performed.
+- Repeated the actual Website gzip/link/JSON instrumentation against the final
+  built APK: **1 case passed**, native re-export hashes unchanged, independent
+  gzip/raw-deflate decoding still exactly equal. Delivered final actual native
+  evidence files to the requested session directory. The whole native suite
+  uses only synthetic/permitted text; no original lyric sources were consumed.
+- Repository checks passed: `python tools\check_repository.py` (**69 tracked
+  files**); strict Node `yaml.parseDocument(..., {uniqueKeys:true})` over all
+  **5 .github YAML files**; existing actionlint1.7.12 with ShellCheck0.11.0,
+  `.github\workflows\hygiene.yml`; `git --no-pager diff --check` and
+  `git --no-pager diff --cached --check`. Native editor diagnostics were clear.
+  Shared's nested working tree stayed clean at the independent7ad pin.
+- Coverage remains bounded/partial LIB-01/02/03/04/05/08/09/10/11,
+  XFER-01/02/03/04/05/06/08, existing UI/settings/I18N boundaries. Complete
+  canonical content is still explicit memory-only preparation. Recitation mode/
+  resume, bookmarks/learning, durable offline content, full backup/recovery,
+  verified real-provider/device/App Link/OS-sharing acceptance, signed release
+  and production linguistic conformance remain open. Only this Android batch
+  was implemented; no next slice or other repository changes were started.
+
 ## 2026-10-22: official Unicode16 native personal-name consumer
 
 - Started from clean native main `7258cbc8e537314d56d1c4e4edfa76ab55a469e1`

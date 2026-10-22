@@ -6,7 +6,8 @@ const bounds = strictYaml(await readFile(new URL("shared/settings/publication-po
 const search = strictYaml(await readFile(new URL("shared/settings/search.yml", root), "utf8"));
 const personal = strictYaml(await readFile(new URL("shared/settings/personal-transfer.yml", root), "utf8"));
 if (personal.formatVersion !== 1 || !["maxFavorites", "maxPersonalStoredBytes", "maxListEncodedBytes",
-    "maxListDecodedBytes", "maxSharedUrlAscii", "maxListNameCodePoints", "maxEntryTextCodePoints", "maxEntriesPerList"]
+    "maxListDecodedBytes", "maxSharedUrlAscii", "maxListNameCodePoints", "maxEntryTextCodePoints", "maxEntriesPerList",
+    "maxLists", "maxTotalEntries"]
     .every(key => Number.isSafeInteger(personal[key]) && personal[key] > 0)) throw new Error("Invalid personal settings");
 if (!search || search.formatVersion !== 1 || !Number.isInteger(search.maxQueryCodePoints) ||
     !Number.isInteger(search.maxTerms) || !Number.isInteger(search.pageSize)) throw new Error("Invalid trusted search settings");

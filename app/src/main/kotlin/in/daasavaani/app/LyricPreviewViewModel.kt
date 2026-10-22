@@ -18,6 +18,7 @@ data class LyricPreviewState(
     val prepared: PreparedLyricPreview? = null, val visible: List<LyricSummary> = emptyList(),
     val query: String = "", val selected: LyricSummary? = null, val item: PreviewLyric? = null,
     val loading: Boolean = false, val failed: Boolean = false, val completed: Int = 0, val total: Int = 0,
+    val pendingLyricId: String? = null,
 )
 
 class LyricPreviewViewModel(application: Application, private val repository: LyricPreviewSource) : AndroidViewModel(application) {
@@ -37,18 +38,27 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
                     }
                 }
                 ensureActive()
-                mutable.update { it.copy(prepared = prepared,
-                    visible = repository.codec.filter(prepared.catalog, it.query),
-                    selected = null, item = null, loading = false) }
+                mutable.update {
+                    val destination = prepared.catalog.catalog.find { entry -> entry.lyricId == it.pendingLyricId }
+                    it.copy(prepared = prepared, visible = repository.codec.filter(prepared.catalog, it.query),
+                        selected = destination, item = destination?.let { entry -> prepared.items.getValue(entry.lyricId) }, loading = false)
+                }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) { mutable.update { it.copy(loading = false, failed = true) } }
         }
     }
     fun cancel() { work?.cancel(); mutable.update { it.copy(loading = false) } }
+    fun request(lyricId: String) {
+        require(PersonalReference.validLyricId(lyricId))
+        val prepared = mutable.value.prepared
+        val destination = prepared?.catalog?.catalog?.find { it.lyricId == lyricId }
+        mutable.update { it.copy(pendingLyricId = lyricId, selected = destination,
+            item = destination?.let { entry -> requireNotNull(prepared).items.getValue(entry.lyricId) }) }
+    }
     fun select(summary: LyricSummary?) {
         val prepared = mutable.value.prepared ?: return
         require(summary == null || summary in prepared.catalog.catalog) { "Lyric is not prepared" }
-        mutable.update { it.copy(selected = summary, item = summary?.let { entry -> prepared.items.getValue(entry.lyricId) }) }
+        mutable.update { it.copy(selected = summary, pendingLyricId = null, item = summary?.let { entry -> prepared.items.getValue(entry.lyricId) }) }
     }
     fun query(value: String) {
         try {

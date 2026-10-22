@@ -43,6 +43,9 @@ class TransferViewModel(application: Application) : AndroidViewModel(application
     val state = mutable.asStateFlow()
     private var operation: Job? = null
     private var activeFailure = R.string.transfer_failed
+    fun showSnapshot(snapshot: ListSnapshot) {
+        if (!mutable.value.working) mutable.update { it.copy(snapshot = snapshot, link = null, message = null) }
+    }
     @Volatile private var stream: Closeable? = null
     fun input(value: String) {
         if (!mutable.value.working) {

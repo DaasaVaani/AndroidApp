@@ -2,13 +2,14 @@
 
 Native Kotlin/Compose/Material3 app targeting API26+, app -> pure Kotlin core.
 Application ID in.daasavaani.app. **Current implementation includes a native fixture
-demo and separate read-only prelaunch lyric review, not a production/offline release.**
+demo and separate prelaunch canonical lyric reader, not a production/offline release.**
 Explicit fixture preparation verifies all synthetic
 records before canonical Kannada reading and indexed search. Prepared data is
-memory-only. Favorites and UI language/theme use one durable Room database; durable
-offline activation and complete feature parity remain unimplemented. Settings also
-offers process-local minimal-list preview and complete file/link re-export without
-saving lists or preparing/downloading lyrics.
+memory-only. Typed lyric/legacy favorites, recitation lists/independent occurrences
+and UI language/theme use one durable Room database. Settings offers process-local
+v1/v2 minimal-list preview, confirmed new-list-only import and complete file/link
+export. None of these operations prepares/downloads lyrics. Durable offline
+activation, recitation playback/resume and complete feature parity remain unimplemented.
 Staged implementation is authorized; production gates remain.
 
 Start with [AGENTS.md](AGENTS.md),
@@ -22,7 +23,7 @@ publish and validate Shared before committing tested consumer pins.
 
 ## Prelaunch owner-supplied lyric review
 
-The **Owner-supplied lyrics** entry is independent of fixture preparation, favorites,
+The **Owner-supplied lyrics** entry is independent of fixture preparation,
 Settings and list preview. Opening it does not download anything. Its explicit
 **Prepare reading library** consent downloads and validates the complete canonical library
 from the configured HTTPS descriptor at
@@ -30,10 +31,10 @@ from the configured HTTPS descriptor at
 reading is available until every referenced item verifies. Selecting a prepared
 title performs no network request. A title-substring filter is literal and case-insensitive,
 not the fixture search index, a transliteration profile or portable Unicode folding.
-Although the pinned Shared now supplies Unicode16 data, this reader does not adopt
-personal-name keys or perform a Unicode/personal-data migration.
+Title filtering remains distinct from portable Unicode16 personal-list-name comparison.
 There is no video/image request, HTML rendering, link execution, generated text,
-script switching or personal-save control on this surface.
+script switching on this surface. Reader Favorite and Add to a saved list operate
+on a typed real lyric UUID, without inventing a video association.
 
 This is the distinct
 [Shared prelaunch contract](shared/schemas/lyric-publication.schema.json) and
@@ -61,8 +62,8 @@ clears results and displays failure rather than truncating input.
 Native byte ceilings are also checked against the pinned Shared portable role
 maxima during configuration generation; they cannot silently raise portable bounds.
 
-This data is process-local, read-only review state, **not durable offline preparation
-or an activated snapshot**. Real-ID favorites/lists, durable snapshots, script/search
+Prepared lyric content is process-local review state, **not durable offline preparation
+or an activated snapshot**. Durable snapshots, script/search
 profiles, bookmarks, recents, density/font preferences and production linguistic/
 release acceptance remain open. A pre-consent size preview and durable snapshot/
 storage preparation remain later OFF-10 work; byte safety budgets and item progress
@@ -74,7 +75,8 @@ Partial requirement mapping: UX-01 (bounded canonical reader only), UX-03 (expli
 line/layout preservation without inferring verses), LANG-01 (no translation),
 OFF-01/OFF-10 (explicit complete canonical preparation gate only),
 I18N-01/02/03 and current theme preferences. This does not close their complete
-acceptance criteria or authorize a personal-contract migration.
+acceptance criteria. Typed personal references and lists have the separate bounded
+implementation described below; this does not establish offline parity.
 
 ## Current fixture behavior and boundaries
 
@@ -85,8 +87,9 @@ acceptance criteria or authorize a personal-contract migration.
   offline video/images or persisted content-readiness flags.
 - Kannada canonical, transliteration only, independent UI/script preferences,
   system-font limitations and explicit alternatives.
-- One personal Room database contains only favorite video IDs and UI language/theme
-  preferences, separate from downloaded content and preparation control. Favorites
+- One personal Room database contains typed lyric/legacy favorites, saved lists and
+  independent occurrences, plus UI language/theme preferences, separate from downloaded content
+  and preparation control. Favorites and lists
   are accessible before preparation; unavailable IDs remain visible/removable and
   are never guessed or silently deleted. Reading still requires complete preparation.
 - First-use UI language follows the ordered supported Android locales, otherwise
@@ -102,28 +105,52 @@ acceptance criteria or authorize a personal-contract migration.
 
 ### Personal schema, transactions and recovery
 
-`personal.db` is the only personal database. Room schema2 has one required
+`personal.db` is the only personal database. Room schema3 has one required
 `preferences` singleton (`id=1`, `language`, `theme`, nonnegative `revision`) and
-`favorites` keyed by strict11-character video ID. Device language/theme are stored
+`favorites` keyed by `(kind,value)` with explicit positions, ordered `lists` and
+ordered `occurrences`. Lyric references require canonical lowercase UUIDv4;
+`legacyVideo` preserves the opaque case-sensitive ASCII1–128 domain. An old value
+that resembles a UUID remains legacy; no mapping or media association is inferred.
+Device language/theme are stored
 as `device`, not a frozen copy of the current device settings. Room schemas are
 committed under `app/schemas/`; Java annotation processing generates Room code.
 
 The supported fixture v1 migration input has the same tables but no `theme` column.
-The explicit v1→2 migration adds `theme=device` without replacing records. It is a
-synthetic migration fixture, not a claim that an earlier production personal schema
+The explicit v1→2 migration adds `theme=device`. The v2→3 migration structurally
+adapts each old favorite to `legacyVideo` and preserves its value, old query order,
+preferences and revision. Old favorites had no saved ordinal: their existing
+`ORDER BY videoId` is retained once; new typed favorites retain insertion order.
+The actual old schema and strict11-character records are validated before opening
+Room and rechecked within the migration transaction. Both old accounting and the
+projected new envelope must fit before migration. These are
+synthetic migration fixtures, not a claim that an earlier production personal schema
 was shipped. Before Room opens an existing file, read-only schema/record/version
 validation refuses unknown tables/columns, missing/extra singletons, malformed
 records and future versions. There is no destructive migration/downgrade fallback,
 automatic reset or advice to uninstall/delete data. Failure preserves the original
 records; retry is explicit and writing is disabled until storage reload succeeds.
 
-Every write rechecks the expected revision and validates the whole next snapshot
+Every write rechecks the expected revision and process-local store epoch and validates the whole next snapshot
 inside one Room transaction. A stale writer must reload before retrying. The count
 and deterministic UTF8 logical-envelope bounds come from pinned
 `shared/settings/personal-transfer.yml`, including preference/revision/header
-overhead. This envelope is storage accounting, not an implemented backup format.
+overhead. The compact UTF8 accounting envelope is exactly
+`{formatVersion:3,revision,preferences:{language,theme},favorites:[typed-reference],
+lists:[{id,name,entries:[typed-entry-with-id]}]}` in that field order, using
+`kotlinx.serialization` JSON string quoting and no spaces/BOM. Entries emit
+`kind`, present `videoId`/`lyricId`, present `fallback`/`text`, then `id`.
+The epoch is not persisted/accounted and changes when the store closes/reopens.
+Accounting counts UTF8 incrementally without constructing a whole backup string.
+This envelope is storage accounting, not an implemented backup format.
 No optimistic success is shown before commit. No preferences are duplicated in
 SharedPreferences or a separate database.
+
+Room reads group occurrences once by list rather than scanning all occurrences
+per list. Validation/accounting and whole-snapshot replacement are linear in
+favorites + lists + occurrences + bounded JSON/text bytes, apart from SQLite
+ordering/index maintenance and the separately described Unicode name-key work.
+Memory includes the bounded personal snapshot and one bounded list JSON at a time;
+capacity checks precede replacement and aggregate row-count checks precede loading.
 
 Future-schema failures explicitly request a newer app while preserving data.
 Malformed/unsupported storage explains preservation and supported-app recovery;
@@ -131,7 +158,39 @@ ordinary write failures expose explicit retry without advising data deletion.
 Loading, follow-device, Warm and unavailable-favorite labels use the pinned
 bilingual Shared catalog.
 
-### Minimal list preview and re-export
+### Durable lists and minimal v1/v2 transfer
+
+Lists is reachable before preparation. Create, rename, duplicate and confirmed
+delete operate on independent UUIDv4 lists. Add/edit/move/remove occurrences and
+manual placeholder/reference replacement retain occurrence identity and position;
+every duplicate/import instead allocates fresh list and occurrence UUIDs.
+All repeated references/placeholders, raw names, user fallback text and order are
+preserved. Names are not keys, no suffix is invented, and matching never merges.
+Create/rename/duplicate/import warnings use the pinned official Unicode16 key
+below and require explicit same-name reuse against the original revision/epoch.
+Cancelling leaves Room unchanged. Draft errors retain input; no optimistic save
+success is shown. There are no cached name keys to migrate.
+
+Each transaction checks all favorites/lists, unique list IDs and globally unique occurrence IDs,
+per-list/aggregate counts and deterministic stored-byte capacity before committing.
+Bounds come from Shared: 1,000 lists, 10,000 occurrences/list, 50,000 aggregate,
+10,000 favorites, names128/user text512 code points and 64MiB logical stored bytes.
+The decoded8MiB/encoded9MiB ceilings apply to import/export transports, not to
+durable list storage. A larger valid local list remains usable within the stored
+budget, but export explicitly refuses it without changing or truncating the list. Invalid,
+future-version, exhausted-revision, stale-epoch/revision and capacity failures
+preserve the old usable state. No ordinary catalog titles/content or URL fields, readiness flags or guessed
+bookmarks/verse metadata are automatically added. User-supplied text stays literal.
+
+Real references resolve only against the explicit fully prepared canonical set.
+Before preparation, references remain visible and saveable; Open retains a
+process-local pending lyric/list destination and shows the explicit preparation
+consent screen without any network request. Successful complete preparation opens
+that exact UUID if available. Failure/cancel preserves personal state and the
+prior validated set; unavailable UUIDs remain visible. Back to list returns to the
+same list and process-local list viewport. Legacy IDs are never matched to real lyrics. The separately labeled
+fixture favorite reader retains its old synthetic lookup, isolated from real
+list resolution. User text stays plain text. Recitation mode/resume is not implemented.
 
 Settings → List snapshot preview is reachable before preparation and regardless of
 personal-storage availability. Choose a local document or explicitly paste a
@@ -141,9 +200,13 @@ association is added. Preview and re-export never write Room, fetch lyrics, mark
 content ready, match text to catalog items or upload lists.
 
 Pure Kotlin `core/ListTransfer.kt` implements the pinned
-[minimal v1 contract](shared/docs/list-transfer.md). Names, placeholder text,
+[minimal v1/v2 contracts](shared/docs/list-transfer.md). Names, placeholder text,
 explicit user fallback, opaque reference IDs, repetitions and order remain literal.
-Only the exact format/version/name/entries allowlist is accepted, with exact entry
+v1 `item` entries structurally decode to typed `legacyVideo`, even for UUID-looking
+values. Original-v1 previews can re-export v1; saved typed lists always export v2,
+never disguise a lyric UUID as `videoId`, drop entries or silently downgrade.
+v2 supports only `lyric`, `legacyVideo` and `placeholder`. Only the exact
+format/version/name/entries allowlist is accepted, with exact entry
 allowlists. Strict JSON syntax, duplicate fields, malformed UTF8/scalars, C0/C1
 controls and line separators are rejected. One optional leading BOM counts toward
 the decoded byte limit. Compact exported UTF8 has no BOM; canonical Kannada synthetic
@@ -181,9 +244,11 @@ new destination; providers can retain an incomplete copy, so destination cleanup
 retry remain necessary. No delivery guarantee, encryption, revocation or verified
 OS share/App Link interoperability is claimed.
 
-There is deliberately **no Save/import-to-library control**, list persistence or
-automatic recovery of a preview after process death. This is partial
-XFER-01/02/03/05/06/08 evidence, not full transfer acceptance, native feature parity,
+Save to My Library opens a separate confirmation, permits editing the imported
+name and applies the same duplicate-name/revision/epoch fences. Each confirmed
+import creates only a new independent list; it never appends/merges/replaces.
+Preview, drafts and pending reader destinations do not survive process death.
+This is partial XFER-01/02/03/04/05/06/08 evidence, not full transfer acceptance, native feature parity,
 full backup correctness or release readiness.
 
 ### Portable personal/list-name comparison
@@ -212,22 +277,18 @@ six upstream source identities against Shared settings. Runtime loading verifies
 the packaged profile and data hash; missing/corrupt/unsupported resources fail
 explicitly, with no platform fallback.
 
-There are **no durable lists or persisted list-name keys** in Room schema2:
-only favorites and language/theme preferences are stored. No database migration,
-key rewrite or collision repair is needed or performed. Newly equal names remain
-independent snapshots; no list is automatically renamed or merged. Future durable
-create/import/rename/duplicate flows must preserve names/IDs/data and use this
-profile with explicit independent-reuse confirmation and a tested preserving
-migration if they introduce stored derived keys. This batch does not implement
-those flows or invent duplicate-name UI where no Save exists.
+Room schema3 stores raw list names, not persisted name keys. Create, rename,
+duplicate and import use this profile and explicit independent-reuse confirmation.
+No list is automatically renamed/merged; no cached keys require migration.
+A future persisted-key/profile change still needs a preserving migration.
 Fixture lyric search and the separate prelaunch literal title filter keep their
-existing policies; real lyric UUIDs, legacy personal video IDs and Shared pins
-are unchanged. Partial mapping: LIB-01..11, XFER-01..10 and SET-01 comparison
-prerequisite only, not durable-list or full requirement acceptance.
+existing policies; raw real lyric UUIDs and legacy IDs are never normalized.
+Partial mapping: LIB-01/02/03/04/05/08/09/10/11, XFER-01/03/04/05/06/08
+and SET-01; not full requirement acceptance.
 
 ### Remaining approved slices
 
-This batch does **not** implement persistent recitation lists/list-import Save, full personal
+This batch does **not** implement recitation mode/resume, full personal
 backup/restore, system backup, bookmarks/recents/learning state, persistent offline
 snapshots, production migrations or full Android parity. Android system backup is
 still disabled rather than backing up false content readiness. Remaining selected
@@ -243,7 +304,8 @@ verification. Release direction remains CI unsigned candidate → maintainer loc
 verify/sign → protected verification/GitHub Releases; exact handoff is open and no
 signing key belongs in CI/repository/logs.
 
-Partial requirement coverage: LIB-01/LIB-04 (favorites only), I18N-01/02/03,
+Partial requirement coverage: LIB-01/02/03/04/05/08/09/10/11,
+XFER-01/02/03/04/05/06/08, I18N-01/02/03,
 SET-04 (UI language/theme only), QUAL-05/06 (local-only state and explicit errors).
 Canonical Kannada and required preparation remain unchanged. This is neither
 complete requirement acceptance nor production/release readiness.
@@ -255,11 +317,14 @@ npm ci
 npm run config
 .\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon
 python tools\check_repository.py
+node -e "const fs=require('node:fs'),path=require('node:path'),yaml=require('yaml');for(const p of fs.readdirSync('.github',{recursive:true}).filter(p=>p.endsWith('.yml')||p.endsWith('.yaml'))){const d=yaml.parseDocument(fs.readFileSync(path.join('.github',p),'utf8'),{uniqueKeys:true});if(d.errors.length)throw d.errors[0];console.log(p)}"
+actionlint .github\workflows\hygiene.yml
 git --no-pager diff --check
 git --no-pager diff --cached --check
 ```
 
 Set JAVA_HOME to JDK21 and ANDROID_HOME to the SDK with platform/build-tools36.
+Use the existing actionlint/ShellCheck binaries on PATH for workflow checking.
 Connected tests require an intended API36 emulator selected with ANDROID_SERIAL and
 the Website demo at the endpoint in settings/android.yml. Configuration is generated
 from owned settings and pinned Shared policy. Never target another user's device.
@@ -272,8 +337,9 @@ synthetic text and cover strict fields/version/capabilities, duplicate UUIDs/JSO
 members, malformed UTF-8/scalars, reference/path/size/hash limits, summary mismatch,
 line/layout distinctions, literal whitespace, query bounds, cancellation and retry.
 Native synthetic instrumentation also exercises the complete descriptor/manifest/item
-chain, explicit complete-preparation gating, read-only UI/personal isolation,
-filter/reader text and cancel/retry/reload-failure preservation. It is not a live
+chain, explicit complete-preparation gating, pre-consent personal isolation,
+typed reader Favorite/Add to list, pending list destinations without implicit
+downloads, filter/reader text and cancel/retry/reload-failure preservation. It is not a live
 feed or real-content demo.
 Transfer tests use actual9MiB/8MiB/2048 ceilings and ceiling+1 (including a
 valid9MiB single gzip member, valid high-compression8MiB JSON and complete2048/
@@ -283,10 +349,23 @@ They reject malformed JSON/UTF8/Unicode, duplicate/unknown fields, unsupported
 versions, gzip truncation/CRC/length/concatenation/trailing bytes and observe
 cancellation. Instrumentation
 uses real Room/SQLite and Compose: reopen persistence, unavailable IDs, limits,
-stale writers, rejected records/schemas, future-version preservation, v1 migration,
-settings/favorites before preparation and preparation-to-canonical-reading.
+stale revisions/epochs, exhausted revisions, rejected records/schemas,
+future-version preservation, actual v1/v2 structural migrations,
+settings/favorites/lists before preparation and preparation-to-canonical-reading.
+Durable-list tests cover independent/repeated occurrences, replacement/moves/removal,
+duplication/deletion, Unicode duplicate confirmation, chosen import names,
+transaction rollback, actual configured list/entry/aggregate and UTF8 stored-byte
+ceilings with one-extra refusal, and fresh-ID v1-import/v2-export preservation.
+`ListInteropTest` normally executes the pinned mixed-v2 vector and can receive
+complete actual peer gzip/link/JSON bytes as base64 instrumentation arguments
+`webGzipBase64`, `webLinkBase64` and `webJsonBase64`. All three must be supplied
+or none. It validates exact typed values/text/repetitions and emits real native
+gzip/link re-exports in target-app private test files. No external/session path is
+an application or permanent test dependency; this adapter never writes personal
+data or downloads content. The evidence adapter removes at most one terminal
+LF/CRLF from a peer URL text file, not from the URL codec or user fields.
 The native transfer journey covers pre-preparation link/file-stream preview,
-no Save, cancellation, invalid input/provider failure, known/pending/unavailable
+no implicit save, confirmed new-list-only Save, cancellation, invalid input/provider failure, known/pending/unavailable
 catalog states, complete link re-export and unchanged favorites/preferences/theme.
 Document picker/provider interoperability across real devices, destination failure
 semantics, signed App Links and OS sharing remain required later acceptance gates;
@@ -298,7 +377,8 @@ characters, recursive decomposition, canonical ordering/blocking/exclusions,
 Hangul, stage order, locale-independent/version-specific differences, malformed
 UTF16, packaged byte/hash/profile guards and original name limits despite fold
 expansion. A connected test exercises the actual packaged tables and unchanged
-file/link snapshot round trips on Android; this is not durable-list acceptance.
+file/link snapshot round trips on Android; separate Room/Compose list tests cover
+the bounded durable-list slice, not full recitation/offline acceptance.
 App JVM tests currently have no sources; do not count NO-SOURCE as a pass.
 The debug APK allows cleartext only for the local fixture endpoint; release does not.
 Install the debug APK from app/build/outputs/apk/debug/app-debug.apk for a local

@@ -13,8 +13,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 
 data class TransferBounds(val encoded: Int, val decoded: Int, val url: Int, val name: Int, val text: Int, val entries: Int)
-data class ListEntry(val kind: String, val videoId: String? = null, val fallback: String? = null, val text: String? = null)
-data class ListSnapshot(val name: String, val entries: List<ListEntry>) {
+data class ListEntry(val kind: String, val videoId: String? = null, val fallback: String? = null, val text: String? = null,
+    val lyricId: String? = null)
+data class ListSnapshot(val name: String, val entries: List<ListEntry>, val formatVersion: Int = 1) {
     val nameKey: PersonalNameKey get() = PersonalNames.key(name)
 }
 class TransferFailure(val reason: String) : IllegalArgumentException(reason)
@@ -174,12 +175,15 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
         fun parse(): ListSnapshot {
             var name: String? = null
             var entries: List<ListEntry>? = null
+            var version = 0
+            val kinds = mutableListOf<String>()
             val keys = fields(setOf("format", "formatVersion", "name", "entries")) { key ->
                 when (key) {
                     "format" -> if (string() != "daasavaani-list") invalid()
                     "formatVersion" -> {
                         whitespace()
-                        if (at >= source.length || source[at++] != '1') invalid()
+                        if (at >= source.length || source[at] !in "12") invalid()
+                        version = source[at++].digitToInt()
                     }
                     "name" -> name = string().also { text(it, bounds.name) }
                     "entries" -> {
@@ -188,23 +192,27 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
                         if (!take(']')) do {
                             check()
                             if (list.size >= bounds.entries) invalid()
-                            var kind: String? = null; var id: String? = null
+                            var kind: String? = null; var id: String? = null; var lyric: String? = null
                             var fallback: String? = null; var value: String? = null
-                            val seen = fields(setOf("kind", "videoId", "fallback", "text")) {
+                            val seen = fields(setOf("kind", "videoId", "lyricId", "fallback", "text")) {
                                 when (it) {
                                     "kind" -> kind = string()
                                     "videoId" -> id = string()
+                                    "lyricId" -> lyric = string()
                                     "fallback" -> fallback = string().also { s -> text(s, bounds.text) }
                                     "text" -> value = string().also { s -> text(s, bounds.text) }
                                 }
                             }
                             when (kind) {
-                                "item" -> if (id == null || !id!!.matches(Regex("[A-Za-z0-9_-]{1,128}")) ||
+                                "item", "legacyVideo" -> if (id == null || !id!!.matches(Regex("[A-Za-z0-9_-]{1,128}")) ||
                                     seen != (if (fallback == null) setOf("kind", "videoId") else setOf("kind", "videoId", "fallback"))) invalid()
+                                "lyric" -> if (lyric == null || !PersonalReference.validLyricId(lyric!!) ||
+                                    seen != (if (fallback == null) setOf("kind", "lyricId") else setOf("kind", "lyricId", "fallback"))) invalid()
                                 "placeholder" -> if (seen != setOf("kind", "text")) invalid()
                                 else -> invalid()
                             }
-                            list.add(ListEntry(kind!!, id, fallback, value))
+                            kinds.add(kind!!)
+                            list.add(ListEntry(if (kind == "item") "legacyVideo" else kind!!, id, fallback, value, lyric))
                             if (take(']')) break
                             need(',')
                         } while (true)
@@ -214,7 +222,8 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
             }
             whitespace()
             if (at != source.length || keys.size != 4) invalid()
-            return ListSnapshot(name ?: invalid(), entries ?: invalid())
+            if (kinds.any { it !in if (version == 1) setOf("item", "placeholder") else setOf("lyric", "legacyVideo", "placeholder") }) invalid()
+            return ListSnapshot(name ?: invalid(), entries ?: invalid(), version)
         }
     }
     private fun text(value: String, limit: Int) {
@@ -227,20 +236,26 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
             at += Character.charCount(point)
         }
     }
-    fun json(snapshot: ListSnapshot, check: () -> Unit = {}): ByteArray {
+    fun validate(snapshot: ListSnapshot, check: () -> Unit = {}) {
+        if (snapshot.formatVersion !in 1..2) invalid()
         text(snapshot.name, bounds.name)
         if (snapshot.entries.size > bounds.entries) invalid()
         snapshot.entries.forEach {
             check()
             when (it.kind) {
-                "item" -> if (it.videoId == null || it.text != null) invalid()
-                "placeholder" -> if (it.text == null || it.videoId != null || it.fallback != null) invalid()
+                "legacyVideo" -> if (it.videoId == null || it.text != null || it.lyricId != null) invalid()
+                "lyric" -> if (snapshot.formatVersion != 2 || it.lyricId == null || !PersonalReference.validLyricId(it.lyricId) ||
+                    it.videoId != null || it.text != null) invalid()
+                "placeholder" -> if (it.text == null || it.videoId != null || it.fallback != null || it.lyricId != null) invalid()
                 else -> invalid()
             }
             it.videoId?.let { id -> if (!id.matches(Regex("[A-Za-z0-9_-]{1,128}"))) invalid() }
             it.fallback?.let { value -> text(value, bounds.text) }
             it.text?.let { value -> text(value, bounds.text) }
         }
+    }
+    fun json(snapshot: ListSnapshot, check: () -> Unit = {}): ByteArray {
+        validate(snapshot, check)
         fun quote(value: String) = Json.encodeToString(value)
         val out = ByteArrayOutputStream()
         fun append(value: String) {
@@ -249,11 +264,12 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
             if (bytes.size > bounds.decoded - out.size()) size()
             out.write(bytes)
         }
-        append("{\"format\":\"daasavaani-list\",\"formatVersion\":1,\"name\":${quote(snapshot.name)},\"entries\":[")
+        append("{\"format\":\"daasavaani-list\",\"formatVersion\":${snapshot.formatVersion},\"name\":${quote(snapshot.name)},\"entries\":[")
         snapshot.entries.forEachIndexed { index, entry ->
             if (index > 0) append(",")
-            append("{\"kind\":${quote(entry.kind)}")
+            append("{\"kind\":${quote(if (snapshot.formatVersion == 1 && entry.kind == "legacyVideo") "item" else entry.kind)}")
             entry.videoId?.let { append(",\"videoId\":${quote(it)}") }
+            entry.lyricId?.let { append(",\"lyricId\":${quote(it)}") }
             entry.fallback?.let { append(",\"fallback\":${quote(it)}") }
             entry.text?.let { append(",\"text\":${quote(it)}") }
             append("}")

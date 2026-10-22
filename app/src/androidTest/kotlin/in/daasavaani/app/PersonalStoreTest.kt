@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
+import `in`.daasavaani.core.PersonalReference
 
 class PersonalStoreTest {
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -32,11 +33,11 @@ class PersonalStoreTest {
         var expected = PersonalSnapshot()
         PersonalStore(context, name).use { store ->
             expected = store.load()
-            expected = store.change(expected.revision, language = "kn", theme = "dark", favorite = "UNAVAILABLE")
+            expected = store.change(expected, language = "kn", theme = "dark", favorite = "UNAVAILABLE")
         }
         PersonalStore(context, name).use { store ->
             assertEquals(expected, store.load())
-            val removed = store.change(expected.revision, favorite = "UNAVAILABLE")
+            val removed = store.change(store.load(), favorite = "UNAVAILABLE")
             assertTrue(removed.favorites.isEmpty())
             assertEquals("kn", removed.language)
             assertEquals("dark", removed.theme)
@@ -45,24 +46,24 @@ class PersonalStoreTest {
 
     @Test fun transactionalCountAndByteBoundsRejectWithoutChangingAnyPersonalData() {
         PersonalStore(context, name, maxFavorites = 1).use { store ->
-            val first = store.change(store.load().revision, favorite = "UNAVAILABLE")
-            failure(R.string.personal_capacity) { store.change(first.revision, theme = "dark", favorite = "TESTONLY002") }
+            val first = store.change(store.load(), favorite = "UNAVAILABLE")
+            failure(R.string.personal_capacity) { store.change(first, theme = "dark", favorite = "TESTONLY002") }
             assertEquals(first, store.load())
         }
         PersonalStore(context, name, maxBytes = 1).use { store ->
             failure(R.string.personal_capacity) { store.load() }
         }
-        PersonalStore(context, name).use { assertEquals(setOf("UNAVAILABLE"), it.load().favorites) }
+        PersonalStore(context, name).use { assertEquals(setOf(PersonalReference.legacy("UNAVAILABLE")), it.load().favorites) }
     }
 
     @Test fun staleWriterAndInvalidInputDoNotChangeOtherCollections() {
         PersonalStore(context, name).use { first ->
             val before = first.load()
             PersonalStore(context, name).use { second ->
-                val after = second.change(before.revision, language = "kn")
-                failure(R.string.personal_stale) { first.change(before.revision, favorite = "TESTONLY001") }
-                failure(R.string.personal_invalid) { second.change(after.revision, theme = "bogus", favorite = "TESTONLY002") }
-                failure(R.string.personal_invalid) { second.change(after.revision, favorite = "bad") }
+                val after = second.change(second.load(), language = "kn")
+                failure(R.string.personal_stale) { first.change(before, favorite = "TESTONLY001") }
+                failure(R.string.personal_invalid) { second.change(after, theme = "bogus", favorite = "TESTONLY002") }
+                failure(R.string.personal_invalid) { second.change(after, favorite = "bad") }
                 assertEquals(after, first.load())
             }
         }
@@ -71,7 +72,7 @@ class PersonalStoreTest {
     @Test fun v1MigrationPreservesLanguageFavoritesAndRevision() {
         raw(1)
         PersonalStore(context, name).use { store ->
-            assertEquals(PersonalSnapshot("kn", "device", setOf("UNAVAILABLE"), 7), store.load())
+            assertEquals(PersonalSnapshot("kn", "device", setOf(PersonalReference.legacy("UNAVAILABLE")), 7), store.load())
         }
         PersonalStore(context, name).use { assertEquals("device", it.load().theme) }
     }
@@ -81,7 +82,7 @@ class PersonalStoreTest {
         val original = bytes()
         PersonalStore(context, name).use { store ->
             failure(R.string.personal_future) { store.load() }
-            failure(R.string.personal_future) { store.change(7, language = "en") }
+            failure(R.string.personal_future) { store.change(PersonalSnapshot(revision = 7), language = "en") }
         }
         assertArrayEquals(original, bytes())
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use {
@@ -113,10 +114,10 @@ class PersonalStoreTest {
     }
 
     @Test fun exactEnvelopeByteBoundaryIncludesPreferenceAndRevisionOverhead() {
-        val expected = PersonalSnapshot(language = "kn", favorites = setOf("TESTONLY001"), revision = 1)
+        val expected = PersonalSnapshot(language = "kn", favorites = setOf(PersonalReference.legacy("TESTONLY001")), revision = 1)
         val limit = PersonalStore.storedBytes(expected)
         PersonalStore(context, name, maxBytes = limit).use { store ->
-            assertEquals(expected, store.change(store.load().revision, language = "kn", favorite = "TESTONLY001"))
+            assertEquals(expected, store.change(store.load(), language = "kn", favorite = "TESTONLY001"))
         }
         PersonalStore(context, name, maxBytes = limit - 1).use { store ->
             failure(R.string.personal_capacity) { store.load() }
@@ -142,9 +143,9 @@ class PersonalStoreTest {
         PersonalStore(context, name).use { store ->
             val before = store.load()
             assertEquals(limit, before.favorites.size)
-            failure(R.string.personal_capacity) { store.change(before.revision, theme = "dark", favorite = "TESTONLY999") }
+            failure(R.string.personal_capacity) { store.change(before, theme = "dark", favorite = "TESTONLY999") }
             assertEquals(before, store.load())
-            assertEquals(limit - 1, store.change(before.revision, favorite = "UNAVAILABLE").favorites.size)
+            assertEquals(limit - 1, store.change(before, favorite = "UNAVAILABLE").favorites.size)
         }
     }
 
@@ -172,9 +173,9 @@ class PersonalStoreTest {
         }
     }
 
-    @Test fun failedRoomMigrationRollsBackVersionSchemaAndRecords() {
+    @Test fun foreignKeySchemaRefusedBeforeMigrationAndRecordsPreserved() {
         raw(1, ", FOREIGN KEY (language) REFERENCES favorites(videoId)")
-        PersonalStore(context, name).use { store -> failure(R.string.personal_schema) { store.load() } }
+        PersonalStore(context, name).use { store -> failure(R.string.personal_invalid) { store.load() } }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
             assertEquals(1, db.version)
             db.rawQuery("PRAGMA table_info(preferences)", null).use { assertEquals(3, it.count) }
@@ -197,7 +198,7 @@ class PersonalStoreTest {
             val before = store.load()
             context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { db ->
                 db.execSQL("CREATE TRIGGER synthetic_failure BEFORE UPDATE ON preferences BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END")
-                failure(R.string.personal_failed) { store.change(before.revision, language = "kn", favorite = "TESTONLY001") }
+                failure(R.string.personal_failed) { store.change(before, language = "kn", favorite = "TESTONLY001") }
                 assertEquals(before, store.load())
                 db.execSQL("DROP TRIGGER synthetic_failure")
             }

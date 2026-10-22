@@ -23,7 +23,7 @@ class PersonalUiTest {
         val en = context.createConfigurationContext(Configuration(context.resources.configuration).apply {
             setLocales(LocaleList(Locale.ENGLISH))
         })
-        PersonalStore(context).use { it.change(it.load().revision, language = "kn", theme = "dark", favorite = "UNAVAILABLE") }
+        PersonalStore(context).use { it.change(it.load(), language = "kn", theme = "dark", favorite = "UNAVAILABLE") }
         ActivityScenario.launch(MainActivity::class.java).use {
             compose.waitUntil(10000) { compose.onAllNodesWithText(kn.getString(R.string.settings)).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText(kn.getString(R.string.settings)).performClick()
@@ -49,7 +49,7 @@ class PersonalUiTest {
             assertEquals("en", saved.language)
             assertEquals("warm", saved.theme)
             assertEquals(2, saved.favorites.size)
-            assertTrue("UNAVAILABLE" in saved.favorites)
+            assertTrue(`in`.daasavaani.core.PersonalReference.legacy("UNAVAILABLE") in saved.favorites)
         }
         ActivityScenario.launch(MainActivity::class.java).use {
             compose.waitUntil(10000) { compose.onAllNodesWithText(en.getString(R.string.prepare_library)).fetchSemanticsNodes().isNotEmpty() }

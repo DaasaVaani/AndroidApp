@@ -5,6 +5,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.ViewModelProvider
@@ -41,6 +42,65 @@ class LyricPreviewTest {
         var itemWork: suspend () -> PreviewLyric = { lyric }
         override suspend fun catalog(): LyricCatalog { catalogRequests++; return catalogWork() }
         override suspend fun item(summary: LyricSummary): PreviewLyric { itemRequests++; return itemWork() }
+    }
+
+    @Test fun realTypedFavoriteAndAddToListPreservePendingDestinationWithoutImplicitDownload() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.deleteDatabase("personal.db")
+        val list = RecitationList.create("  Synthetic list 😀  ", listOf(PersonalReference.lyric(id).entry(),
+            PersonalReference.legacy(id).entry(), ListEntry("placeholder", text = "  <b>raw</b>  ")))
+        PersonalStore(context).use { store ->
+            val s = store.change(store.load(), language = "en", theme = "warm")
+            store.saveList(s.revision, s.epoch, list)
+        }
+        val source = Source()
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            lateinit var library: LibraryViewModel
+            lateinit var real: LyricPreviewViewModel
+            scenario.onActivity { activity ->
+                library = ViewModelProvider(activity)[LibraryViewModel::class.java]
+                real = LyricPreviewViewModel(activity.application, source)
+                activity.setContent { MaterialTheme { LibraryScreen(library, real) } }
+            }
+            compose.waitUntil(10000) { library.state.value.personal != null }
+            compose.onNodeWithText(context.getString(R.string.lists)).performClick()
+            compose.onNodeWithText(list.name).performClick()
+            compose.onNodeWithTag("saved-lists").performScrollToNode(hasText(context.getString(R.string.open)))
+            val savedScroll = compose.onNodeWithTag("saved-lists").fetchSemanticsNode()
+                .config[SemanticsProperties.VerticalScrollAxisRange].value()
+            compose.onNodeWithText(context.getString(R.string.open)).performClick()
+            assertEquals(0, source.catalogRequests); assertEquals(0, source.itemRequests)
+            assertEquals(id, real.state.value.pendingLyricId)
+            assertNull(real.state.value.prepared)
+            compose.onNodeWithTag("lyric-preview").performScrollToNode(hasTestTag("lyric-load"))
+            compose.onNodeWithTag("lyric-load").performClick()
+            compose.waitUntil(10000) { real.state.value.selected?.lyricId == id }
+            assertEquals(1, source.catalogRequests); assertEquals(1, source.itemRequests)
+            compose.onNodeWithTag("lyric-preview").performScrollToNode(hasText(context.getString(R.string.add_favorite)))
+            compose.onNodeWithText(context.getString(R.string.add_favorite)).performClick()
+            compose.waitUntil(10000) { library.state.value.personal?.favorites?.contains(PersonalReference.lyric(id)) == true }
+            assertFalse(requireNotNull(library.state.value.personal).favorites.contains(PersonalReference.legacy(id)))
+            compose.onNodeWithTag("lyric-preview").performScrollToNode(hasText(context.getString(R.string.add_to_list)))
+            compose.onNodeWithText(context.getString(R.string.add_to_list)).performClick()
+            compose.onNodeWithText(list.name).performClick()
+            compose.waitUntil(10000) { library.state.value.personal?.lists?.single()?.entries?.size == 4 }
+            val saved = requireNotNull(library.state.value.personal).lists.single()
+            assertEquals(list.entries, saved.entries.take(3))
+            assertEquals(PersonalReference.lyric(id), saved.entries.last().entry.reference())
+            assertNull(saved.entries.last().entry.fallback)
+            compose.onNodeWithText(context.getString(R.string.back_to_list)).performClick()
+            compose.onNodeWithTag("saved-lists").assertIsDisplayed()
+            assertEquals(savedScroll, compose.onNodeWithTag("saved-lists").fetchSemanticsNode()
+                .config[SemanticsProperties.VerticalScrollAxisRange].value(), 0.01f)
+            assertEquals(list.id, library.state.value.selectedListId)
+            assertEquals(1, source.catalogRequests); assertEquals(1, source.itemRequests)
+            scenario.onActivity { real.cancel() }
+        }
+        PersonalStore(context).use { store ->
+            assertEquals(4, store.load().lists.single().entries.size)
+            assertEquals(setOf(PersonalReference.lyric(id)), store.load().favorites)
+        }
+        context.deleteDatabase("personal.db")
     }
 
     @Test fun completePreparationRejectsAggregateBudgetsAndCrossItemLineCollisions() = runBlocking {
@@ -114,7 +174,7 @@ class LyricPreviewTest {
     @Test fun explicitEntryReadOnlyCanonicalLiteralLayoutAndPersonalIsolation() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         context.deleteDatabase("personal.db")
-        val before = PersonalStore(context).use { it.change(it.load().revision, language = "en", theme = "warm", favorite = "UNAVAILABLE") }
+        val before = PersonalStore(context).use { it.change(it.load(), language = "en", theme = "warm", favorite = "UNAVAILABLE") }
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             lateinit var library: LibraryViewModel
             lateinit var real: LyricPreviewViewModel

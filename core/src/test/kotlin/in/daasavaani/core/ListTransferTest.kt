@@ -19,13 +19,20 @@ class ListTransferTest {
         settings.getValue("maxEntryTextCodePoints"), settings.getValue("maxEntriesPerList"))
     private val prefix = "https://daasavaani.github.io/open/#/list/"
     private val codec = ListTransfer(bounds, "https://daasavaani.github.io/", "open/", 6)
-    private val sample = ListSnapshot("  ಕ 😀  ", listOf(ListEntry("item", "fixture-1", " ಬಳಕೆ "),
-        ListEntry("placeholder", text = "<b>ಕ</b>"), ListEntry("item", "fixture-1")))
+    private val sample = ListSnapshot("  ಕ 😀  ", listOf(ListEntry("legacyVideo", "fixture-1", " ಬಳಕೆ "),
+        ListEntry("placeholder", text = "<b>ಕ</b>"), ListEntry("legacyVideo", "fixture-1")))
     private fun gzip(bytes: ByteArray): ByteArray = ByteArrayOutputStream().apply {
         GZIPOutputStream(this).use { it.write(bytes) }
     }.toByteArray()
     private fun file(bytes: ByteArray) = codec.decodeFile(ByteArrayInputStream(bytes))
     private fun reject(block: () -> Unit) { assertFailsWith<TransferFailure> { block() } }
+
+    @Test fun structuralValidationDoesNotApplyTransportByteCeilingsToDurableLists() {
+        val tinyTransport = ListTransfer(bounds.copy(decoded = 1), "https://daasavaani.github.io/", "open/", 6)
+        tinyTransport.validate(sample)
+        assertEquals("size", assertFailsWith<TransferFailure> { tinyTransport.json(sample) }.reason)
+        assertFailsWith<TransferFailure> { tinyTransport.validate(sample.copy(name = "")) }
+    }
 
     @Test fun namesHaveVersionedDerivedKeysWithoutChangingLiteralTransportOrBounds() {
         val a = sample.copy(name = "Straße E\u0301 \uD801\uDC00")
@@ -79,7 +86,7 @@ class ListTransferTest {
         val entry = ListEntry("placeholder", text = "ಕ")
         reject { codec.json(ListSnapshot("ಕ", listOf(ListEntry("unsupported")))) }
         reject { codec.json(ListSnapshot("ಕ", listOf(ListEntry("placeholder", videoId = "fixture-1", text = "ಕ")))) }
-        reject { codec.json(ListSnapshot("ಕ", listOf(ListEntry("item", videoId = "fixture-1", text = "ಕ")))) }
+        reject { codec.json(ListSnapshot("ಕ", listOf(ListEntry("legacyVideo", videoId = "fixture-1", text = "ಕ")))) }
         codec.json(ListSnapshot("ಕ", List(bounds.entries) { entry }))
         reject { codec.json(ListSnapshot("ಕ", List(bounds.entries + 1) { entry })) }
         val json = codec.json(ListSnapshot("ಕ", listOf(entry))).toString(Charsets.UTF_8)
@@ -103,8 +110,50 @@ class ListTransferTest {
             assertEquals(value, file(codec.encodeFile(value)))
         }
         fixtures.getValue("rejected").jsonArray.forEach {
-            reject { codec.decodeJson(it.jsonObject.getValue("value").toString().toByteArray()) }
+            val bytes = it.jsonObject.getValue("value").toString().toByteArray()
+            if (it.jsonObject.getValue("label").jsonPrimitive.content == "newer version") {
+                // This frozen v1-only rejection is now the explicitly supported empty v2 envelope.
+                assertEquals(2, codec.decodeJson(bytes).formatVersion)
+                reject { codec.decodeJson(bytes.toString(Charsets.UTF_8).replace("\"formatVersion\":2", "\"formatVersion\":3").toByteArray()) }
+            } else reject { codec.decodeJson(bytes) }
         }
+    }
+    @Test fun typedV2SharedVectorsRoundtripAndRejectWithoutDowngrade() {
+        val vectors = Json.parseToJsonElement(File("../shared/fixtures/personal/list-transfer-v2.json").readText()).jsonObject
+        vectors.getValue("accepted").jsonArray.forEach {
+            val snapshot = codec.decodeJson(it.jsonObject.getValue("value").toString().toByteArray())
+            assertEquals(2, snapshot.formatVersion)
+            assertEquals(snapshot, file(codec.encodeFile(snapshot)))
+            assertEquals(snapshot, codec.decodeLink(codec.encodeLink(snapshot)))
+            if (snapshot.entries.any { entry -> entry.kind == "lyric" }) reject { codec.json(snapshot.copy(formatVersion = 1)) }
+        }
+        vectors.getValue("rejectedEntries").jsonArray.forEach {
+            val entry = it.toString().replace("\uD800", "\\ud800")
+            reject { codec.decodeJson("""{"format":"daasavaani-list","formatVersion":2,"name":"Synthetic","entries":[$entry]}""".toByteArray()) }
+        }
+        val id = "00000000-0000-4000-8000-000000000001"
+        val v1 = """{"entries":[{"kind":"item","videoId":"$id","fallback":"  raw  "},{"kind":"item","videoId":"$id"}],"name":" é ","formatVersion":1,"format":"daasavaani-list"}"""
+        val adapted = codec.decodeJson(v1.toByteArray())
+        assertTrue(adapted.entries.all { it.kind == "legacyVideo" && it.videoId == id && it.lyricId == null })
+        assertEquals("  raw  ", adapted.entries.first().fallback)
+        assertTrue(codec.json(adapted).toString(Charsets.UTF_8).contains("\"kind\":\"item\""))
+        val upgraded = adapted.copy(formatVersion = 2)
+        assertTrue(codec.json(upgraded).toString(Charsets.UTF_8).contains("\"kind\":\"legacyVideo\""))
+        assertEquals(upgraded, codec.decodeLink(codec.encodeLink(upgraded)))
+        val valid = codec.json(upgraded).toString(Charsets.UTF_8)
+        listOf(valid.replace("\"formatVersion\":2", "\"formatVersion\":3"),
+            valid.replace("\"formatVersion\":2", "\"formatVersion\":2.0"),
+            valid.replace("\"formatVersion\":2", "\"formatVersion\":2,\"formatVersion\":2"),
+            valid.replace("\"kind\":\"legacyVideo\"", "\"kind\":\"lyric\""),
+            valid.replace("\"videoId\":", "\"unknown\":")).forEach { reject { codec.decodeJson(it.toByteArray()) } }
+        assertFalse(PersonalReference.lyric("ABCDEF01-0000-4000-8000-000000000001").valid())
+        assertTrue(PersonalReference.legacy(id).valid())
+        assertNotEquals(PersonalReference.lyric(id), PersonalReference.legacy(id))
+        val local = RecitationList.create(" é ", upgraded.entries)
+        val duplicate = local.duplicate()
+        assertNotEquals(local.id, duplicate.id)
+        assertEquals(local.transfer(), duplicate.transfer())
+        assertTrue(local.entries.zip(duplicate.entries).all { (a, b) -> a.id != b.id && a.entry == b.entry })
     }
     @Test fun strictJsonAndUtf8() {
         val valid = codec.json(sample)

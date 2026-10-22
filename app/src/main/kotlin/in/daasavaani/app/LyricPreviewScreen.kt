@@ -15,29 +15,43 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import `in`.daasavaani.core.LyricSummary
+import `in`.daasavaani.core.PersonalReference
 
 @Composable
-fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel()) {
+fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: PersonalSnapshot? = null,
+    canSave: Boolean = false, favorite: (PersonalReference) -> Unit = {}, add: (PersonalReference) -> Unit = {},
+    backToList: (() -> Unit)? = null) {
     val state by model.state.collectAsState()
-    BackHandler(enabled = state.selected != null) { model.select(null) }
+    BackHandler(enabled = state.selected != null) { backToList?.invoke() ?: model.select(null) }
     DisposableEffect(model) { onDispose { model.cancel() } }
-    LyricPreviewContent(state, model::load, model::cancel, model::query, model::select)
+    LyricPreviewContent(state, model::load, model::cancel, model::query, model::select) { summary ->
+        val reference = PersonalReference.lyric(summary.lyricId)
+        OutlinedButton(enabled = canSave, onClick = { favorite(reference) }) {
+            Text(stringResource(if (reference in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
+        }
+        OutlinedButton(enabled = canSave, onClick = { add(reference) }) { Text(stringResource(R.string.add_to_list)) }
+    }
 }
 
 @Composable
 fun LyricPreviewContent(
     state: LyricPreviewState, load: () -> Unit, cancel: () -> Unit,
     query: (String) -> Unit, select: (LyricSummary?) -> Unit,
+    personalActions: @Composable (LyricSummary) -> Unit = {},
 ) {
     val space = integerResource(R.integer.spacing_dp).dp
     LazyColumn(Modifier.fillMaxSize().testTag("lyric-preview"), verticalArrangement = Arrangement.spacedBy(space)) {
         item {
             Text(stringResource(R.string.lyric_preview_notice), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.lyric_preview_limits), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.lyric_personal_limits), style = MaterialTheme.typography.bodySmall)
             Text(stringResource(R.string.lyric_no_media), style = MaterialTheme.typography.bodySmall)
         }
         item {
             if (state.selected != null) TextButton(onClick = { select(null) }) { Text(stringResource(R.string.lyric_back)) }
+            if (state.pendingLyricId != null && state.selected == null) {
+                Text(state.pendingLyricId)
+                Text(stringResource(if (state.prepared == null) R.string.lyric_catalog_pending else R.string.lyrics_unavailable))
+            }
             if (state.failed) Text(stringResource(R.string.lyrics_unavailable), color = MaterialTheme.colorScheme.error)
             if (state.loading) {
                 Text(stringResource(R.string.loading))
@@ -53,6 +67,7 @@ fun LyricPreviewContent(
         if (selected != null) {
             item {
                 Text(selected.title, style = MaterialTheme.typography.headlineSmall)
+                personalActions(selected)
             }
             val lyric = state.item
             if (lyric != null) {
