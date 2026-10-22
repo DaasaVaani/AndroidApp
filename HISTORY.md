@@ -1,5 +1,83 @@
 # Documentation history
 
+## 2026-10-22: durable device-only Recently opened
+
+- Owner authorized only this next Android slice in parallel with Website and
+  fully validated exact-SHA direct-main batches. Started on clean main
+  `4a89004c3c119fcab09099fc2d6482d176a5f640`. Independently adopted published Shared
+  `9b8845a21bb529268bba49ffbf6a44dece45a9ed` (no floating submodule update).
+  No Website, Shared source, Library, emulator ownership or existing demo server
+  was changed.
+- Archived superseded native limitations: schema3 had only typed favorites,
+  lists/occurrences and language/theme, with logical accounting envelope3.
+  Recently opened was unimplemented on both native readers and appeared in the
+  README's open-work lists. Those boundaries are replaced by the bounded
+  history slice below, not by full LIB-06/SET-04/QUAL-05 closure.
+- Room schema4 creates an empty initially-on history on preserving supported
+  v1/v2/v3 upgrades. Exact typed favorites, list/occurrence IDs, raw text/order,
+  language/theme and revision are retained; no opens are reconstructed.
+  Explicit saved false wins on every reopen. Exact accounting envelope4 includes
+  the entire ordered history/enabled record and all existing personal overhead.
+  History changes share revision/epoch and import/name-confirmation fences.
+- Real and fixture reader text exposures acknowledge explicit request receipts
+  once, without recording preparation/catalog/preview/background/unknown/failure
+  routes. Already-first and disabled opens perform no write/revision increment.
+  Clear/toggle never regenerate an open while a reader remains mounted. Errors
+  remain visible without clearing readable content or prior personal data.
+- Library Recently opened and Settings offer independent switch/Clear before
+  preparation. Rows use exact already-verified typed maps; unresolved rows remain
+  visible/clearable without downloads. No timestamps/title/text/query copies,
+  inferred mappings, service payloads or minimal-transfer history were added.
+  Canonical Kannada readers, disabled system backup, process-local content,
+  unimplemented durable offline/script/backup/recitation features and production
+  linguistic/device/release gates remain unchanged.
+- Initial incremental `npm run config` and
+  `.\gradlew.bat :core:test :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  passed. The first full
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  was not a pass: connected instrumentation completed48 with5 failures.
+  Independent envelope evidence caught misplaced history accounting; UI evidence
+  caught duplicate/missing Library access controls, a synthetic-trigger test's
+  premature fresh-store open, and a transfer preparation timeout. The accounting/
+  navigation/harness defects were corrected before revalidation; no commit/push
+  was made from that failing tree. Reader visibility was also tightened to the
+  actual text viewport rather than lazy precomposition.
+- Interim focused
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.RecentHistoryStoreTest,in.daasavaani.app.RecentHistoryUiTest,in.daasavaani.app.TransferUiTest' --no-daemon --console=plain`
+  completed12 with1 failure in combined-clear/enable refusal; the separate
+  operation guard and its test were edited during that incremental compile.
+  This mixed-build interim result was not accepted as validation of the final
+  tree. The next full command rebuilds all changed inputs without concurrent edits.
+- The next unchanged-input full command completed48 connected cases with1
+  existing `PersonalUiTest` fixture-preparation timeout; all history cases passed.
+  No cause for that timeout was established and no retry was added to the app or
+  test. The existing journey now asserts preparation is visibly clickable,
+  surfaces an actual preparation error instead of waiting only for a title, and
+  waits for the intentional history write before its explicit Favorite action.
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.PersonalUiTest' --no-daemon --console=plain`
+  then passed1 connected test, zero skipped. No Website build/demo publication,
+  dist/public rewrite, server change or emulator restart was invoked; native
+  checks used the existing configured port5173 endpoint and emulator5556 only.
+- Consistent final validation passed with the existing JDK21/SDK36 toolchains:
+  `JAVA_HOME=C:\Users\pots\AppData\Local\DaasaVaani\toolchains\jdk`,
+  `ANDROID_HOME=C:\Users\pots\AppData\Local\DaasaVaani\toolchains\android-sdk`,
+  `ANDROID_SERIAL=emulator-5556`. No dependency/toolchain install was needed.
+  `npm run config` passed.
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed (36 core tests and48 connected, zero failures/errors/skips).
+  Both lint variants passed with54 warnings and zero errors; warnings concern
+  dependency-update advice, unused catalog resources and existing manifest/icon
+  guidance, not history source defects. App JVM tasks remain NO-SOURCE, not a
+  claimed passing app JVM suite. Unsigned all-variant builds are not a signed release.
+- Additional final-tree commands:
+  `python tools\check_repository.py` passed74 tracked files;
+  `node -e "const fs=require('node:fs'),path=require('node:path'),yaml=require('yaml');for(const p of fs.readdirSync('.github',{recursive:true}).filter(p=>p.endsWith('.yml')||p.endsWith('.yaml'))){const d=yaml.parseDocument(fs.readFileSync(path.join('.github',p),'utf8'),{uniqueKeys:true});if(d.errors.length)throw d.errors[0];console.log(p)}"`
+  passed5 YAML files;
+  `actionlint .github\workflows\hygiene.yml` passed with existing ShellCheck;
+  `git --no-pager diff --check` and `git --no-pager diff --cached --check` passed.
+  Shared exact-pin main run39714010247 was independently verified successful
+  at `9b8845a21bb529268bba49ffbf6a44dece45a9ed`.
+
 ## 2026-10-22: typed real references and durable native recitation lists
 
 - Owner authorized Android-only parallel implementation and fully validated

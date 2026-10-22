@@ -98,6 +98,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 Text(stringResource(if (it == R.string.personal_invalid) R.string.personal_schema else it), color = MaterialTheme.colorScheme.error)
                 OutlinedButton(onClick = model::retryPersonal, enabled = !state.saving) { Text(stringResource(R.string.retry)) }
             }
+            state.historyError?.let {
+                Text(stringResource(it), color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("history-error"))
+                TextButton(enabled = !state.saving, onClick = model::retryPersonal) { Text(stringResource(R.string.retry)) }
+            }
             if (state.personal == null && state.saving) Text(stringResource(R.string.personal_loading))
             if (state.mutationError == R.string.personal_stale) {
                 Text(stringResource(R.string.personal_stale), color = MaterialTheme.colorScheme.error)
@@ -112,15 +116,27 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
             val personal = state.personal
             val canSave = personal != null && state.personalError == null && !state.saving
             val selected = state.selected
-            TextButton(onClick = { model.section("lyrics") }, modifier = Modifier.testTag("owner-lyrics")) {
-                Text(stringResource(R.string.owner_lyrics))
+            Row(horizontalArrangement = Arrangement.spacedBy(space)) {
+                TextButton(onClick = { model.section("lyrics") }, modifier = Modifier.weight(1f).testTag("owner-lyrics")) {
+                    Text(stringResource(R.string.owner_lyrics))
+                }
+                if (state.section == "library" && selected == null) {
+                    TextButton(onClick = { model.section("recents") }, modifier = Modifier.weight(1f).testTag("recent-history")) {
+                        Text(stringResource(R.string.recent_history))
+                    }
+                }
             }
             if (state.section == "lyrics") {
                 Column(Modifier.weight(1f)) {
                     if (fromList) TextButton(onClick = { model.section("lists"); fromList = false }) { Text(stringResource(R.string.back_to_list)) }
                     LyricPreviewScreen(lyricModel, personal, canSave, { model.changePersonal(reference = it) },
                         { model.clearMutationError(); adding = it },
-                        if (fromList) ({ model.section("lists"); fromList = false }) else null)
+                        if (fromList) ({ model.section("lists"); fromList = false }) else null, model::recordExposed)
+                }
+            } else if (state.section == "recents" && selected == null) {
+                Column(Modifier.weight(1f)) {
+                    RecentHistoryScreen(personal, canSave, state.prepared, lyrics, ::openReference,
+                        model::select, { model.changeHistory(enabled = it) }, { model.changeHistory(clear = true) })
                 }
             } else if (state.section == "lists") {
                 Column(Modifier.weight(1f)) {
@@ -153,8 +169,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                             TextButton(enabled = canSave, onClick = { model.changePersonal(theme = value) }) { Text(label) }
                         }
                     }
+                    RecentHistoryControls(personal, canSave, { model.changeHistory(enabled = it) }, { model.changeHistory(clear = true) })
                 }
             } else if (selected != null) {
+                LaunchedEffect(state.readerOpen) { state.readerOpen?.let(model::fixtureExposed) }
                 TextButton(onClick = { model.select(null) }) { Text(stringResource(R.string.back)) }
                 Text(selected.title, style = MaterialTheme.typography.headlineSmall)
                 Text(stringResource(R.string.canonical), style = MaterialTheme.typography.labelSmall)

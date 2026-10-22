@@ -1,5 +1,6 @@
 plugins { `java-library`; alias(libs.plugins.kotlin.jvm); alias(libs.plugins.kotlin.serialization) }
 kotlin { jvmToolchain(21) }
+kotlin.sourceSets.main { kotlin.srcDir(rootProject.file("build/generated/kotlin")) }
 val verifyUnicode by tasks.registering(Exec::class) {
     workingDir(rootProject.projectDir)
     commandLine("node", "tools/verify-unicode.mjs")

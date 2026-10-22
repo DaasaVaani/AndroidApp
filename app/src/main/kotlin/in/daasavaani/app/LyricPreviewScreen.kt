@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,15 +17,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import `in`.daasavaani.core.LyricSummary
 import `in`.daasavaani.core.PersonalReference
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: PersonalSnapshot? = null,
     canSave: Boolean = false, favorite: (PersonalReference) -> Unit = {}, add: (PersonalReference) -> Unit = {},
-    backToList: (() -> Unit)? = null) {
+    backToList: (() -> Unit)? = null, opened: (PersonalReference) -> Unit = {}) {
     val state by model.state.collectAsState()
     BackHandler(enabled = state.selected != null) { backToList?.invoke() ?: model.select(null) }
     DisposableEffect(model) { onDispose { model.cancel() } }
-    LyricPreviewContent(state, model::load, model::cancel, model::query, model::select) { summary ->
+    LyricPreviewContent(state, model::load, model::cancel, model::query, model::select,
+        exposed = { token -> model.exposed(token)?.let(opened) }) { summary ->
         val reference = PersonalReference.lyric(summary.lyricId)
         OutlinedButton(enabled = canSave, onClick = { favorite(reference) }) {
             Text(stringResource(if (reference in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
@@ -37,10 +40,20 @@ fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: Per
 fun LyricPreviewContent(
     state: LyricPreviewState, load: () -> Unit, cancel: () -> Unit,
     query: (String) -> Unit, select: (LyricSummary?) -> Unit,
+    exposed: (String) -> Unit = {},
     personalActions: @Composable (LyricSummary) -> Unit = {},
 ) {
     val space = integerResource(R.integer.spacing_dp).dp
-    LazyColumn(Modifier.fillMaxSize().testTag("lyric-preview"), verticalArrangement = Arrangement.spacedBy(space)) {
+    val scroll = rememberLazyListState()
+    LaunchedEffect(state.readerOpen, state.item) {
+        val token = state.readerOpen
+        if (token != null && state.item != null) {
+            snapshotFlow { scroll.layoutInfo.visibleItemsInfo.any { it.key == "lyric-text" } }.first { it }
+            exposed(token)
+        }
+    }
+    LazyColumn(Modifier.fillMaxSize().testTag("lyric-preview"), state = scroll,
+        verticalArrangement = Arrangement.spacedBy(space)) {
         item {
             Text(stringResource(R.string.lyric_preview_notice), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.lyric_personal_limits), style = MaterialTheme.typography.bodySmall)
@@ -71,7 +84,7 @@ fun LyricPreviewContent(
             }
             val lyric = state.item
             if (lyric != null) {
-                item {
+                item(key = "lyric-text") {
                     SelectionContainer {
                         Text(lyric.lines.joinToString("\n") { it.text }, Modifier.testTag("lyric-text"),
                             fontSize = integerResource(R.integer.reader_font_size_sp).sp,

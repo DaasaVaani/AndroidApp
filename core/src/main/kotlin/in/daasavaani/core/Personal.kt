@@ -2,6 +2,20 @@ package `in`.daasavaani.core
 
 import java.util.UUID
 
+data class RecentHistory(
+    val enabled: Boolean = PersonalPolicy.recentHistoryEnabled,
+    val entries: List<PersonalReference> = emptyList(),
+) {
+    fun valid() = entries.size <= PersonalPolicy.maxRecents &&
+        entries.all { it.valid() } && entries.toSet().size == entries.size
+
+    fun opened(reference: PersonalReference): RecentHistory {
+        require(reference.valid() && valid())
+        if (!enabled || entries.firstOrNull() == reference) return this
+        return copy(entries = (listOf(reference) + entries.filterNot { it == reference }).take(PersonalPolicy.maxRecents))
+    }
+}
+
 data class PersonalReference(val kind: String, val id: String) {
     fun valid(): Boolean = when (kind) {
         "lyric" -> validLyricId(id)

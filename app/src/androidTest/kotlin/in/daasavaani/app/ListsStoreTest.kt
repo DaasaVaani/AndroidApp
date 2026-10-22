@@ -262,7 +262,9 @@ class ListsStoreTest {
         val textLimit = context.resources.getInteger(R.integer.max_entry_text_code_points)
         val baseText = "ಕ".repeat(400)
         val groups = (0 until count).chunked(2500)
-        var snapshot = PersonalSnapshot(revision = 1, lists = groups.mapIndexed { index, values ->
+        var snapshot = PersonalSnapshot(revision = 1,
+            recentHistory = RecentHistory(entries = List(PersonalPolicy.maxRecents) { PersonalReference.legacy("recent_$it") }),
+            lists = groups.mapIndexed { index, values ->
             RecitationList.create("Synthetic byte budget $index", values.map { ListEntry("placeholder", text = baseText) })
         })
         var remaining = limit - PersonalStore.storedBytes(snapshot)
@@ -280,6 +282,9 @@ class ListsStoreTest {
             db.beginTransaction()
             try {
                 db.execSQL("UPDATE preferences SET revision = 1")
+                snapshot.recentHistory.entries.forEachIndexed { i, ref ->
+                    db.execSQL("INSERT INTO recents VALUES (?, ?, ?)", arrayOf<Any>(ref.kind, ref.id, i))
+                }
                 db.compileStatement("INSERT INTO lists VALUES (?, ?, ?)").use { lists ->
                     db.compileStatement("INSERT INTO occurrences (id, listId, position, kind, text) VALUES (?, ?, ?, 'placeholder', ?)").use { entries ->
                         snapshot.lists.forEachIndexed { i, list ->

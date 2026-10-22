@@ -21,6 +21,7 @@ data class PersonalSnapshot(
     val language: String = "device", val theme: String = "device",
     val favorites: Set<PersonalReference> = emptySet(), val revision: Long = 0,
     val lists: List<RecitationList> = emptyList(),
+    val recentHistory: RecentHistory = RecentHistory(),
 ) {
     // Process-local write fence; deliberately not part of the durable record or equality.
     var epoch: String = ""
@@ -49,13 +50,15 @@ class PersonalStore(
         else SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY) {
             throw PersonalFailure(R.string.personal_invalid)
         }.use { db ->
-            if (db.version > 3) throw PersonalFailure(R.string.personal_future)
-            if (db.version !in 1..3) throw PersonalFailure(R.string.personal_invalid)
+            if (db.version > 4) throw PersonalFailure(R.string.personal_future)
+            if (db.version !in 1..4) throw PersonalFailure(R.string.personal_invalid)
             checkSchema(db.version) { db.rawQuery(it, null) }
             if (db.version < 3) validateOld(db.version) { db.rawQuery(it, null) }
             else {
-                checkCounts { db.rawQuery(it, null) }
-                validate(readRaw(db))
+                checkCounts(db.version) { db.rawQuery(it, null) }
+                val snapshot = readRaw(db)
+                if (db.version == 3 && storedBytes(snapshot, 3) > maxBytes) capacity()
+                validate(snapshot)
             }
         }
         val value = Room.databaseBuilder(context, PersonalDatabase::class.java, name)
@@ -70,10 +73,25 @@ class PersonalStore(
                         checkSchema(2, db::query); validateOld(2, db::query)
                         MIGRATION_2_3.migrate(db)
                     }
+                }, object : Migration(3, 4) {
+                    override fun migrate(db: SupportSQLiteDatabase) {
+                        checkSchema(3, db::query)
+                        checkCounts(3, db::query)
+                        val snapshot = readRaw(db::query, 3)
+                        if (storedBytes(snapshot, 3) > maxBytes) capacity()
+                        validate(snapshot)
+                        db.execSQL("ALTER TABLE preferences RENAME TO old_preferences")
+                        db.execSQL("CREATE TABLE preferences (id INTEGER NOT NULL PRIMARY KEY, language TEXT NOT NULL, theme TEXT NOT NULL DEFAULT 'device', revision INTEGER NOT NULL, recentHistoryEnabled INTEGER NOT NULL)")
+                        db.execSQL("INSERT INTO preferences SELECT id, language, theme, revision, ? FROM old_preferences",
+                            arrayOf(if (PersonalPolicy.recentHistoryEnabled) 1 else 0))
+                        db.execSQL("DROP TABLE old_preferences")
+                        db.execSQL("CREATE TABLE recents (kind TEXT NOT NULL, value TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(kind, value))")
+                    }
                 })
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
-                    db.execSQL("INSERT INTO preferences (id, language, theme, revision) VALUES (1, 'device', 'device', 0)")
+                    db.execSQL("INSERT INTO preferences (id, language, theme, revision, recentHistoryEnabled) VALUES (1, 'device', 'device', 0, ?)",
+                        arrayOf(if (PersonalPolicy.recentHistoryEnabled) 1 else 0))
                 }
             }).build()
         try { value.runInTransaction { read(value) } }
@@ -109,16 +127,24 @@ class PersonalStore(
         if (oldBytes > maxBytes) throw PersonalFailure(R.string.personal_capacity)
     }
 
-    private fun readRaw(db: SQLiteDatabase): PersonalSnapshot {
-        val preferences = db.rawQuery("SELECT * FROM preferences", null).use { c ->
+    private fun readRaw(db: SQLiteDatabase) = readRaw({ db.rawQuery(it, null) }, db.version)
+
+    private fun readRaw(query: (String) -> Cursor, version: Int): PersonalSnapshot {
+        val preferences = query("SELECT * FROM preferences").use { c ->
             if (c.count != 1 || !c.moveToFirst()) invalid()
             integer(c, "id"); integer(c, "revision"); string(c, "language"); string(c, "theme")
             if (c.getInt(c.getColumnIndexOrThrow("id")) != 1) invalid()
+            val enabled = if (version < 4) PersonalPolicy.recentHistoryEnabled else {
+                integer(c, "recentHistoryEnabled")
+                val value = c.getLong(c.getColumnIndexOrThrow("recentHistoryEnabled"))
+                if (value !in 0L..1L) invalid()
+                value == 1L
+            }
             PersonalSnapshot(c.getString(c.getColumnIndexOrThrow("language")), c.getString(c.getColumnIndexOrThrow("theme")),
-                revision = c.getLong(c.getColumnIndexOrThrow("revision")))
+                revision = c.getLong(c.getColumnIndexOrThrow("revision")), recentHistory = RecentHistory(enabled))
         }
         val favorites = linkedSetOf<PersonalReference>()
-        db.rawQuery("SELECT * FROM favorites ORDER BY position", null).use { c ->
+        query("SELECT * FROM favorites ORDER BY position").use { c ->
             while (c.moveToNext()) {
                 string(c, "kind"); string(c, "value"); integer(c, "position")
                 if (c.getLong(c.getColumnIndexOrThrow("position")) != favorites.size.toLong()) invalid()
@@ -128,7 +154,7 @@ class PersonalStore(
         }
         val lists = mutableListOf<RecitationList>()
         val entries = linkedMapOf<String, MutableList<Occurrence>>()
-        db.rawQuery("SELECT * FROM occurrences ORDER BY position", null).use { c ->
+        query("SELECT * FROM occurrences ORDER BY position").use { c ->
             while (c.moveToNext()) {
                 listOf("id", "listId", "kind").forEach { string(c, it) }; integer(c, "position")
                 fun nullable(key: String): String? {
@@ -143,7 +169,7 @@ class PersonalStore(
                     c.getString(c.getColumnIndexOrThrow("kind")), nullable("videoId"), nullable("fallback"), nullable("text"), nullable("lyricId"))))
             }
         }
-        db.rawQuery("SELECT * FROM lists ORDER BY position", null).use { c ->
+        query("SELECT * FROM lists ORDER BY position").use { c ->
             while (c.moveToNext()) {
                 listOf("id", "name").forEach { string(c, it) }; integer(c, "position")
                 if (c.getLong(c.getColumnIndexOrThrow("position")) != lists.size.toLong()) invalid()
@@ -152,13 +178,22 @@ class PersonalStore(
             }
         }
         if (entries.isNotEmpty()) invalid()
-        return preferences.copy(favorites = favorites, lists = lists).apply { epoch = this@PersonalStore.epoch }
+        val recents = mutableListOf<PersonalReference>()
+        if (version >= 4) query("SELECT * FROM recents ORDER BY position").use { c ->
+            while (c.moveToNext()) {
+                string(c, "kind"); string(c, "value"); integer(c, "position")
+                if (c.getLong(c.getColumnIndexOrThrow("position")) != recents.size.toLong()) invalid()
+                recents.add(PersonalReference(c.getString(c.getColumnIndexOrThrow("kind")), c.getString(c.getColumnIndexOrThrow("value"))))
+            }
+        }
+        return preferences.copy(favorites = favorites, lists = lists,
+            recentHistory = preferences.recentHistory.copy(entries = recents)).apply { epoch = this@PersonalStore.epoch }
     }
 
     private fun read(db: PersonalDatabase): PersonalSnapshot {
         // Raw reads also check SQLite storage classes and positions, not just Room coercions.
         val raw = db.openHelper.readableDatabase
-        checkCounts(raw::query)
+        checkCounts(4, raw::query)
         val records = db.records().preferences()
         if (records.size != 1) invalid()
         val p = records.single()
@@ -170,19 +205,23 @@ class PersonalStore(
         val listIds = lists.map { it.id }.toSet()
         val snapshot = PersonalSnapshot(p.language, p.theme, favorites.map { PersonalReference(it.kind, it.value) }.toSet(),
             p.revision, lists.map { list -> RecitationList(list.id, list.name, grouped[list.id].orEmpty()
-                .map { Occurrence(it.id, ListEntry(it.kind, it.videoId, it.fallback, it.text, it.lyricId)) }) })
+                .map { Occurrence(it.id, ListEntry(it.kind, it.videoId, it.fallback, it.text, it.lyricId)) }) },
+            RecentHistory(p.recentHistoryEnabled, db.records().recents().map { PersonalReference(it.kind, it.value) }))
             .apply { epoch = this@PersonalStore.epoch }
         if (favorites.map { it.position } != favorites.indices.toList() ||
             lists.map { it.position } != lists.indices.toList() ||
             grouped.keys.any { it !in listIds } ||
             grouped.values.any { group -> group.map { it.position } != group.indices.toList() }) invalid()
-        listOf("preferences", "favorites", "lists", "occurrences").forEach { table ->
+        val recents = db.records().recents()
+        if (recents.map { it.position } != recents.indices.toList()) invalid()
+        listOf("preferences", "favorites", "lists", "occurrences", "recents").forEach { table ->
             raw.query("SELECT * FROM `$table`").use { c ->
                 while (c.moveToNext()) for (i in 0 until c.columnCount) {
                     val column = c.getColumnName(i)
-                    val integer = column in setOf("revision", "position") || (table == "preferences" && column == "id")
+                    val integer = column in setOf("revision", "position", "recentHistoryEnabled") || (table == "preferences" && column == "id")
                     if (c.getType(i) != (if (integer) Cursor.FIELD_TYPE_INTEGER else Cursor.FIELD_TYPE_STRING) &&
                         !(table == "occurrences" && column in setOf("videoId", "lyricId", "fallback", "text") && c.isNull(i))) invalid()
+                    if (column == "recentHistoryEnabled" && c.getLong(i) !in 0L..1L) invalid()
                 }
             }
         }
@@ -193,6 +232,8 @@ class PersonalStore(
     private fun validate(snapshot: PersonalSnapshot) {
         if (snapshot.language !in setOf("device", "en", "kn") || snapshot.theme !in setOf("device", "light", "dark", "warm") ||
             snapshot.revision < 0 || snapshot.favorites.any { !it.valid() }) invalid()
+        if (snapshot.recentHistory.entries.size > PersonalPolicy.maxRecents) capacity()
+        if (!snapshot.recentHistory.valid()) invalid()
         if (snapshot.favorites.size > maxFavorites || snapshot.lists.size > maxLists ||
             snapshot.lists.sumOf { it.entries.size.toLong() } > maxTotalEntries) capacity()
         val ids = mutableSetOf<String>()
@@ -259,18 +300,37 @@ class PersonalStore(
             before.copy(lists = before.lists.filterNot { it.id == id })
         }
 
-    private fun transact(revision: Long, expectedEpoch: String, operation: (PersonalSnapshot) -> PersonalSnapshot): PersonalSnapshot = guarded {
+    @Synchronized fun history(expected: PersonalSnapshot, opened: PersonalReference? = null,
+        enabled: Boolean? = null, clear: Boolean = false): PersonalSnapshot =
+        transact(expected.revision, expected.epoch, noOp = true) { before ->
+            if ((opened != null && (enabled != null || clear)) || (clear && enabled != null)) invalid()
+            val history = if (opened != null) before.recentHistory.opened(opened)
+                else before.recentHistory.copy(enabled = enabled ?: before.recentHistory.enabled,
+                    entries = if (clear) emptyList() else before.recentHistory.entries)
+            before.copy(recentHistory = history)
+        }
+
+    private fun transact(revision: Long, expectedEpoch: String, noOp: Boolean = false,
+        operation: (PersonalSnapshot) -> PersonalSnapshot): PersonalSnapshot = guarded {
         val db = open()
         if (expectedEpoch != epoch) throw PersonalFailure(R.string.personal_stale)
         var result: PersonalSnapshot? = null
         db.runInTransaction {
             val before = read(db)
             if (before.revision != revision) throw PersonalFailure(R.string.personal_stale)
+            val candidate = operation(before)
+            if (noOp && candidate == before) {
+                result = before
+                return@runInTransaction
+            }
             if (revision == Long.MAX_VALUE) capacity()
-            val after = operation(before).copy(revision = revision + 1)
+            val after = candidate.copy(revision = revision + 1)
             validate(after)
             val dao = db.records()
-            dao.clearFavorites(); dao.clearEntries(); dao.clearLists()
+            dao.clearFavorites(); dao.clearEntries(); dao.clearLists(); dao.clearRecents()
+            after.recentHistory.entries.forEachIndexed { i, ref -> dao.insertRecent(PersonalDatabase.Recent().apply {
+                kind = ref.kind; value = ref.id; position = i
+            }) }
             after.favorites.forEachIndexed { i, ref -> dao.insertFavorite(PersonalDatabase.Favorite().apply {
                 kind = ref.kind; value = ref.id; position = i
             }) }
@@ -282,7 +342,7 @@ class PersonalStore(
                     fallback = occurrence.entry.fallback; text = occurrence.entry.text
                 }) }
             }
-            dao.updatePreference(after.language, after.theme, after.revision)
+            dao.updatePreference(after.language, after.theme, after.revision, after.recentHistory.enabled)
             result = read(db)
         }
         requireNotNull(result)
@@ -303,8 +363,9 @@ class PersonalStore(
     private fun integer(c: Cursor, column: String) {
         if (c.getType(c.getColumnIndexOrThrow(column)) != Cursor.FIELD_TYPE_INTEGER) invalid()
     }
-    private fun checkCounts(query: (String) -> Cursor) {
-        mapOf("favorites" to maxFavorites, "lists" to maxLists, "occurrences" to maxTotalEntries).forEach { (table, limit) ->
+    private fun checkCounts(version: Int, query: (String) -> Cursor) {
+        (mapOf("favorites" to maxFavorites, "lists" to maxLists, "occurrences" to maxTotalEntries) +
+            if (version >= 4) mapOf("recents" to PersonalPolicy.maxRecents) else emptyMap()).forEach { (table, limit) ->
             query("SELECT count(*) FROM `$table`").use { c -> c.moveToFirst(); if (c.getLong(0) > limit) capacity() }
         }
         query("SELECT count(*) FROM occurrences GROUP BY listId").use { c ->
@@ -313,7 +374,7 @@ class PersonalStore(
     }
 
     companion object {
-        fun storedBytes(snapshot: PersonalSnapshot): Int {
+        fun storedBytes(snapshot: PersonalSnapshot, formatVersion: Int = 4): Int {
             var bytes = 0L
             fun append(value: String) { bytes += value.toByteArray(Charsets.UTF_8).size }
             fun quote(value: String) = Json.encodeToString(value)
@@ -326,7 +387,7 @@ class PersonalStore(
                 id?.let { append(",\"id\":${quote(it)}") }
                 append("}")
             }
-            append("{\"formatVersion\":3,\"revision\":${snapshot.revision},\"preferences\":{\"language\":${quote(snapshot.language)},\"theme\":${quote(snapshot.theme)}},\"favorites\":[")
+            append("{\"formatVersion\":$formatVersion,\"revision\":${snapshot.revision},\"preferences\":{\"language\":${quote(snapshot.language)},\"theme\":${quote(snapshot.theme)}},\"favorites\":[")
             snapshot.favorites.forEachIndexed { index, ref -> if (index > 0) append(","); entry(ref.entry()) }
             append("],\"lists\":[")
             snapshot.lists.forEachIndexed { index, list ->
@@ -335,7 +396,13 @@ class PersonalStore(
                 list.entries.forEachIndexed { i, occurrence -> if (i > 0) append(","); entry(occurrence.entry, occurrence.id) }
                 append("]}")
             }
-            append("]}")
+            append("]")
+            if (formatVersion >= 4) {
+                append(",\"recentHistory\":{\"enabled\":${snapshot.recentHistory.enabled},\"entries\":[")
+                snapshot.recentHistory.entries.forEachIndexed { index, ref -> if (index > 0) append(","); entry(ref.entry()) }
+                append("]}")
+            }
+            append("}")
             return bytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         }
         private fun preservingFactory() = SupportSQLiteOpenHelper.Factory { configuration ->
@@ -359,11 +426,12 @@ class PersonalStore(
                     if (version == 2) listOf("theme:TEXT:1:0") else emptyList(),
             ) else mapOf(
                 "favorites" to listOf("kind:TEXT:1:1", "value:TEXT:1:2", "position:INTEGER:1:0"),
-                "preferences" to listOf("id:INTEGER:1:1", "language:TEXT:1:0", "theme:TEXT:1:0", "revision:INTEGER:1:0"),
+                "preferences" to listOf("id:INTEGER:1:1", "language:TEXT:1:0", "theme:TEXT:1:0", "revision:INTEGER:1:0") +
+                    if (version >= 4) listOf("recentHistoryEnabled:INTEGER:1:0") else emptyList(),
                 "lists" to listOf("id:TEXT:1:1", "name:TEXT:1:0", "position:INTEGER:1:0"),
                 "occurrences" to listOf("id:TEXT:1:1", "listId:TEXT:1:0", "position:INTEGER:1:0", "kind:TEXT:1:0",
                     "videoId:TEXT:0:0", "lyricId:TEXT:0:0", "fallback:TEXT:0:0", "text:TEXT:0:0"),
-            )
+            ) + if (version >= 4) mapOf("recents" to listOf("kind:TEXT:1:1", "value:TEXT:1:2", "position:INTEGER:1:0")) else emptyMap()
             query("SELECT name, type, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'").use { c ->
                 while (c.moveToNext()) {
                     val name = c.getString(0)

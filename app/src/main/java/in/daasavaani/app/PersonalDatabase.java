@@ -13,8 +13,8 @@ import androidx.room.RoomDatabase;
 import java.util.List;
 
 @Database(entities = {PersonalDatabase.Preference.class, PersonalDatabase.Favorite.class,
-        PersonalDatabase.SavedList.class, PersonalDatabase.Entry.class},
-        version = 3, exportSchema = true)
+        PersonalDatabase.SavedList.class, PersonalDatabase.Entry.class, PersonalDatabase.Recent.class},
+        version = 4, exportSchema = true)
 public abstract class PersonalDatabase extends RoomDatabase {
     public abstract Records records();
 
@@ -24,6 +24,7 @@ public abstract class PersonalDatabase extends RoomDatabase {
         @NonNull public String language = "device";
         @NonNull @ColumnInfo(defaultValue = "'device'") public String theme = "device";
         public long revision;
+        public boolean recentHistoryEnabled;
     }
 
     @Entity(tableName = "favorites", primaryKeys = {"kind", "value"})
@@ -37,6 +38,13 @@ public abstract class PersonalDatabase extends RoomDatabase {
     public static class SavedList {
         @PrimaryKey @NonNull public String id = "";
         @NonNull public String name = "";
+        public int position;
+    }
+
+    @Entity(tableName = "recents", primaryKeys = {"kind", "value"})
+    public static class Recent {
+        @NonNull public String kind = "";
+        @NonNull public String value = "";
         public int position;
     }
 
@@ -58,8 +66,11 @@ public abstract class PersonalDatabase extends RoomDatabase {
         @Query("SELECT * FROM favorites ORDER BY position") List<Favorite> favorites();
         @Query("SELECT * FROM lists ORDER BY position") List<SavedList> lists();
         @Query("SELECT * FROM occurrences ORDER BY position") List<Entry> entries();
-        @Query("UPDATE preferences SET language = :language, theme = :theme, revision = :revision WHERE id = 1")
-        void updatePreference(String language, String theme, long revision);
+        @Query("SELECT * FROM recents ORDER BY position") List<Recent> recents();
+        @Query("UPDATE preferences SET language = :language, theme = :theme, revision = :revision, recentHistoryEnabled = :enabled WHERE id = 1")
+        void updatePreference(String language, String theme, long revision, boolean enabled);
+        @Insert void insertRecent(Recent recent);
+        @Query("DELETE FROM recents") void clearRecents();
         @Insert void insertFavorite(Favorite favorite);
         @Insert void insertList(SavedList list);
         @Insert void insertEntry(Entry entry);

@@ -10,6 +10,8 @@ and UI language/theme use one durable Room database. Settings offers process-loc
 v1/v2 minimal-list preview, confirmed new-list-only import and complete file/link
 export. None of these operations prepares/downloads lyrics. Durable offline
 activation, recitation playback/resume and complete feature parity remain unimplemented.
+Device-only Recently opened records the latest configured distinct successful
+explicit reader opens, independently of favorites/lists and content preparation.
 Staged implementation is authorized; production gates remain.
 
 Start with [AGENTS.md](AGENTS.md),
@@ -64,7 +66,7 @@ maxima during configuration generation; they cannot silently raise portable boun
 
 Prepared lyric content is process-local review state, **not durable offline preparation
 or an activated snapshot**. Durable snapshots, script/search
-profiles, bookmarks, recents, density/font preferences and production linguistic/
+profiles, bookmarks, density/font preferences and production linguistic/
 release acceptance remain open. A pre-consent size preview and durable snapshot/
 storage preparation remain later OFF-10 work; byte safety budgets and item progress
 here are not claims of those features. Publication availability and actual real-content
@@ -105,22 +107,31 @@ implementation described below; this does not establish offline parity.
 
 ### Personal schema, transactions and recovery
 
-`personal.db` is the only personal database. Room schema3 has one required
-`preferences` singleton (`id=1`, `language`, `theme`, nonnegative `revision`) and
+`personal.db` is the only personal database. Room schema4 has one required
+`preferences` singleton (`id=1`, `language`, `theme`, nonnegative `revision`,
+`recentHistoryEnabled`) and
 `favorites` keyed by `(kind,value)` with explicit positions, ordered `lists` and
-ordered `occurrences`. Lyric references require canonical lowercase UUIDv4;
+ordered `occurrences`, plus ordered typed `recents`. Lyric references require canonical lowercase UUIDv4;
 `legacyVideo` preserves the opaque case-sensitive ASCII1–128 domain. An old value
 that resembles a UUID remains legacy; no mapping or media association is inferred.
 Device language/theme are stored
 as `device`, not a frozen copy of the current device settings. Room schemas are
 committed under `app/schemas/`; Java annotation processing generates Room code.
 
-The supported fixture v1 migration input has the same tables but no `theme` column.
+The supported fixture v1 migration input has only strict legacy favorites and
+language/revision preferences, without a `theme` column.
 The explicit v1→2 migration adds `theme=device`. The v2→3 migration structurally
 adapts each old favorite to `legacyVideo` and preserves its value, old query order,
 preferences and revision. Old favorites had no saved ordinal: their existing
 `ORDER BY videoId` is retained once; new typed favorites retain insertion order.
-The actual old schema and strict11-character records are validated before opening
+The v3→4 migration preserves every exact favorite/list/occurrence, language/theme
+and revision, and creates empty history with the pinned Shared initial preference.
+No prior opens are reconstructed. Supported v1/v2 inputs chain through these
+same migrations. Each reopened store has a fresh process-local epoch; history
+transactions participate in the existing revision/epoch fences, including pending
+imports and duplicate-name confirmations.
+The actual old schema and records (strict11-character IDs only for v1/v2;
+exact typed IDs for v3) are validated before opening
 Room and rechecked within the migration transaction. Both old accounting and the
 projected new envelope must fit before migration. These are
 synthetic migration fixtures, not a claim that an earlier production personal schema
@@ -135,8 +146,9 @@ inside one Room transaction. A stale writer must reload before retrying. The cou
 and deterministic UTF8 logical-envelope bounds come from pinned
 `shared/settings/personal-transfer.yml`, including preference/revision/header
 overhead. The compact UTF8 accounting envelope is exactly
-`{formatVersion:3,revision,preferences:{language,theme},favorites:[typed-reference],
-lists:[{id,name,entries:[typed-entry-with-id]}]}` in that field order, using
+`{formatVersion:4,revision,preferences:{language,theme},favorites:[typed-reference],
+lists:[{id,name,entries:[typed-entry-with-id]}],recentHistory:{enabled,entries:[typed-reference]}}`
+in that field order, using
 `kotlinx.serialization` JSON string quoting and no spaces/BOM. Entries emit
 `kind`, present `videoId`/`lyricId`, present `fallback`/`text`, then `id`.
 The epoch is not persisted/accounted and changes when the store closes/reopens.
@@ -147,16 +159,58 @@ SharedPreferences or a separate database.
 
 Room reads group occurrences once by list rather than scanning all occurrences
 per list. Validation/accounting and whole-snapshot replacement are linear in
-favorites + lists + occurrences + bounded JSON/text bytes, apart from SQLite
+favorites + lists + occurrences + recents + bounded JSON/text bytes, apart from SQLite
 ordering/index maintenance and the separately described Unicode name-key work.
 Memory includes the bounded personal snapshot and one bounded list JSON at a time;
 capacity checks precede replacement and aggregate row-count checks precede loading.
+The process-local successful-open queue is bounded by the configured recent-entry
+ceiling, with explicit failure rather than silent loss if full.
 
 Future-schema failures explicitly request a newer app while preserving data.
 Malformed/unsupported storage explains preservation and supported-app recovery;
 ordinary write failures expose explicit retry without advising data deletion.
 Loading, follow-device, Warm and unavailable-favorite labels use the pinned
 bilingual Shared catalog.
+
+### Device-only Recently opened
+
+Library → Recently opened and Settings provide an independent recording switch
+and Clear, usable before content preparation. The
+[Shared history contract](shared/docs/recent-history.md) owns the reference
+shape, exact identity and mutation rules. `shared/settings/defaults.yml`
+owns the initial-on preference; a saved false always wins.
+`shared/settings/personal-transfer.yml` owns the latest50 distinct-entry ceiling.
+`npm run config` generates the native/core policy directly from those pinned files.
+
+Only a successful explicitly requested real or fixture reader exposure records an
+open. The real surface acknowledges the request when its verified text enters the
+reader viewport (not lazy-list prefetch);
+the fixture reader acknowledges its verified selection. ViewModel-held one-shot
+request receipts survive recomposition/screen remounts and are consumed even when
+recording is disabled or fails. Preparation, catalogs, search results, list
+previews, background selection and unavailable/failed destinations do not record.
+An explicit pending real destination can record only after complete preparation
+and actual reader exposure. Selecting a prepared record never downloads anything.
+
+Entries contain only kind/exact ID and explicit most-recent-first order: no times,
+titles, queries, text, script or invented verse metadata. Reopening an already-first
+entry and disabled recording are no-ops, including no revision increment.
+Disabling retains entries; reenabling retains their order. Clear removes only
+history entries, preserving the enabled preference and every other collection/
+preference. Mutating history uses the same atomic capacity and stale-writer fences
+as lists. An explicit history-storage failure leaves both readable content and the
+preceding usable personal snapshot intact; Retry reloads personal state, not a
+manufactured new reader open.
+
+Rows resolve only by kind/exact ID against already completely verified available
+maps. Unknown/unprepared rows remain visible and clearable; this surface neither
+implicitly prepares content nor claims offline readiness. UUID-looking legacy
+IDs never resolve to real lyric UUIDs. Fixture references remain visibly synthetic.
+The current real and fixture readers remain canonical Kannada only; this slice
+adds no script switching. History is device-only, absent from all minimal-list
+transfers and service requests; Android system backup remains disabled.
+Partial LIB-06/SET-04/QUAL-05 coverage does not close full personal, offline,
+privacy/release or supported-device acceptance.
 
 ### Durable lists and minimal v1/v2 transfer
 
@@ -277,7 +331,7 @@ six upstream source identities against Shared settings. Runtime loading verifies
 the packaged profile and data hash; missing/corrupt/unsupported resources fail
 explicitly, with no platform fallback.
 
-Room schema3 stores raw list names, not persisted name keys. Create, rename,
+Room schema4 stores raw list names, not persisted name keys. Create, rename,
 duplicate and import use this profile and explicit independent-reuse confirmation.
 No list is automatically renamed/merged; no cached keys require migration.
 A future persisted-key/profile change still needs a preserving migration.
@@ -289,7 +343,7 @@ and SET-01; not full requirement acceptance.
 ### Remaining approved slices
 
 This batch does **not** implement recitation mode/resume, full personal
-backup/restore, system backup, bookmarks/recents/learning state, persistent offline
+backup/restore, system backup, bookmarks/learning state, persistent offline
 snapshots, production migrations or full Android parity. Android system backup is
 still disabled rather than backing up false content readiness. Remaining selected
 directions include personal-only backup allowlists, same-platform recoverable full
@@ -341,6 +395,15 @@ chain, explicit complete-preparation gating, pre-consent personal isolation,
 typed reader Favorite/Add to list, pending list destinations without implicit
 downloads, filter/reader text and cancel/retry/reload-failure preservation. It is not a live
 feed or real-content demo.
+Recent-history core/Room/Compose tests exercise exact typed distinct ordering,
+rolling eviction, the actual configured50/+1 storage limit, initial-on, saved
+false/restart, independent Clear, no-op revisions, actual real/fixture reader
+exposure receipts, disabled and remounted readers, no preparation/background/
+unknown/failed-open writes, no additional network requests, visible storage-write
+failure with preserved reading, unresolved rows and stale import/name confirmations.
+Actual v3→4 migration fixtures preserve all existing personal records and refuse
+projected-capacity/invalid/future states without reset. Exact aggregate UTF8
+ceiling/+1 tests include a full history record.
 Transfer tests use actual9MiB/8MiB/2048 ceilings and ceiling+1 (including a
 valid9MiB single gzip member, valid high-compression8MiB JSON and complete2048/
 2049 canonical URLs), literal/repeated round trips, pinned Shared acceptance/

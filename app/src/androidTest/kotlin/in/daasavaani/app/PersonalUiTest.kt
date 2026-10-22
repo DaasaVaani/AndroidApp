@@ -6,6 +6,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.lifecycle.ViewModelProvider
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -24,7 +25,9 @@ class PersonalUiTest {
             setLocales(LocaleList(Locale.ENGLISH))
         })
         PersonalStore(context).use { it.change(it.load(), language = "kn", theme = "dark", favorite = "UNAVAILABLE") }
-        ActivityScenario.launch(MainActivity::class.java).use {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            lateinit var library: LibraryViewModel
+            scenario.onActivity { library = ViewModelProvider(it)[LibraryViewModel::class.java] }
             compose.waitUntil(10000) { compose.onAllNodesWithText(kn.getString(R.string.settings)).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText(kn.getString(R.string.settings)).performClick()
             compose.onNodeWithTag("language-kn").assertIsSelected()
@@ -37,11 +40,14 @@ class PersonalUiTest {
             compose.onNodeWithText("UNAVAILABLE").assertIsDisplayed()
             compose.onNodeWithText(en.getString(R.string.preparation_notice)).assertIsDisplayed()
             compose.onNodeWithText(en.getString(R.string.library)).performClick()
-            compose.onNodeWithText(en.getString(R.string.prepare_library)).performClick()
-            compose.waitUntil(60000) { compose.onAllNodesWithText("ಕನ್ನಡ ಓದು — ಪರೀಕ್ಷೆ ೧").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText(en.getString(R.string.prepare_library)).assertIsDisplayed().performClick()
+            compose.waitUntil(60000) { library.state.value.prepared != null || library.state.value.error != null }
+            assertNull("Fixture preparation must succeed", library.state.value.error)
+            compose.onNodeWithText("ಕನ್ನಡ ಓದು — ಪರೀಕ್ಷೆ ೧").assertIsDisplayed()
             compose.onNodeWithText("ಕನ್ನಡ ಓದು — ಪರೀಕ್ಷೆ ೧").performClick()
             compose.onNodeWithText("ರಾಮ ಕೃಷ್ಣ").assertIsDisplayed()
-            compose.onNodeWithText(en.getString(R.string.add_favorite)).performClick()
+            compose.waitUntil(10000) { library.state.value.readerOpen == null && !library.state.value.saving }
+            compose.onNodeWithText(en.getString(R.string.add_favorite)).assertIsEnabled().performClick()
             compose.waitUntil(10000) { compose.onAllNodesWithText(en.getString(R.string.remove_favorite)).fetchSemanticsNodes().isNotEmpty() }
         }
         PersonalStore(context).use {

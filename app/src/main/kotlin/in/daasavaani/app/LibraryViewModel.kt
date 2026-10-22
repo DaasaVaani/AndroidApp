@@ -8,6 +8,7 @@ import `in`.daasavaani.core.search
 import `in`.daasavaani.core.PersonalReference
 import `in`.daasavaani.core.RecitationList
 import `in`.daasavaani.core.ListSnapshot
+import `in`.daasavaani.core.PersonalPolicy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,6 +18,9 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.channels.Channel
+import java.util.UUID
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -28,6 +32,7 @@ data class LibraryState(
     val saving: Boolean = false, val section: String = "library",
     val mutationError: Int? = null,
     val selectedListId: String? = null,
+    val readerOpen: String? = null, val historyError: Int? = null,
 )
 class LibraryViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PublicationRepository(application.resources)
@@ -36,8 +41,51 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     val state = mutable.asStateFlow()
     private var preparation: Job? = null
     private var searching: Job? = null
-    init { retryPersonal() }
-    fun section(value: String) { mutable.update { it.copy(section = value, selected = null) } }
+    private val opens = Channel<PersonalReference>(PersonalPolicy.maxRecents)
+    init {
+        retryPersonal()
+        viewModelScope.launch {
+            for (reference in opens) {
+                val state = mutable.first { !it.saving }
+                val before = state.personal
+                if (before == null || state.personalError != null) {
+                    mutable.update { it.copy(historyError = state.personalError ?: R.string.personal_failed) }
+                    continue
+                }
+                mutable.update { it.copy(saving = true, historyError = null) }
+                try {
+                    val next = withContext(Dispatchers.IO) { personalStore.history(before, opened = reference) }
+                    mutable.update { it.copy(personal = next) }
+                } catch (error: PersonalFailure) { mutable.update { it.copy(historyError = error.label) } }
+                finally { mutable.update { it.copy(saving = false) } }
+            }
+        }
+    }
+    fun section(value: String) { mutable.update { it.copy(section = value, selected = null, readerOpen = null) } }
+    fun recordExposed(reference: PersonalReference) {
+        if (mutable.value.personal?.recentHistory?.enabled == false) return
+        if (opens.trySend(reference).isFailure) mutable.update { it.copy(historyError = R.string.personal_failed) }
+    }
+    fun fixtureExposed(token: String) {
+        val state = mutable.value
+        if (state.readerOpen != token) return
+        val item = state.selected ?: return
+        if (state.prepared?.items?.any { it == item } != true) return
+        mutable.update { it.copy(readerOpen = null) }
+        recordExposed(PersonalReference.legacy(item.videoId))
+    }
+    fun changeHistory(enabled: Boolean? = null, clear: Boolean = false) {
+        val before = mutable.value.personal ?: return
+        if (mutable.value.saving || mutable.value.personalError != null) return
+        mutable.update { it.copy(saving = true, historyError = null) }
+        viewModelScope.launch {
+            try {
+                val next = withContext(Dispatchers.IO) { personalStore.history(before, enabled = enabled, clear = clear) }
+                mutable.update { it.copy(personal = next) }
+            } catch (error: PersonalFailure) { mutable.update { it.copy(historyError = error.label) } }
+            finally { mutable.update { it.copy(saving = false) } }
+        }
+    }
     fun selectList(id: String?) { mutable.update { it.copy(selectedListId = id) } }
     fun retryPersonal() {
         if (mutable.value.saving) return
@@ -45,7 +93,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 val value = withContext(Dispatchers.IO) { personalStore.load() }
-                mutable.update { it.copy(personal = value, personalError = null, mutationError = null) }
+                mutable.update { it.copy(personal = value, personalError = null, mutationError = null, historyError = null) }
             } catch (error: PersonalFailure) { mutable.update { it.copy(personalError = error.label) } }
             finally { mutable.update { it.copy(saving = false) } }
         }
@@ -85,7 +133,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         listWrite({ personalStore.importList(base.revision, base.epoch, snapshot, true, duplicate) }, done)
     fun deleteList(base: PersonalSnapshot, id: String, done: () -> Unit) =
         listWrite({ personalStore.deleteList(base.revision, base.epoch, id) }, done)
-    override fun onCleared() { personalStore.close(); super.onCleared() }
+    override fun onCleared() { opens.close(); personalStore.close(); super.onCleared() }
     fun prepare() {
         preparation?.cancel()
         mutable.update { it.copy(loading = true, error = null, completed = 0, total = 0) }
@@ -100,7 +148,10 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     fun cancel() { preparation?.cancel(); mutable.update { it.copy(loading = false) } }
-    fun select(item: FixtureItem?) { mutable.update { it.copy(selected = item) } }
+    fun select(item: FixtureItem?) {
+        require(item == null || mutable.value.prepared?.items?.any { it == item } == true) { "Fixture is not prepared" }
+        mutable.update { it.copy(selected = item, readerOpen = item?.let { UUID.randomUUID().toString() }) }
+    }
     fun query(value: String) {
         searching?.cancel()
         mutable.update { it.copy(query = value, error = null) }

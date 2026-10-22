@@ -5,9 +5,11 @@ const config = strictYaml(await readFile(new URL("settings/android.yml", root), 
 const bounds = strictYaml(await readFile(new URL("shared/settings/publication-policy.yml", root), "utf8"));
 const search = strictYaml(await readFile(new URL("shared/settings/search.yml", root), "utf8"));
 const personal = strictYaml(await readFile(new URL("shared/settings/personal-transfer.yml", root), "utf8"));
+const defaults = strictYaml(await readFile(new URL("shared/settings/defaults.yml", root), "utf8"));
+if (typeof defaults.recentHistoryEnabled !== "boolean") throw new Error("Invalid recent history default");
 if (personal.formatVersion !== 1 || !["maxFavorites", "maxPersonalStoredBytes", "maxListEncodedBytes",
     "maxListDecodedBytes", "maxSharedUrlAscii", "maxListNameCodePoints", "maxEntryTextCodePoints", "maxEntriesPerList",
-    "maxLists", "maxTotalEntries"]
+    "maxLists", "maxTotalEntries", "maxRecents"]
     .every(key => Number.isSafeInteger(personal[key]) && personal[key] > 0)) throw new Error("Invalid personal settings");
 if (!search || search.formatVersion !== 1 || !Number.isInteger(search.maxQueryCodePoints) ||
     !Number.isInteger(search.maxTerms) || !Number.isInteger(search.pageSize)) throw new Error("Invalid trusted search settings");
@@ -47,6 +49,11 @@ if (canonical.protocol !== "https:" || canonical.username || canonical.password 
     !Number.isInteger(config.listCompressionLevel) || config.listCompressionLevel < 0 || config.listCompressionLevel > 9)
   throw new Error("Invalid list transport settings");
 await mkdir(new URL("build/generated", root), { recursive: true });
+await mkdir(new URL("build/generated/kotlin", root), { recursive: true });
+await writeFile(new URL("build/generated/kotlin/PersonalPolicy.kt", root),
+  `package \`in\`.daasavaani.core\n\n// Generated from pinned Shared settings.\n` +
+  `object PersonalPolicy {\n    const val recentHistoryEnabled = ${defaults.recentHistoryEnabled}\n` +
+  `    const val maxRecents = ${personal.maxRecents}\n}\n`);
 await writeFile(new URL("build/generated/config.properties", root),
   Object.entries(config).filter(([, value]) => typeof value !== "object")
     .map(([key, value]) => `${key}=${String(value).replaceAll("\\", "\\\\")}`).join("\n") + "\n");
