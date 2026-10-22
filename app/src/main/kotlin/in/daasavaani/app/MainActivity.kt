@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -75,14 +76,21 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     val lyrics by lyricModel.state.collectAsState()
     val listScroll = rememberLazyListState()
     val favoritesScroll = rememberLazyListState()
+    val lyricBrowseScroll = remember { LazyListState() }
+    LaunchedEffect(lyrics.query, lyrics.queryFailed) { lyricBrowseScroll.scrollToItem(0) }
     LaunchedEffect(lyrics.favoritesQuery, lyrics.favoritesFailed) { favoritesScroll.scrollToItem(0) }
     LaunchedEffect(state.selectedListId) { listScroll.scrollToItem(0) }
     var adding by remember { mutableStateOf<PersonalReference?>(null) }
     var fromList by remember { mutableStateOf(false) }
     var fromFavorites by remember { mutableStateOf(false) }
+    var fromLyricsSettings by remember { mutableStateOf(false) }
+    BackHandler(enabled = state.section == "settings" && fromLyricsSettings) {
+        fromLyricsSettings = false; model.section("lyrics")
+    }
     BackHandler(enabled = state.section == "lyrics" && fromFavorites) { model.section("favorites") }
     LaunchedEffect(state.section) {
         if (state.section != "lyrics") { fromList = false; fromFavorites = false }
+        if (state.section != "lyrics" && state.section != "settings") fromLyricsSettings = false
     }
     fun openReference(reference: PersonalReference) {
         if (reference.kind == "lyric") {
@@ -120,7 +128,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 TextButton(onClick = { model.section("library") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.library)) }
                 TextButton(onClick = { model.section("favorites") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.favorites)) }
                 TextButton(onClick = { model.section("lists") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.lists)) }
-                TextButton(onClick = { model.section("settings") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.settings)) }
+                TextButton(onClick = {
+                    fromLyricsSettings = state.section == "lyrics" && !fromFavorites && !fromList
+                    model.section("settings")
+                }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.settings)) }
             }
             val personal = state.personal
             val canSave = personal != null && state.personalError == null && !state.saving
@@ -147,7 +158,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                         { model.clearMutationError(); adding = it },
                         if (fromList) ({ model.section("lists"); fromList = false })
                         else if (fromFavorites) ({ model.section("favorites") }) else null, model::recordExposed,
-                        { model.changeReading(direction = it) }, { model.changeReading(density = it) })
+                        { model.changeReading(direction = it) }, { model.changeReading(density = it) }, lyricBrowseScroll)
                 }
             } else if (state.section == "recents" && selected == null) {
                 Column(Modifier.weight(1f)) {

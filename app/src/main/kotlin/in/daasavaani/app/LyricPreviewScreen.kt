@@ -3,12 +3,17 @@ package `in`.daasavaani.app
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
@@ -18,18 +23,25 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import `in`.daasavaani.core.LyricSummary
 import `in`.daasavaani.core.PersonalReference
 import `in`.daasavaani.core.ReadingPreferences
+import `in`.daasavaani.core.expandedResultCount
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @Composable
 fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: PersonalSnapshot? = null,
     canSave: Boolean = false, favorite: (PersonalReference) -> Unit = {}, add: (PersonalReference) -> Unit = {},
     backToList: (() -> Unit)? = null, opened: (PersonalReference) -> Unit = {},
-    fontStep: (Int) -> Unit = {}, density: (String) -> Unit = {}) {
+    fontStep: (Int) -> Unit = {}, density: (String) -> Unit = {},
+    browseScroll: LazyListState = remember { LazyListState() }) {
     val state by model.state.collectAsState()
+    val scope = rememberCoroutineScope()
     BackHandler(enabled = state.selected != null) { backToList?.invoke() ?: model.select(null) }
     DisposableEffect(model) { onDispose { model.cancel() } }
-    LyricPreviewContent(state, model::load, model::cancel, model::query, model::select,
-        exposed = { token -> model.exposed(token)?.let(opened) }, reading = personal?.reading ?: ReadingPreferences()) { summary ->
+    LyricPreviewContent(state, model::load, model::cancel, {
+        model.query(it); scope.launch { browseScroll.scrollToItem(0) }
+    }, model::select,
+        exposed = { token -> model.exposed(token)?.let(opened) }, reading = personal?.reading ?: ReadingPreferences(),
+        more = model::more, browseScroll = browseScroll) { summary ->
         val reference = PersonalReference.lyric(summary.lyricId)
         OutlinedButton(enabled = canSave, onClick = { favorite(reference) }) {
             Text(stringResource(if (reference in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
@@ -45,10 +57,22 @@ fun LyricPreviewContent(
     query: (String) -> Unit, select: (LyricSummary?) -> Unit,
     exposed: (String) -> Unit = {},
     reading: ReadingPreferences = ReadingPreferences(),
+    more: () -> Unit = {},
+    browseScroll: LazyListState = remember { LazyListState() },
     personalActions: @Composable (LyricSummary) -> Unit = {},
 ) {
     val space = integerResource(R.integer.spacing_dp).dp
-    val scroll = rememberLazyListState()
+    val readerScroll = rememberLazyListState()
+    val scroll = if (state.selected == null) browseScroll else readerScroll
+    val focus = remember { FocusRequester() }
+    var focusReady by remember(state.selected, state.browseFocusId) { mutableStateOf(false) }
+    LaunchedEffect(focusReady) {
+        if (focusReady && state.selected == null && state.browseFocusId != null) {
+            if (scroll.layoutInfo.visibleItemsInfo.any { it.key == state.browseFocusId } &&
+                state.visible.any { it.lyricId == state.browseFocusId }) focus.requestFocus()
+        }
+    }
+    val shown = expandedResultCount(state.visible.size, integerResource(R.integer.trusted_max_page_size), state.pages)
     LaunchedEffect(state.readerOpen, state.item) {
         val token = state.readerOpen
         if (token != null && state.item != null) {
@@ -100,10 +124,20 @@ fun LyricPreviewContent(
                 OutlinedTextField(value = state.query, onValueChange = query, singleLine = true,
                     label = { Text(stringResource(R.string.lyric_title_filter)) },
                     modifier = Modifier.fillMaxWidth().testTag("lyric-filter"))
-                if (state.visible.isEmpty()) Text(stringResource(R.string.no_results))
+                if (state.visible.isEmpty() && !state.failed && !state.queryFailed) Text(stringResource(R.string.no_results))
+                Text(stringResource(R.string.result_count).replace("{shown}", shown.toString()).replace("{total}", state.visible.size.toString()),
+                    modifier = Modifier.testTag("lyric-count"))
             }
-            items(state.visible, key = { it.lyricId }) { summary ->
-                OutlinedButton(onClick = { select(summary) }, modifier = Modifier.fillMaxWidth()) { Text(summary.title) }
+            items(state.visible.take(shown), key = { it.lyricId }) { summary ->
+                OutlinedButton(onClick = { select(summary) }, modifier = Modifier.fillMaxWidth()
+                    .testTag("lyric-title-${summary.lyricId}")
+                    .then(if (summary.lyricId == state.browseFocusId) Modifier.focusProperties { canFocus = true }.focusRequester(focus)
+                        .onGloballyPositioned { focusReady = true } else Modifier)) { Text(summary.title) }
+            }
+            if (shown < state.visible.size) item {
+                OutlinedButton(onClick = more, modifier = Modifier.testTag("lyric-more")) {
+                    Text(stringResource(R.string.show_more_results))
+                }
             }
         }
     }

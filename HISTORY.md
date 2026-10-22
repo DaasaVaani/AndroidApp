@@ -1,5 +1,76 @@
 # Documentation history
 
+## 2026-10-22: canonical title-catalog session continuity
+
+- Owner authorized the bounded Android-only UX-13 slice from clean published main
+  `33cd2eff7b34177d6e14b41f870712c206bfb9de`, preserving independent Shared
+  `44c21b9d139239e3003c293dfe8058ad80393fa6`, Room5, typography and all unrelated
+  personal rows. No Website, Shared, Library source or toolchain change belongs
+  to this slice; connected/HTTP work requires the parent's stable-dist slot.
+- Archived superseded behavior: the prepared canonical catalog retained its
+  literal query in the process-local model, but exposed every matched title
+  without configured expansion/count. Its local LazyListState was also used by
+  the actual reader and disappeared when visiting Settings; title-return focus
+  and Settings-to-canonical Android Back were absent. Favorites already had its
+  own independent page/query/viewport session.
+- Reused the existing bounded literal matcher, overflow-safe expansion helper,
+  pinned page policy and bilingual count/more resources. The canonical catalog
+  has independent expanded pages and outer session viewport; the reader uses a
+  separate viewport. Arrow/Back restores the available originating title focus.
+  Query changes reset pages/position, invalid queries retain accepted text without
+  false no-match, and content replacement clamps unavailable context. Navigation
+  and filters make no personal writes, preparation/index/network requests or
+  additional successful-reader history opens.
+- Added synthetic connected cases for actual configured boundaries, independent
+  literal/query validation, complete tail reachability, reader/Settings/Back/focus,
+  preference/history isolation, shortened/failed preparation and new-session
+  reset. Existing fixture/Favorites behavior, typed identity, exact lyric layout,
+  preparation consent and default typography remain unchanged. This is bounded
+  UX-13/SEARCH-01 coverage, not Explore/full search/offline or release closure.
+- Incremental `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  passed with existing JDK21/SDK36 (final implementation rerun2m31s).
+  All40 core tests passed with no failures/errors/skips; both lint variants
+  retain55 warnings and zero errors. App JVM tasks are NO-SOURCE, not tests.
+  New connected cases compile, but no connected/HTTP test has run before
+  explicit parent stable-dist clearance. Repository hygiene, all5 .github YAML
+  parses, actionlint with existing ShellCheck and working/index whitespace
+  checks passed incrementally; final-tree connected/all-check gates and exact-SHA
+  CI preflight/main publication remain required.
+- Parent explicitly cleared the connected/HTTP slot against unchanged successful
+  Website dist/main`1ee3dca067d0151e62b0ac6ca1215a5e7341f539`.
+  The first complete Gradle command passed config/core/build/lints and60 of61
+  connected cases, zero skipped; native title focus on reader Back failed.
+  A layout-ready retry still failed focus and exposed an asynchronous test-only
+  database-load/close race. Native Button touch-mode focus must be explicitly
+  allowed for the returning title, after its actual layout attaches. Corrected
+  that behavior, synchronized the test's Settings Back with its composed screen,
+  and waited for each fresh-session Room load before closing it. One intermediate
+  focused run confirmed reader focus but correctly failed the unsynchronized
+  Settings Back before that test synchronization fix. No failed tree was pushed.
+- Corrected
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.LibraryBrowsingTest' --no-daemon --console=plain`
+  passed all3 catalog cases, zero failures/errors/skips (2m44s). Their native
+  focus assertions, exact viewport comparison, history receipt and unchanged
+  personal-record assertions remain intact; no coverage was removed or weakened.
+- Complete corrected final-tree validation passed:
+  `npm run config`;
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`.
+  All40 core and61 connected tests passed with zero failures/errors/skips;
+  all variants built and both lint variants retain55 warnings/zero errors.
+  App JVM tasks remain NO-SOURCE, not a passing test suite. The complete command
+  elapsed11m40s on installed JDK21/SDK36 with `ANDROID_SERIAL=emulator-5556`.
+  No toolchain/dependency install, server/emulator startup, shutdown or
+  reconfiguration occurred. All connected/HTTP activity has finished and the
+  parent's slot is explicitly released before Website validation resumes.
+- Final staged `python tools\check_repository.py` passed83 tracked files;
+  the README Node YAML command parsed all5 .github files with unique keys;
+  existing `actionlint .github\workflows\hygiene.yml` with ShellCheck and both
+  working/index `git --no-pager diff --check` passed. No Shared pin or Room/schema
+  change occurred. These checks do not close real-device/accessibility,
+  production/offline or release gates. Exact-SHA preflight/main publication is
+  deliberately pending; no commit or push was attempted before slot release.
+
 ## 2026-10-22: independent native lyric font and density
 
 - Owner authorized this bounded Android-only slice from clean main

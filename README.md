@@ -34,6 +34,22 @@ reading is available until every referenced item verifies. Selecting a prepared
 title performs no network request. A title-substring filter is literal and case-insensitive,
 not the fixture search index, a transliteration profile or portable Unicode folding.
 Title filtering remains distinct from portable Unicode16 personal-list-name comparison.
+The prepared canonical title catalog initially shows the pinned Shared search page
+size. **Show more results** expands by that size through the complete result set,
+with the existing localized shown/total count. Its literal query, expanded pages
+and browse viewport are independent of Favorites and survive canonical reader/
+Settings navigation within the current session. The reader arrow and Android Back
+return to that catalog context; Settings entered from the canonical catalog/reader
+also supports Android Back. An available visible originating title regains native
+focus. The reader has a separate viewport, so opening it does not consume the
+catalog position. Query edits/ordinary clear reset pages and position; invalid
+queries retain accepted text, clear results and show failure, not a false no-match.
+Explicit replacement clamps shortened results to a valid context; it cannot
+promise an unavailable old title/position. A failed preparation retains the active
+catalog and expansion. Session browsing state and prepared content are not saved
+to Room or restored after an app/process restart. Navigation/filtering/paging
+neither prepares content nor writes personal data or creates a fixture index.
+Returning or changing reading preferences does not create another history open.
 Favorites has its own independently retained literal title filter over only the
 already verified real catalog. It never matches lyric UUIDs, tags, unavailable
 references or legacy fixture titles. With an empty filter, every saved typed
@@ -101,7 +117,8 @@ fallback or evidence of successful owner-text review.
 Partial requirement mapping: UX-01 (bounded canonical reader only), UX-03 (explicit
 line/layout preservation without inferring verses), LANG-01 (no translation),
 OFF-01/OFF-10 (explicit complete canonical preparation gate only),
-I18N-01/02/03 and current theme preferences. This does not close their complete
+I18N-01/02/03, UX-13 (bounded canonical catalog/session return only)
+and current theme preferences. This does not close their complete
 acceptance criteria. Typed personal references and lists have the separate bounded
 implementation described below; this does not establish offline parity.
 
@@ -481,6 +498,13 @@ preparation-free pending Back, typed unknown/UUID-looking legacy retention,
 explicit removal and valid shortened results. They distinguish unchanged personal
 records during browsing from approved default-on successful-reader history writes.
 This is bounded SEARCH-01/UX-13/LIB-01 evidence, not full search/offline parity.
+Canonical catalog connected synthetic tests separately cover configured one-page,
+two-page and two-page-plus-one boundaries, literal/independent title queries,
+invalid/oversized query rejection, complete tail reachability, query reset,
+catalog/reader viewport separation, arrow/Android Back and available native focus,
+Settings return, preference changes without repeat history opens, failed/shortened
+explicit preparation, fresh-session reset and unchanged unrelated Room records.
+The existing core expansion helper supplies overflow-safe paging for both surfaces.
 Recent-history core/Room/Compose tests exercise exact typed distinct ordering,
 rolling eviction, the actual configured50/+1 storage limit, initial-on, saved
 false/restart, independent Clear, no-op revisions, actual real/fixture reader

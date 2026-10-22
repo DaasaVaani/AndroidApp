@@ -21,6 +21,7 @@ data class LyricPreviewState(
     val loading: Boolean = false, val failed: Boolean = false, val completed: Int = 0, val total: Int = 0,
     val pendingLyricId: String? = null,
     val readerOpen: String? = null,
+    val pages: Int = 1, val browseFocusId: String? = null, val queryFailed: Boolean = false,
     val favoritesQuery: String = "", val favoritesFailed: Boolean = false, val favoritesPages: Int = 1,
 )
 
@@ -43,7 +44,7 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
                 ensureActive()
                 mutable.update {
                     val destination = prepared.catalog.catalog.find { entry -> entry.lyricId == it.pendingLyricId }
-                    it.copy(prepared = prepared, visible = repository.codec.filter(prepared.catalog, it.query), favoritesPages = 1,
+                    it.copy(prepared = prepared, visible = repository.codec.filter(prepared.catalog, it.query), favoritesPages = 1, queryFailed = false,
                         selected = destination, item = destination?.let { entry -> prepared.items.getValue(entry.lyricId) }, loading = false,
                         readerOpen = destination?.let { UUID.randomUUID().toString() }, pendingLyricId = if (destination != null) null else it.pendingLyricId)
                 }
@@ -64,6 +65,7 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
         val prepared = mutable.value.prepared ?: return
         require(summary == null || summary in prepared.catalog.catalog) { "Lyric is not prepared" }
         mutable.update { it.copy(selected = summary, pendingLyricId = null, item = summary?.let { entry -> prepared.items.getValue(entry.lyricId) },
+            browseFocusId = summary?.lyricId ?: it.browseFocusId,
             readerOpen = summary?.let { UUID.randomUUID().toString() }) }
     }
     fun exposed(token: String): PersonalReference? {
@@ -77,11 +79,12 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
         try {
             val prepared = mutable.value.prepared ?: return
             val visible = repository.codec.filter(prepared.catalog, value)
-            mutable.update { it.copy(query = value, visible = visible, failed = false) }
+            mutable.update { it.copy(query = value, visible = visible, failed = false, queryFailed = false, pages = 1, browseFocusId = null) }
         } catch (error: IllegalArgumentException) {
-            mutable.update { it.copy(visible = emptyList(), failed = true) }
+            mutable.update { it.copy(visible = emptyList(), failed = true, queryFailed = true, pages = 1, browseFocusId = null) }
         }
     }
+    fun more() { mutable.update { it.copy(pages = Math.addExact(it.pages, 1)) } }
     fun favoriteReferences(references: Set<PersonalReference>): List<PersonalReference> =
         if (mutable.value.favoritesFailed) emptyList()
         else repository.codec.favorites(references, mutable.value.prepared?.catalog, mutable.value.favoritesQuery)
