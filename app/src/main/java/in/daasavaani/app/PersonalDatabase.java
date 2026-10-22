@@ -14,7 +14,7 @@ import java.util.List;
 
 @Database(entities = {PersonalDatabase.Preference.class, PersonalDatabase.Favorite.class,
         PersonalDatabase.SavedList.class, PersonalDatabase.Entry.class, PersonalDatabase.Recent.class},
-        version = 4, exportSchema = true)
+        version = 5, exportSchema = true)
 public abstract class PersonalDatabase extends RoomDatabase {
     public abstract Records records();
 
@@ -25,6 +25,8 @@ public abstract class PersonalDatabase extends RoomDatabase {
         @NonNull @ColumnInfo(defaultValue = "'device'") public String theme = "device";
         public long revision;
         public boolean recentHistoryEnabled;
+        public int lyricFontSizeSp;
+        @NonNull public String readingDensity = "";
     }
 
     @Entity(tableName = "favorites", primaryKeys = {"kind", "value"})
@@ -69,6 +71,8 @@ public abstract class PersonalDatabase extends RoomDatabase {
         @Query("SELECT * FROM recents ORDER BY position") List<Recent> recents();
         @Query("UPDATE preferences SET language = :language, theme = :theme, revision = :revision, recentHistoryEnabled = :enabled WHERE id = 1")
         void updatePreference(String language, String theme, long revision, boolean enabled);
+        @Query("UPDATE preferences SET lyricFontSizeSp = :fontSize, readingDensity = :density, revision = :revision WHERE id = 1")
+        void updateReading(int fontSize, String density, long revision);
         @Insert void insertRecent(Recent recent);
         @Query("DELETE FROM recents") void clearRecents();
         @Insert void insertFavorite(Favorite favorite);

@@ -34,6 +34,7 @@ import java.util.Locale
 import `in`.daasavaani.core.uiLanguage
 import `in`.daasavaani.core.PersonalReference
 import `in`.daasavaani.core.expandedResultCount
+import `in`.daasavaani.core.ReadingPreferences
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,8 +95,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     adding?.let { reference -> AddToListDialog(model, reference) { adding = null } }
     val space = integerResource(R.integer.spacing_dp).dp
     val contentPadding = integerResource(R.integer.content_padding_dp).dp
-    val readerFont = integerResource(R.integer.reader_font_size_sp).sp
-    val readerLineHeight = integerResource(R.integer.reader_line_height_sp).sp
+    val reading = state.personal?.reading ?: ReadingPreferences()
     BackHandler(enabled = state.selected != null) { model.select(null) }
     Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(contentPadding), verticalArrangement = Arrangement.spacedBy(space * 2)) {
@@ -146,7 +146,8 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                     LyricPreviewScreen(lyricModel, personal, canSave, { model.changePersonal(reference = it) },
                         { model.clearMutationError(); adding = it },
                         if (fromList) ({ model.section("lists"); fromList = false })
-                        else if (fromFavorites) ({ model.section("favorites") }) else null, model::recordExposed)
+                        else if (fromFavorites) ({ model.section("favorites") }) else null, model::recordExposed,
+                        { model.changeReading(direction = it) }, { model.changeReading(density = it) })
                 }
             } else if (state.section == "recents" && selected == null) {
                 Column(Modifier.weight(1f)) {
@@ -167,6 +168,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
             } else if (state.section == "settings") {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     OutlinedButton(onClick = { model.section("transfer") }) { Text(stringResource(R.string.transfer_title)) }
+                    ReadingControls(reading, canSave, { model.changeReading(direction = it) }, { model.changeReading(density = it) })
                     Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
                     listOf("device" to stringResource(R.string.follow_device), "en" to "English", "kn" to "ಕನ್ನಡ").forEach { (value, label) ->
                         Row {
@@ -191,11 +193,13 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 TextButton(onClick = { model.select(null) }) { Text(stringResource(R.string.back)) }
                 Text(selected.title, style = MaterialTheme.typography.headlineSmall)
                 Text(stringResource(R.string.canonical), style = MaterialTheme.typography.labelSmall)
+                ReadingControls(reading, canSave, { model.changeReading(direction = it) }, { model.changeReading(density = it) })
                 OutlinedButton(enabled = canSave, onClick = { model.changePersonal(favorite = selected.videoId) }) {
                     Text(stringResource(if (PersonalReference.legacy(selected.videoId) in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
                 }
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(space * 2.5f)) {
-                    selected.lines.forEach { line -> Text(line.text, fontSize = readerFont, lineHeight = readerLineHeight) }
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(reading.lineSpacingDp().dp)) {
+                    selected.lines.forEach { line -> Text(line.text, Modifier.testTag("fixture-line-${line.id}"),
+                        fontSize = reading.fontSizeSp.sp, lineHeight = reading.lineHeightSp().sp) }
                 }
             } else if (state.section == "favorites") {
                 if (personal?.favorites?.isEmpty() == true) Text(stringResource(R.string.empty_favorites))

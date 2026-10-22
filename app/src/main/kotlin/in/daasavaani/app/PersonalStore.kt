@@ -22,6 +22,7 @@ data class PersonalSnapshot(
     val favorites: Set<PersonalReference> = emptySet(), val revision: Long = 0,
     val lists: List<RecitationList> = emptyList(),
     val recentHistory: RecentHistory = RecentHistory(),
+    val reading: ReadingPreferences = ReadingPreferences(),
 ) {
     // Process-local write fence; deliberately not part of the durable record or equality.
     var epoch: String = ""
@@ -30,7 +31,7 @@ data class PersonalSnapshot(
 
 class PersonalFailure(val label: Int, cause: Throwable? = null) : Exception(cause)
 
-/** Every operation validates and replaces one personal snapshot inside one Room transaction. */
+/** Every operation validates the complete personal snapshot inside one Room transaction. */
 class PersonalStore(
     private val context: Context,
     private val name: String = "personal.db",
@@ -50,14 +51,14 @@ class PersonalStore(
         else SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY) {
             throw PersonalFailure(R.string.personal_invalid)
         }.use { db ->
-            if (db.version > 4) throw PersonalFailure(R.string.personal_future)
-            if (db.version !in 1..4) throw PersonalFailure(R.string.personal_invalid)
+            if (db.version > 5) throw PersonalFailure(R.string.personal_future)
+            if (db.version !in 1..5) throw PersonalFailure(R.string.personal_invalid)
             checkSchema(db.version) { db.rawQuery(it, null) }
             if (db.version < 3) validateOld(db.version) { db.rawQuery(it, null) }
             else {
                 checkCounts(db.version) { db.rawQuery(it, null) }
                 val snapshot = readRaw(db)
-                if (db.version == 3 && storedBytes(snapshot, 3) > maxBytes) capacity()
+                if (storedBytes(snapshot, db.version) > maxBytes) capacity()
                 validate(snapshot)
             }
         }
@@ -87,11 +88,24 @@ class PersonalStore(
                         db.execSQL("DROP TABLE old_preferences")
                         db.execSQL("CREATE TABLE recents (kind TEXT NOT NULL, value TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(kind, value))")
                     }
+                }, object : Migration(4, 5) {
+                    override fun migrate(db: SupportSQLiteDatabase) {
+                        checkSchema(4, db::query)
+                        checkCounts(4, db::query)
+                        val snapshot = readRaw(db::query, 4)
+                        if (storedBytes(snapshot, 4) > maxBytes) capacity()
+                        validate(snapshot)
+                        db.execSQL("ALTER TABLE preferences RENAME TO old_preferences")
+                        db.execSQL("CREATE TABLE preferences (id INTEGER NOT NULL PRIMARY KEY, language TEXT NOT NULL, theme TEXT NOT NULL DEFAULT 'device', revision INTEGER NOT NULL, recentHistoryEnabled INTEGER NOT NULL, lyricFontSizeSp INTEGER NOT NULL, readingDensity TEXT NOT NULL)")
+                        db.execSQL("INSERT INTO preferences SELECT id, language, theme, revision, recentHistoryEnabled, ?, ? FROM old_preferences",
+                            arrayOf(ReadingPolicy.readerFontSizeSp, ReadingPolicy.defaultDensity))
+                        db.execSQL("DROP TABLE old_preferences")
+                    }
                 })
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
-                    db.execSQL("INSERT INTO preferences (id, language, theme, revision, recentHistoryEnabled) VALUES (1, 'device', 'device', 0, ?)",
-                        arrayOf(if (PersonalPolicy.recentHistoryEnabled) 1 else 0))
+                    db.execSQL("INSERT INTO preferences (id, language, theme, revision, recentHistoryEnabled, lyricFontSizeSp, readingDensity) VALUES (1, 'device', 'device', 0, ?, ?, ?)",
+                        arrayOf(if (PersonalPolicy.recentHistoryEnabled) 1 else 0, ReadingPolicy.readerFontSizeSp, ReadingPolicy.defaultDensity))
                 }
             }).build()
         try { value.runInTransaction { read(value) } }
@@ -140,8 +154,14 @@ class PersonalStore(
                 if (value !in 0L..1L) invalid()
                 value == 1L
             }
+            val reading = if (version < 5) ReadingPreferences() else {
+                integer(c, "lyricFontSizeSp"); string(c, "readingDensity")
+                val size = c.getLong(c.getColumnIndexOrThrow("lyricFontSizeSp"))
+                if (size !in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) invalid()
+                ReadingPreferences(size.toInt(), c.getString(c.getColumnIndexOrThrow("readingDensity")))
+            }
             PersonalSnapshot(c.getString(c.getColumnIndexOrThrow("language")), c.getString(c.getColumnIndexOrThrow("theme")),
-                revision = c.getLong(c.getColumnIndexOrThrow("revision")), recentHistory = RecentHistory(enabled))
+                revision = c.getLong(c.getColumnIndexOrThrow("revision")), recentHistory = RecentHistory(enabled), reading = reading)
         }
         val favorites = linkedSetOf<PersonalReference>()
         query("SELECT * FROM favorites ORDER BY position").use { c ->
@@ -193,7 +213,7 @@ class PersonalStore(
     private fun read(db: PersonalDatabase): PersonalSnapshot {
         // Raw reads also check SQLite storage classes and positions, not just Room coercions.
         val raw = db.openHelper.readableDatabase
-        checkCounts(4, raw::query)
+        checkCounts(5, raw::query)
         val records = db.records().preferences()
         if (records.size != 1) invalid()
         val p = records.single()
@@ -206,7 +226,8 @@ class PersonalStore(
         val snapshot = PersonalSnapshot(p.language, p.theme, favorites.map { PersonalReference(it.kind, it.value) }.toSet(),
             p.revision, lists.map { list -> RecitationList(list.id, list.name, grouped[list.id].orEmpty()
                 .map { Occurrence(it.id, ListEntry(it.kind, it.videoId, it.fallback, it.text, it.lyricId)) }) },
-            RecentHistory(p.recentHistoryEnabled, db.records().recents().map { PersonalReference(it.kind, it.value) }))
+            RecentHistory(p.recentHistoryEnabled, db.records().recents().map { PersonalReference(it.kind, it.value) }),
+            ReadingPreferences(p.lyricFontSizeSp, p.readingDensity))
             .apply { epoch = this@PersonalStore.epoch }
         if (favorites.map { it.position } != favorites.indices.toList() ||
             lists.map { it.position } != lists.indices.toList() ||
@@ -218,10 +239,11 @@ class PersonalStore(
             raw.query("SELECT * FROM `$table`").use { c ->
                 while (c.moveToNext()) for (i in 0 until c.columnCount) {
                     val column = c.getColumnName(i)
-                    val integer = column in setOf("revision", "position", "recentHistoryEnabled") || (table == "preferences" && column == "id")
+                    val integer = column in setOf("revision", "position", "recentHistoryEnabled", "lyricFontSizeSp") || (table == "preferences" && column == "id")
                     if (c.getType(i) != (if (integer) Cursor.FIELD_TYPE_INTEGER else Cursor.FIELD_TYPE_STRING) &&
                         !(table == "occurrences" && column in setOf("videoId", "lyricId", "fallback", "text") && c.isNull(i))) invalid()
                     if (column == "recentHistoryEnabled" && c.getLong(i) !in 0L..1L) invalid()
+                    if (column == "lyricFontSizeSp" && c.getLong(i) != p.lyricFontSizeSp.toLong()) invalid()
                 }
             }
         }
@@ -231,7 +253,7 @@ class PersonalStore(
 
     private fun validate(snapshot: PersonalSnapshot) {
         if (snapshot.language !in setOf("device", "en", "kn") || snapshot.theme !in setOf("device", "light", "dark", "warm") ||
-            snapshot.revision < 0 || snapshot.favorites.any { !it.valid() }) invalid()
+            snapshot.revision < 0 || snapshot.favorites.any { !it.valid() } || !snapshot.reading.valid()) invalid()
         if (snapshot.recentHistory.entries.size > PersonalPolicy.maxRecents) capacity()
         if (!snapshot.recentHistory.valid()) invalid()
         if (snapshot.favorites.size > maxFavorites || snapshot.lists.size > maxLists ||
@@ -269,6 +291,14 @@ class PersonalStore(
             val favorites = before.favorites.toMutableSet()
             target?.let { if (!favorites.remove(it)) favorites.add(it) }
             before.copy(language = language ?: before.language, theme = theme ?: before.theme, favorites = favorites)
+        }
+
+    @Synchronized fun reading(expected: PersonalSnapshot, direction: Int? = null, density: String? = null): PersonalSnapshot =
+        transact(expected.revision, expected.epoch, noOp = true, readingOnly = true) { before ->
+            if ((direction == null) == (density == null)) invalid()
+            val value = if (direction != null) before.reading.step(direction) else before.reading.copy(density = requireNotNull(density))
+            if (!value.valid()) invalid()
+            before.copy(reading = value)
         }
 
     @Synchronized fun saveList(expectedRevision: Long, expectedEpoch: String, list: RecitationList,
@@ -310,7 +340,7 @@ class PersonalStore(
             before.copy(recentHistory = history)
         }
 
-    private fun transact(revision: Long, expectedEpoch: String, noOp: Boolean = false,
+    private fun transact(revision: Long, expectedEpoch: String, noOp: Boolean = false, readingOnly: Boolean = false,
         operation: (PersonalSnapshot) -> PersonalSnapshot): PersonalSnapshot = guarded {
         val db = open()
         if (expectedEpoch != epoch) throw PersonalFailure(R.string.personal_stale)
@@ -327,6 +357,11 @@ class PersonalStore(
             val after = candidate.copy(revision = revision + 1)
             validate(after)
             val dao = db.records()
+            if (readingOnly) {
+                dao.updateReading(after.reading.fontSizeSp, after.reading.density, after.revision)
+                result = read(db)
+                return@runInTransaction
+            }
             dao.clearFavorites(); dao.clearEntries(); dao.clearLists(); dao.clearRecents()
             after.recentHistory.entries.forEachIndexed { i, ref -> dao.insertRecent(PersonalDatabase.Recent().apply {
                 kind = ref.kind; value = ref.id; position = i
@@ -374,7 +409,8 @@ class PersonalStore(
     }
 
     companion object {
-        fun storedBytes(snapshot: PersonalSnapshot, formatVersion: Int = 4): Int {
+        fun storedBytes(snapshot: PersonalSnapshot, formatVersion: Int = 5): Int {
+            require(formatVersion in 3..5)
             var bytes = 0L
             fun append(value: String) { bytes += value.toByteArray(Charsets.UTF_8).size }
             fun quote(value: String) = Json.encodeToString(value)
@@ -387,7 +423,9 @@ class PersonalStore(
                 id?.let { append(",\"id\":${quote(it)}") }
                 append("}")
             }
-            append("{\"formatVersion\":$formatVersion,\"revision\":${snapshot.revision},\"preferences\":{\"language\":${quote(snapshot.language)},\"theme\":${quote(snapshot.theme)}},\"favorites\":[")
+            append("{\"formatVersion\":$formatVersion,\"revision\":${snapshot.revision},\"preferences\":{\"language\":${quote(snapshot.language)},\"theme\":${quote(snapshot.theme)}")
+            if (formatVersion >= 5) append(",\"lyricFontSizeSp\":${snapshot.reading.fontSizeSp},\"readingDensity\":${quote(snapshot.reading.density)}")
+            append("},\"favorites\":[")
             snapshot.favorites.forEachIndexed { index, ref -> if (index > 0) append(","); entry(ref.entry()) }
             append("],\"lists\":[")
             snapshot.lists.forEachIndexed { index, list ->
@@ -427,7 +465,8 @@ class PersonalStore(
             ) else mapOf(
                 "favorites" to listOf("kind:TEXT:1:1", "value:TEXT:1:2", "position:INTEGER:1:0"),
                 "preferences" to listOf("id:INTEGER:1:1", "language:TEXT:1:0", "theme:TEXT:1:0", "revision:INTEGER:1:0") +
-                    if (version >= 4) listOf("recentHistoryEnabled:INTEGER:1:0") else emptyList(),
+                    (if (version >= 4) listOf("recentHistoryEnabled:INTEGER:1:0") else emptyList()) +
+                    (if (version >= 5) listOf("lyricFontSizeSp:INTEGER:1:0", "readingDensity:TEXT:1:0") else emptyList()),
                 "lists" to listOf("id:TEXT:1:1", "name:TEXT:1:0", "position:INTEGER:1:0"),
                 "occurrences" to listOf("id:TEXT:1:1", "listId:TEXT:1:0", "position:INTEGER:1:0", "kind:TEXT:1:0",
                     "videoId:TEXT:0:0", "lyricId:TEXT:0:0", "fallback:TEXT:0:0", "text:TEXT:0:0"),

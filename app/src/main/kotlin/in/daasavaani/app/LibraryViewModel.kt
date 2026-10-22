@@ -23,6 +23,8 @@ import kotlinx.coroutines.channels.Channel
 import java.util.UUID
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class LibraryState(
     val prepared: PreparedPublication? = null, val loading: Boolean = false,
@@ -42,6 +44,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     private var preparation: Job? = null
     private var searching: Job? = null
     private val opens = Channel<PersonalReference>(PersonalPolicy.maxRecents)
+    private val readingWrites = Mutex()
     init {
         retryPersonal()
         viewModelScope.launch {
@@ -110,6 +113,23 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 mutable.update { it.copy(personal = value, personalError = null) }
             } catch (error: PersonalFailure) { mutable.update { it.copy(personalError = error.label) } }
             finally { mutable.update { it.copy(saving = false) } }
+        }
+    }
+    fun changeReading(direction: Int? = null, density: String? = null) {
+        // Each queued action uses the last committed local snapshot, never a captured UI value.
+        viewModelScope.launch {
+            readingWrites.withLock {
+                mutable.first { !it.saving }
+                val state = mutable.value
+                val before = state.personal ?: return@withLock
+                if (state.personalError != null) return@withLock
+                mutable.update { it.copy(saving = true) }
+                try {
+                    val next = withContext(Dispatchers.IO) { personalStore.reading(before, direction, density) }
+                    mutable.update { it.copy(personal = next) }
+                } catch (error: PersonalFailure) { mutable.update { it.copy(personalError = error.label) } }
+                finally { mutable.update { it.copy(saving = false) } }
+            }
         }
     }
     fun clearMutationError() { mutable.update { it.copy(mutationError = null) } }

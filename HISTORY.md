@@ -1,5 +1,78 @@
 # Documentation history
 
+## 2026-10-22: independent native lyric font and density
+
+- Owner authorized this bounded Android-only slice from clean main
+  `7d754ea3f4e9a0a1b463cd153f8a6ad6f807c522`. Website, standalone Shared,
+  Library, literal source text and the existing server/emulator are not owned
+  by this slice. Shared publication/pin and stable-dist coordination are required
+  before their dependent checks.
+- Archived superseded current behavior: Room4/logical envelope4 stored
+  language/theme/history and typed personal collections, but no lyric typography.
+  Both native readers used 28sp font/48sp line height; fixture lines had 20dp
+  separators (`spacingDp=8` times2.5). Settings had no font/density controls.
+  Density/font preferences appeared among the open canonical-reader limitations.
+- The bounded replacement centralizes the unchanged baseline plus 14–48sp/2sp
+  bounds and 85/100/120-percent density in native settings/generation. Shared owns
+  bilingual labels and default Normal/allowed choices. Both actual readers and
+  Settings share independent persisted preferences; lyric text/layout/identity
+  and UI/title/locale/theme remain separate. No inferred verses or cross-platform
+  conversion is implemented.
+- Room5/accounting5 strictly preserves all old values/identities/revision and adds
+  only native font/default density. Frozen old schema/accounting adapters and
+  prospective exact full UTF8 capacity checks precede atomic migration.
+  Typography writes update only their columns/revision; no-op and stale fences
+  are retained. Rapid intents serialize against preceding committed local state.
+  Mounted exposure receipts do not depend on personal preference state, so peer
+  history clears cannot be undone by typography/retry recomposition.
+- Partial UX-02/03/14 and SET-04 only; Recite/Practice/helpers, offline snapshots,
+  linguistic/device/accessibility and production/release acceptance remain open.
+- Parent confirmed published Shared
+  `44c21b9d139239e3003c293dfe8058ad80393fa6`, with exact preflight39731901423 and
+  main39732154093 successful (30 contract tests). Independently adopted that
+  exact consumer pin; no Shared source/resources were copied or modified.
+- Incremental `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  passed. All40 core tests passed with zero failures/errors/skips; instrumentation
+  compiled. App JVM tasks remain NO-SOURCE, not counted as tests. The first build
+  produced64 lint warnings/zero errors per variant; inspection identified unused
+  generated native reading integers after moving consumers to generated core
+  policy. Generation now emits those values only in their used core target,
+  rather than duplicate unused Android resources. The same command on the
+  corrected tree passed with55 warnings/zero errors per variant (Gradle/plugin/
+  dependency update notices, existing icon/backup warnings and unused Shared/
+  portable resources). No toolchain/dependency install was required.
+- Parent explicitly cleared the connected/HTTP slot with Website dist unchanged.
+  The first full
+  `npm run config` followed by
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed config/core/build/lints and53 of58 connected cases (zero skipped).
+  All five failures shared the new ReadingStoreTest seed: a tab in a personal
+  placeholder correctly failed existing transfer validation. Corrected only that
+  synthetic placeholder to permitted text; canonical lyric tabs remain unchanged
+  and covered by actual reader tests. No failed tree was committed/pushed.
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.ReadingStoreTest' --no-daemon --console=plain`
+  then passed all5 focused cases, zero skipped (1m26s), confirming migration,
+  exact accounting, no-op bounds, preserving writes and stale/rollback behavior.
+- Corrected complete final-tree run passed:
+  `npm run config`;
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`.
+  All40 core and58 connected tests passed with zero failures/errors/skips;
+  both lint variants had55 warnings and zero errors. App JVM remains NO-SOURCE,
+  not a passing test suite. The complete command elapsed8m36s with installed
+  JDK21/SDK36 and `ANDROID_SERIAL=emulator-5556`. No server/emulator was started,
+  stopped or reconfigured. All connected/HTTP work finished before explicitly
+  releasing the slot for Website builds; publication is a separate remaining gate.
+- On the same-task publication resume, the tested implementation/settings/pin
+  remained unchanged; only this completed validation evidence was added after the
+  full run. Rechecked `npm run config`, `python tools\check_repository.py`
+  (82 tracked files), strict YAML1.2 parsing for all5 workflow/form YAML files
+  and owned settings, `actionlint .github\workflows\hygiene.yml` with installed
+  ShellCheck, and both working/index `git --no-pager diff --check`; all passed.
+  No connected/HTTP rerun was started against the parent's changing Website dist.
+  Live main rules still required the exact CI context, with the owner-authorized
+  temporary role5 exception and separate never-bypass force/deletion guards.
+
 ## 2026-10-22: bounded real Favorites title browsing
 
 - Owner authorized this Android-only slice from clean main

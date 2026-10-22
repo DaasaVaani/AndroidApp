@@ -6,7 +6,7 @@ demo and separate prelaunch canonical lyric reader, not a production/offline rel
 Explicit fixture preparation verifies all synthetic
 records before canonical Kannada reading and indexed search. Prepared data is
 memory-only. Typed lyric/legacy favorites, recitation lists/independent occurrences
-and UI language/theme use one durable Room database. Settings offers process-local
+and UI language/theme/lyric reading preferences use one durable Room database. Settings offers process-local
 v1/v2 minimal-list preview, confirmed new-list-only import and complete file/link
 export. None of these operations prepares/downloads lyrics. Durable offline
 activation, recitation playback/resume and complete feature parity remain unimplemented.
@@ -70,7 +70,7 @@ This is the distinct
 `layout` records. Real UUIDs never enter legacy `videoId` favorites/list records.
 Text is rendered literally with spaces, tabs, blank layout records and line breaks
 preserved. Visible bilingual notices disclose the prelaunch stage and incomplete
-full-launch gates. It shares the existing UI locale and theme only.
+full-launch gates. It shares the existing UI locale, theme and independent lyric font/density preferences.
 
 `settings/android.yml` owns the endpoint and native safety ceilings: descriptor,
 encoded/decoded manifest/item bytes, catalog count, line count, text code points,
@@ -91,7 +91,7 @@ maxima during configuration generation; they cannot silently raise portable boun
 
 Prepared lyric content is process-local review state, **not durable offline preparation
 or an activated snapshot**. Durable snapshots, script/search
-profiles, bookmarks, density/font preferences and production linguistic/
+profiles, bookmarks and production linguistic/
 release acceptance remain open. A pre-consent size preview and durable snapshot/
 storage preparation remain later OFF-10 work; byte safety budgets and item progress
 here are not claims of those features. Publication availability and actual real-content
@@ -106,6 +106,45 @@ acceptance criteria. Typed personal references and lists have the separate bound
 implementation described below; this does not establish offline parity.
 
 ## Current fixture behavior and boundaries
+
+### Independent lyric typography
+
+Settings and both actual canonical/fixture readers provide localized A−/A+ lyric
+font controls, the current native `sp` value, and three distinct Compact/Normal/
+Relaxed density choices. `sp` respects OS font scaling; title/navigation/UI font
+sizes do not change. UI language/theme and canonical lyric text remain independent.
+No cross-platform font-unit conversion, script choice or inferred verses are added.
+
+`settings/android.yml` owns the native 28sp initial font, 14–48sp inclusive bounds,
+2sp step, 48sp normal line height, 20dp normal fixture line separator and
+85/100/120-percent density multipliers. Normal preserves the preceding appearance
+exactly. Line height scales with the chosen font relative to the initial font and
+with density; fixture separators scale with density. Canonical readers retain the
+same single literal string with every line/layout separator, space and tab.
+Fixture readers retain their separate identified line records and wrapping.
+No line is collapsed, trimmed, reidentified or treated as a verse.
+Pinned Shared defaults own initial Normal and the supported density order.
+Configuration generation rejects missing, invalid, off-step or unsupported values;
+there is no hidden runtime fallback for invalid saved preferences.
+
+Room5/logical accounting5 adds only `lyricFontSizeSp` and `readingDensity` to the
+existing preferences. Frozen old schema/accounting adapters validate both old and
+prospective complete UTF8 personal envelopes before atomic migration. Favorites,
+lists, repeated occurrences, typed IDs, history, locale/theme and revision are
+preserved; future, invalid and over-capacity state is refused without reset.
+Reading changes update only their preference columns plus revision, never rewrite
+other personal tables or store lyric text. Same-density/bound actions are no-ops.
+Queued rapid actions use actual preceding local commits; peer-writer revision/
+epoch conflicts remain explicit stale refusals until retry, never silent rebases.
+Loading/rendering uses the existing singleton without a preference mutation or
+revision increment.
+
+Preference changes neither prepare content nor create another reader-open receipt.
+A still-mounted reader stays history-cleared after another writer clears history,
+including after explicit stale recovery and typography changes. Existing query,
+page, reader-return and list-origin state is retained. This is partial UX-02/03/14
+and SET-04 coverage, not Recite/Practice/helpers, offline support, full accessibility
+or real-device/release acceptance.
 
 - No bundled lyrics. Explicit validated full preparation gates lyrics, not
   Settings/recovery/list preview. Preserve destinations without automatic saving.
@@ -132,9 +171,9 @@ implementation described below; this does not establish offline parity.
 
 ### Personal schema, transactions and recovery
 
-`personal.db` is the only personal database. Room schema4 has one required
+`personal.db` is the only personal database. Room schema5 has one required
 `preferences` singleton (`id=1`, `language`, `theme`, nonnegative `revision`,
-`recentHistoryEnabled`) and
+`recentHistoryEnabled`, `lyricFontSizeSp`, `readingDensity`) and
 `favorites` keyed by `(kind,value)` with explicit positions, ordered `lists` and
 ordered `occurrences`, plus ordered typed `recents`. Lyric references require canonical lowercase UUIDv4;
 `legacyVideo` preserves the opaque case-sensitive ASCII1–128 domain. An old value
@@ -151,12 +190,14 @@ preferences and revision. Old favorites had no saved ordinal: their existing
 `ORDER BY videoId` is retained once; new typed favorites retain insertion order.
 The v3→4 migration preserves every exact favorite/list/occurrence, language/theme
 and revision, and creates empty history with the pinned Shared initial preference.
-No prior opens are reconstructed. Supported v1/v2 inputs chain through these
+No prior opens are reconstructed. The v4→5 migration adds configured native font
+and Shared density defaults without changing prior values or revision.
+Supported v1/v2 inputs chain through these
 same migrations. Each reopened store has a fresh process-local epoch; history
 transactions participate in the existing revision/epoch fences, including pending
 imports and duplicate-name confirmations.
 The actual old schema and records (strict11-character IDs only for v1/v2;
-exact typed IDs for v3) are validated before opening
+exact typed IDs for v3/v4) are validated before opening
 Room and rechecked within the migration transaction. Both old accounting and the
 projected new envelope must fit before migration. These are
 synthetic migration fixtures, not a claim that an earlier production personal schema
@@ -171,7 +212,7 @@ inside one Room transaction. A stale writer must reload before retrying. The cou
 and deterministic UTF8 logical-envelope bounds come from pinned
 `shared/settings/personal-transfer.yml`, including preference/revision/header
 overhead. The compact UTF8 accounting envelope is exactly
-`{formatVersion:4,revision,preferences:{language,theme},favorites:[typed-reference],
+`{formatVersion:5,revision,preferences:{language,theme,lyricFontSizeSp,readingDensity},favorites:[typed-reference],
 lists:[{id,name,entries:[typed-entry-with-id]}],recentHistory:{enabled,entries:[typed-reference]}}`
 in that field order, using
 `kotlinx.serialization` JSON string quoting and no spaces/BOM. Entries emit
@@ -183,7 +224,9 @@ No optimistic success is shown before commit. No preferences are duplicated in
 SharedPreferences or a separate database.
 
 Room reads group occurrences once by list rather than scanning all occurrences
-per list. Validation/accounting and whole-snapshot replacement are linear in
+per list. Reading changes validate/account the complete snapshot but update only
+the reading preference columns/revision. Other writes retain whole-snapshot
+replacement. Validation/accounting and replacement are linear in
 favorites + lists + occurrences + recents + bounded JSON/text bytes, apart from SQLite
 ordering/index maintenance and the separately described Unicode name-key work.
 Memory includes the bounded personal snapshot and one bounded list JSON at a time;
@@ -356,7 +399,7 @@ six upstream source identities against Shared settings. Runtime loading verifies
 the packaged profile and data hash; missing/corrupt/unsupported resources fail
 explicitly, with no platform fallback.
 
-Room schema4 stores raw list names, not persisted name keys. Create, rename,
+Room schema5 stores raw list names, not persisted name keys. Create, rename,
 duplicate and import use this profile and explicit independent-reuse confirmation.
 No list is automatically renamed/merged; no cached keys require migration.
 A future persisted-key/profile change still needs a preserving migration.
@@ -385,7 +428,8 @@ signing key belongs in CI/repository/logs.
 
 Partial requirement coverage: LIB-01/02/03/04/05/08/09/10/11,
 XFER-01/02/03/04/05/06/08, I18N-01/02/03,
-SET-04 (UI language/theme only), QUAL-05/06 (local-only state and explicit errors).
+SET-04 (UI language/theme/lyric typography only), UX-02/03/14 (bounded lyric
+typography/layout only), QUAL-05/06 (local-only state and explicit errors).
 Canonical Kannada and required preparation remain unchanged. This is neither
 complete requirement acceptance nor production/release readiness.
 
@@ -408,6 +452,15 @@ Connected tests require an intended API36 emulator selected with ANDROID_SERIAL 
 the Website demo at the endpoint in settings/android.yml. Configuration is generated
 from owned settings and pinned Shared policy. Never target another user's device.
 The Gradle wrapper distribution and wrapper JAR have checked SHA256 pins.
+
+Reading preference core/Room/Compose cases cover configured default/bounds/step,
+all three density states, no-op revisions, persistence/restart, exact old/current
+UTF8 accounting and migration capacity, preserving v4 migration, invalid/future
+refusal, rollback and stale fences, queued local actions, localized accessible
+labels and actual canonical/fixture literal text with unaffected other personal
+state. Peer history clearing while a reader remains mounted is tested across
+stale refusal/retry and subsequent typography changes. Synthetic instrumentation
+does not establish real-device/font-shaping or full accessibility acceptance.
 
 Core JVM tests cover search, first-use/override locale selection, portable
 personal-name comparison, prelaunch lyric

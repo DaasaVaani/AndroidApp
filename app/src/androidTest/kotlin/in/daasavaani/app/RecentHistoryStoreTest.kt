@@ -84,13 +84,13 @@ class RecentHistoryStoreTest {
         val expected = PersonalSnapshot(language = "kn", theme = "warm", revision = 1,
             recentHistory = RecentHistory(entries = listOf(lyric, legacy)))
         val envelope = """{"formatVersion":4,"revision":1,"preferences":{"language":"kn","theme":"warm"},"favorites":[],"lists":[],"recentHistory":{"enabled":true,"entries":[{"kind":"lyric","lyricId":"$id"},{"kind":"legacyVideo","videoId":"$id"}]}}"""
-        assertEquals(envelope.toByteArray(Charsets.UTF_8).size, PersonalStore.storedBytes(expected))
+        assertEquals(envelope.toByteArray(Charsets.UTF_8).size, PersonalStore.storedBytes(expected, 4))
         val listId = "30000000-0000-4000-8000-000000000001"
         val occurrenceId = "40000000-0000-4000-8000-000000000001"
         val list = RecitationList(listId, "ಕ 😀", listOf(Occurrence(occurrenceId, lyric.entry("ಕ raw 😀"))))
         val listJson = """[{"id":"$listId","name":"ಕ 😀","entries":[{"kind":"lyric","lyricId":"$id","fallback":"ಕ raw 😀","id":"$occurrenceId"}]}]"""
         assertEquals(envelope.replace("\"lists\":[]", "\"lists\":$listJson").toByteArray(Charsets.UTF_8).size,
-            PersonalStore.storedBytes(expected.copy(lists = listOf(list))))
+            PersonalStore.storedBytes(expected.copy(lists = listOf(list)), 4))
         val limit = PersonalStore.storedBytes(expected)
         PersonalStore(context, name, maxBytes = limit).use { store ->
             var s = store.change(store.load(), language = "kn", theme = "warm")
@@ -173,7 +173,7 @@ class RecentHistoryStoreTest {
             assertNotEquals(epoch, it.load().epoch)
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use {
-            assertEquals(4, it.version)
+            assertEquals(5, it.version)
         }
     }
 

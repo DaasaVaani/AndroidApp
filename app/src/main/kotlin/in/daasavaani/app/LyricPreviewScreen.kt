@@ -17,22 +17,25 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import `in`.daasavaani.core.LyricSummary
 import `in`.daasavaani.core.PersonalReference
+import `in`.daasavaani.core.ReadingPreferences
 import kotlinx.coroutines.flow.first
 
 @Composable
 fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: PersonalSnapshot? = null,
     canSave: Boolean = false, favorite: (PersonalReference) -> Unit = {}, add: (PersonalReference) -> Unit = {},
-    backToList: (() -> Unit)? = null, opened: (PersonalReference) -> Unit = {}) {
+    backToList: (() -> Unit)? = null, opened: (PersonalReference) -> Unit = {},
+    fontStep: (Int) -> Unit = {}, density: (String) -> Unit = {}) {
     val state by model.state.collectAsState()
     BackHandler(enabled = state.selected != null) { backToList?.invoke() ?: model.select(null) }
     DisposableEffect(model) { onDispose { model.cancel() } }
     LyricPreviewContent(state, model::load, model::cancel, model::query, model::select,
-        exposed = { token -> model.exposed(token)?.let(opened) }) { summary ->
+        exposed = { token -> model.exposed(token)?.let(opened) }, reading = personal?.reading ?: ReadingPreferences()) { summary ->
         val reference = PersonalReference.lyric(summary.lyricId)
         OutlinedButton(enabled = canSave, onClick = { favorite(reference) }) {
             Text(stringResource(if (reference in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
         }
         OutlinedButton(enabled = canSave, onClick = { add(reference) }) { Text(stringResource(R.string.add_to_list)) }
+        ReadingControls(personal?.reading ?: ReadingPreferences(), canSave, fontStep, density)
     }
 }
 
@@ -41,6 +44,7 @@ fun LyricPreviewContent(
     state: LyricPreviewState, load: () -> Unit, cancel: () -> Unit,
     query: (String) -> Unit, select: (LyricSummary?) -> Unit,
     exposed: (String) -> Unit = {},
+    reading: ReadingPreferences = ReadingPreferences(),
     personalActions: @Composable (LyricSummary) -> Unit = {},
 ) {
     val space = integerResource(R.integer.spacing_dp).dp
@@ -87,8 +91,7 @@ fun LyricPreviewContent(
                 item(key = "lyric-text") {
                     SelectionContainer {
                         Text(lyric.lines.joinToString("\n") { it.text }, Modifier.testTag("lyric-text"),
-                            fontSize = integerResource(R.integer.reader_font_size_sp).sp,
-                            lineHeight = integerResource(R.integer.reader_line_height_sp).sp)
+                            fontSize = reading.fontSizeSp.sp, lineHeight = reading.lineHeightSp().sp)
                     }
                 }
             }

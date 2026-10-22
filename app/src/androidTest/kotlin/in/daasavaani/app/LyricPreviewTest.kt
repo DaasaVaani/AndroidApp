@@ -88,6 +88,8 @@ class LyricPreviewTest {
             assertEquals(list.entries, saved.entries.take(3))
             assertEquals(PersonalReference.lyric(id), saved.entries.last().entry.reference())
             assertNull(saved.entries.last().entry.fallback)
+            scenario.onActivity { library.changeReading(direction = 1); library.changeReading(density = "relaxed") }
+            compose.waitUntil(10000) { !library.state.value.saving && library.state.value.personal?.reading?.density == "relaxed" }
             compose.onNodeWithText(context.getString(R.string.back_to_list)).performClick()
             compose.onNodeWithTag("saved-lists").assertIsDisplayed()
             assertEquals(savedScroll, compose.onNodeWithTag("saved-lists").fetchSemanticsNode()

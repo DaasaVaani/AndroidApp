@@ -7,6 +7,9 @@ const search = strictYaml(await readFile(new URL("shared/settings/search.yml", r
 const personal = strictYaml(await readFile(new URL("shared/settings/personal-transfer.yml", root), "utf8"));
 const defaults = strictYaml(await readFile(new URL("shared/settings/defaults.yml", root), "utf8"));
 if (typeof defaults.recentHistoryEnabled !== "boolean") throw new Error("Invalid recent history default");
+if (defaults.readingDensity !== "normal" ||
+    JSON.stringify(defaults.supportedReadingDensities) !== JSON.stringify(["compact", "normal", "relaxed"]))
+  throw new Error("Unsupported Shared reading defaults");
 if (personal.formatVersion !== 1 || !["maxFavorites", "maxPersonalStoredBytes", "maxListEncodedBytes",
     "maxListDecodedBytes", "maxSharedUrlAscii", "maxListNameCodePoints", "maxEntryTextCodePoints", "maxEntriesPerList",
     "maxLists", "maxTotalEntries", "maxRecents"]
@@ -19,10 +22,23 @@ if (!config || typeof config !== "object" || config.formatVersion !== 1 || confi
     !Number.isInteger(config.versionCode) || typeof config.versionName !== "string" ||
     !Number.isInteger(config.connectTimeoutMs) || !Number.isInteger(config.readTimeoutMs) ||
     typeof config.descriptorUrl !== "string" || !config.ui ||
-    !["spacingDp", "contentPaddingDp", "readerFontSizeSp", "readerLineHeightSp"]
+    !["spacingDp", "contentPaddingDp", "readerFontSizeSp", "readerLineHeightSp", "readerLineSpacingDp",
+      "readerFontMinSp", "readerFontMaxSp", "readerFontStepSp",
+      "densityCompactPercent", "densityNormalPercent", "densityRelaxedPercent"]
       .every(key => Number.isInteger(config.ui[key]) && config.ui[key] > 0) ||
     !config.ui.colors || !["background", "surface", "text", "primary"]
       .every(key => typeof config.ui.colors[key] === "string" && /^#[0-9a-fA-F]{6}$/.test(config.ui.colors[key]))) throw new Error("Invalid Android fixture settings");
+const ui = config.ui;
+const uiKeys = ["spacingDp", "contentPaddingDp", "readerFontSizeSp", "readerLineHeightSp", "readerLineSpacingDp",
+  "readerFontMinSp", "readerFontMaxSp", "readerFontStepSp", "densityCompactPercent", "densityNormalPercent", "densityRelaxedPercent", "colors"];
+if (Object.keys(ui).some(key => !uiKeys.includes(key)) ||
+    ui.readerFontMinSp > ui.readerFontSizeSp || ui.readerFontSizeSp > ui.readerFontMaxSp ||
+    (ui.readerFontMaxSp - ui.readerFontMinSp) % ui.readerFontStepSp !== 0 ||
+    (ui.readerFontSizeSp - ui.readerFontMinSp) % ui.readerFontStepSp !== 0 ||
+    ui.readerLineHeightSp < ui.readerFontSizeSp || ui.densityNormalPercent !== 100 ||
+    ui.densityCompactPercent >= ui.densityNormalPercent || ui.densityRelaxedPercent <= ui.densityNormalPercent ||
+    uiKeys.filter(key => key !== "colors").some(key => !Number.isSafeInteger(ui[key]) || ui[key] > 2147483647))
+  throw new Error("Invalid native reading settings");
 const url = new URL(config.descriptorUrl);
 if (!["http:", "https:"].includes(url.protocol)) throw new Error("Invalid descriptor URL");
 const lyricUrl = new URL(config.lyricDescriptorUrl);
@@ -54,6 +70,13 @@ await writeFile(new URL("build/generated/kotlin/PersonalPolicy.kt", root),
   `package \`in\`.daasavaani.core\n\n// Generated from pinned Shared settings.\n` +
   `object PersonalPolicy {\n    const val recentHistoryEnabled = ${defaults.recentHistoryEnabled}\n` +
   `    const val maxRecents = ${personal.maxRecents}\n}\n`);
+await writeFile(new URL("build/generated/kotlin/ReadingPolicy.kt", root),
+  `package \`in\`.daasavaani.core\n\n// Generated from owned native settings and pinned Shared defaults.\n` +
+  `object ReadingPolicy {\n` +
+  Object.entries(ui).filter(([key]) => key.startsWith("reader") || key.startsWith("density"))
+    .map(([key, value]) => `    const val ${key} = ${value}\n`).join("") +
+  `    const val defaultDensity = "${defaults.readingDensity}"\n` +
+  `    val supportedDensities = listOf(${defaults.supportedReadingDensities.map(value => JSON.stringify(value)).join(", ")})\n}\n`);
 await writeFile(new URL("build/generated/config.properties", root),
   Object.entries(config).filter(([, value]) => typeof value !== "object")
     .map(([key, value]) => `${key}=${String(value).replaceAll("\\", "\\\\")}`).join("\n") + "\n");
@@ -66,7 +89,8 @@ await writeFile(new URL("app/build/generated/settings/values/config.xml", root),
   `<string name="canonical_base_url" translatable="false">${xml(config.canonicalBaseUrl)}</string>\n` +
   `<string name="list_link_path" translatable="false">${xml(config.listLinkPath)}</string>\n` +
   `<string name="list_file_name" translatable="false">${xml(config.listFileName)}</string>\n` +
-  Object.entries({ ...bounds, ...config.ui, connectTimeoutMs: config.connectTimeoutMs, readTimeoutMs: config.readTimeoutMs,
+  Object.entries({ ...bounds, spacingDp: ui.spacingDp, contentPaddingDp: ui.contentPaddingDp,
+    connectTimeoutMs: config.connectTimeoutMs, readTimeoutMs: config.readTimeoutMs,
     trustedMaxQueryCodePoints: search.maxQueryCodePoints, trustedMaxTerms: search.maxTerms, trustedMaxPageSize: search.pageSize,
     ...personal, ...lyricBounds, listCompressionLevel: config.listCompressionLevel })
     .filter(([, value]) => typeof value === "number")

@@ -167,6 +167,8 @@ class FavoritesBrowsingTest {
             compose.onNodeWithTag("lyric-preview").performScrollToNode(hasTestTag("lyric-text"))
             compose.waitUntil(10000) { library.state.value.personal?.recentHistory?.entries?.isNotEmpty() == true && !library.state.value.saving }
             assertEquals(listOf(PersonalReference.lyric(id(total))), library.state.value.personal!!.recentHistory.entries)
+            scenario.onActivity { library.changeReading(direction = 1); library.changeReading(density = "compact") }
+            compose.waitUntil(10000) { !library.state.value.saving && library.state.value.personal?.reading?.density == "compact" }
             compose.onNodeWithTag("back-to-favorites").performClick()
             count(total, total)
             assertEquals("[", real.state.value.favoritesQuery)
@@ -195,7 +197,7 @@ class FavoritesBrowsingTest {
             assertEquals(before.lists, after.lists)
             assertEquals(before.language, after.language)
             assertEquals(before.theme, after.theme)
-            assertEquals(before.revision + 1, after.revision)
+            assertEquals(before.revision + 3, after.revision)
             compose.onNodeWithTag("favorites-filter").performTextReplacement("[${total.toString().padStart(3, '0')}]")
             count(1, 1)
             openTitle(total)

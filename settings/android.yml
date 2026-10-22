@@ -33,6 +33,13 @@ ui:
   contentPaddingDp: 16
   readerFontSizeSp: 28
   readerLineHeightSp: 48
+  readerLineSpacingDp: 20
+  readerFontMinSp: 14
+  readerFontMaxSp: 48
+  readerFontStepSp: 2
+  densityCompactPercent: 85
+  densityNormalPercent: 100
+  densityRelaxedPercent: 120
   colors:
     background: "#f6f3eb"
     surface: "#fffdf8"
