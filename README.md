@@ -34,6 +34,31 @@ reading is available until every referenced item verifies. Selecting a prepared
 title performs no network request. A title-substring filter is literal and case-insensitive,
 not the fixture search index, a transliteration profile or portable Unicode folding.
 Title filtering remains distinct from portable Unicode16 personal-list-name comparison.
+Favorites has its own independently retained literal title filter over only the
+already verified real catalog. It never matches lyric UUIDs, tags, unavailable
+references or legacy fixture titles. With an empty filter, every saved typed
+reference remains available, including unresolved and legacy references before
+preparation. Filtering does not initiate preparation.
+
+Favorites initially shows the pinned Shared search page size; **Show more results**
+expands by that same size, with a localized shown/total count and no unreachable
+tail at exact page boundaries. Editing or ordinarily clearing the title field
+resets expansion and scroll; rejected oversized/invalid queries retain the last
+accepted text, clear results and show failure rather than a false no-match.
+The real-catalog title query is independent. Switching sections and returning
+from a favorite reader retains the Favorites query, expansion and list viewport.
+Android Back and the arrow/Favorites action return to that context, including a
+pending unprepared reference; removal/content changes clamp to available rows
+rather than promise an obsolete exact position. These are process-local browsing
+states, not persisted search history. Filtering, paging and navigation do not
+write personal data or fetch content. Successful explicit reader exposure still
+records Recently opened when its existing initially-on preference is enabled;
+explicit Favorite/Add to list actions retain their normal transactional writes.
+Title matching scans the bounded verified summaries, then uses exact typed-ID
+membership while preserving saved-reference order. Working reference storage is
+O(catalog items + favorites), within their configured ceilings; page expansion
+uses overflow-safe arithmetic and never copies lyric bodies.
+
 There is no video/image request, HTML rendering, link execution, generated text,
 script switching on this surface. Reader Favorite and Add to a saved list operate
 on a typed real lyric UUID, without inventing a video association.
@@ -395,6 +420,14 @@ chain, explicit complete-preparation gating, pre-consent personal isolation,
 typed reader Favorite/Add to list, pending list destinations without implicit
 downloads, filter/reader text and cancel/retry/reload-failure preservation. It is not a live
 feed or real-content demo.
+Favorites core/connected synthetic tests cover the actual configured page,
+two-page and two-page-plus-one boundaries, complete tail reachability, literal/
+case-insensitive matching, no-match and invalid-query distinction, ordinary
+clear/reset, independent catalog queries, section/reader-return viewport,
+preparation-free pending Back, typed unknown/UUID-looking legacy retention,
+explicit removal and valid shortened results. They distinguish unchanged personal
+records during browsing from approved default-on successful-reader history writes.
+This is bounded SEARCH-01/UX-13/LIB-01 evidence, not full search/offline parity.
 Recent-history core/Room/Compose tests exercise exact typed distinct ordering,
 rolling eviction, the actual configured50/+1 storage limit, initial-on, saved
 false/restart, independent Clear, no-op revisions, actual real/fixture reader

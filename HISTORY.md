@@ -1,5 +1,101 @@
 # Documentation history
 
+## 2026-10-22: bounded real Favorites title browsing
+
+- Owner authorized this Android-only slice from clean main
+  `c13171f6ed874aa5178c6c0cd0e5dc9dd3c09d0d`. Shared remains independently pinned
+  at `9b8845a21bb529268bba49ffbf6a44dece45a9ed`; no Shared source/pin, Website
+  build/output, Library source, demo server or emulator ownership was changed.
+- Archived prior behavior: Favorites rendered an unfiltered unbounded saved-reference
+  LazyColumn with no real-title filter or result-expansion state. Reader origin
+  distinguished only saved lists, not Favorites. The fixture Library's existing
+  limited results and isolated synthetic search remain unchanged.
+- Reused pinned Shared `lyric_title_filter`, `show_more_results`, `result_count`
+  and `favorites` resources, plus its configured search page size. No portable
+  schema/setting/UI key was introduced. Literal case-insensitive real-title
+  filtering remains distinct from Unicode16 list-name comparison, fixture search,
+  UUID matching, aliases, tags and linguistic/transliteration acceptance.
+- Favorites retains its independent accepted query/expansion in the lyric ViewModel
+  and its viewport in the screen. Ordinary edits/clearing reset expansion/scroll;
+  invalid queries retain accepted text but show failure with no stale results.
+  Only verified real lyric titles match nonempty filters; empty filters retain all
+  typed references, including unknowns before preparation and UUID-looking legacy
+  values. Expandable pages reach every reference without a phantom final page.
+  Pending/actual readers return through Android Back or arrow/Favorites, while
+  explicit Owner-supplied lyrics navigation clears stale reader-origin context.
+  Removal and complete catalog replacement retain a valid available context.
+- No browsing operation calls personal writes or preparation. Existing successful
+  reader text-exposure history remains initially-on, independently controllable;
+  explicit favorite/list changes remain intentional writes. Room4/accounting
+  envelope4, local UI locale/theme, reader/list/history behavior and unimplemented
+  offline/script/backup/recitation/device/release gates remain unchanged.
+- Added pure helper and connected synthetic coverage for page/two-page/
+  two-page-plus-one reachability, typed unknowns, literal punctuation/case, no-match,
+  invalid query, ordinary clear/reset, independent catalog query, section/reader
+  return, pending Back, explicit removal and default-on history. This is partial
+  SEARCH-01, UX-13 and LIB-01 evidence only; no reviewed lyric content was invented.
+- Incremental `npm run config` passed. Initial
+  `.\gradlew.bat :core:test :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  exposed misplaced Kotlin scopes; compilation was corrected. The first focused
+  connected invocation then exposed test-only syntax/equality mistakes; corrected.
+  A subsequent two-case run passed the boundary journey but correctly failed the
+  return assertion because its measurement preceded the test's final scroll.
+  The measurement now records the actual pre-open viewport. A later pending-Back
+  journey exposed a test dispatch before Compose installed the destination
+  handler; the test now waits for the actual visible return action before Back.
+  None of those failing intermediate trees was committed or pushed.
+- After destination synchronization, focused
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.FavoritesBrowsingTest' --no-daemon --console=plain`
+  passed both connected cases with zero skipped. These injected synthetic sources
+  make no HTTP request. Separate
+  `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease --no-daemon --console=plain`
+  passed with the installed JDK21/SDK36; all38 core tests passed (zero
+  failures/errors/skips), both lint variants reported52 warnings and zero errors.
+  App JVM tasks remain NO-SOURCE, not a claimed passing suite. Existing warning
+  categories and unsigned-release limitations remain; no toolchain/dependency
+  install was needed.
+- `python tools\check_repository.py` passed76 tracked files.
+  The README's exact Node/YAML parse command passed all5 `.github` YAML files.
+  `actionlint .github\workflows\hygiene.yml` passed with installed ShellCheck;
+  `git --no-pager diff --check` and `git --no-pager diff --cached --check` passed.
+  Full connected finalization and publication are separate gates; these
+  incremental results alone did not authorize or perform a push.
+- The first complete finalization command
+  `npm run config` followed by
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed config/core/build/lints but failed2 of50 connected tests (zero skipped).
+  Existing history journeys correctly caught an unnecessary reader-selection
+  reset when explicitly navigating to Owner-supplied lyrics: an already selected
+  permitted background destination was lost. Navigation now clears only the
+  stale origin flags, preserving established selection/exposure behavior.
+  No failing tree was published. Further connected/HTTP checks paused for the
+  parent's coordinated Website dist rebuild; the existing server/emulator stayed
+  untouched.
+- Corrected full run then passed49 of50 connected cases (zero skipped), including
+  Favorites and the previously failing history cases. The remaining existing
+  LaunchTest caught a wrong-thread Compose frame continuation resumed by an IO
+  progress emission. Both fixture/real preparation progress callbacks now
+  suspend to publish UI state on Main while downloads/decoding remain on IO,
+  preserving ordered progress/cancellation. The synthetic configured-boundary
+  journey additionally observes every progress emission through an unconfined
+  collector and requires the Android main thread, making that thread-affinity
+  regression deterministic without real content or network fixtures.
+- Complete corrected-tree validation then passed:
+  `npm run config`;
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`.
+  All38 core and50 connected tests passed with zero failures/errors/skips;
+  debug/release lint each had52 warnings and zero errors. App JVM tasks remain
+  NO-SOURCE, not counted as tests. This included both formerly failing history
+  journeys and actual fixture complete preparation/reading, without changing
+  either existing server or emulator. Full command elapsed9m34s.
+  Existing installed environment:
+  `JAVA_HOME=C:\Users\pots\AppData\Local\DaasaVaani\toolchains\jdk`,
+  `ANDROID_HOME=C:\Users\pots\AppData\Local\DaasaVaani\toolchains\android-sdk`,
+  `ANDROID_SERIAL=emulator-5556`. The resulting owned batch retains the exact
+  independent Shared9b pin, Room4 and logical envelope4. Exact-SHA local/CI
+  preflight and main jobs remain publication gates, not inferred from that run.
+
 ## 2026-10-22: durable device-only Recently opened
 
 - Owner authorized only this next Android slice in parallel with Website and

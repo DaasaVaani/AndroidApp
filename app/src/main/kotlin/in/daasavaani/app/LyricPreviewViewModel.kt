@@ -21,6 +21,7 @@ data class LyricPreviewState(
     val loading: Boolean = false, val failed: Boolean = false, val completed: Int = 0, val total: Int = 0,
     val pendingLyricId: String? = null,
     val readerOpen: String? = null,
+    val favoritesQuery: String = "", val favoritesFailed: Boolean = false, val favoritesPages: Int = 1,
 )
 
 class LyricPreviewViewModel(application: Application, private val repository: LyricPreviewSource) : AndroidViewModel(application) {
@@ -36,13 +37,13 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
                 val prepared = withContext(Dispatchers.IO) {
                     repository.prepare { done, total ->
                         ensureActive()
-                        mutable.update { it.copy(completed = done, total = total) }
+                        withContext(Dispatchers.Main.immediate) { mutable.update { it.copy(completed = done, total = total) } }
                     }
                 }
                 ensureActive()
                 mutable.update {
                     val destination = prepared.catalog.catalog.find { entry -> entry.lyricId == it.pendingLyricId }
-                    it.copy(prepared = prepared, visible = repository.codec.filter(prepared.catalog, it.query),
+                    it.copy(prepared = prepared, visible = repository.codec.filter(prepared.catalog, it.query), favoritesPages = 1,
                         selected = destination, item = destination?.let { entry -> prepared.items.getValue(entry.lyricId) }, loading = false,
                         readerOpen = destination?.let { UUID.randomUUID().toString() }, pendingLyricId = if (destination != null) null else it.pendingLyricId)
                 }
@@ -81,4 +82,17 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
             mutable.update { it.copy(visible = emptyList(), failed = true) }
         }
     }
+    fun favoriteReferences(references: Set<PersonalReference>): List<PersonalReference> =
+        if (mutable.value.favoritesFailed) emptyList()
+        else repository.codec.favorites(references, mutable.value.prepared?.catalog, mutable.value.favoritesQuery)
+
+    fun favoritesQuery(value: String) {
+        try {
+            repository.codec.favorites(emptySet(), null, value)
+            mutable.update { it.copy(favoritesQuery = value, favoritesFailed = false, favoritesPages = 1) }
+        } catch (_: IllegalArgumentException) {
+            mutable.update { it.copy(favoritesFailed = true, favoritesPages = 1) }
+        }
+    }
+    fun moreFavorites() { mutable.update { it.copy(favoritesPages = Math.addExact(it.favoritesPages, 1)) } }
 }

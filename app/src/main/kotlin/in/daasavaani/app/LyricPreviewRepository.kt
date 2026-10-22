@@ -20,7 +20,7 @@ interface LyricPreviewSource {
 
 data class PreparedLyricPreview(val catalog: LyricCatalog, val items: Map<String, PreviewLyric>)
 
-suspend fun LyricPreviewSource.prepare(progress: (Int, Int) -> Unit): PreparedLyricPreview {
+suspend fun LyricPreviewSource.prepare(progress: suspend (Int, Int) -> Unit): PreparedLyricPreview {
     val catalog = catalog()
     require(catalog.catalog.sumOf { it.item.encodedBytes.toLong() } <= codec.bounds.preparedEncodedBytes &&
         catalog.catalog.sumOf { it.item.decodedBytes.toLong() } <= codec.bounds.preparedDecodedBytes) {

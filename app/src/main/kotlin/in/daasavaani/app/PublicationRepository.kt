@@ -73,7 +73,7 @@ class PublicationRepository(private val resources: Resources) {
     private inline fun <reified T> decode(bytes: ByteArray): T =
         wireJson.decodeFromString(bytes.decodeToString(throwOnInvalidSequence = true))
 
-    suspend fun prepare(progress: (Int, Int) -> Unit): PreparedPublication {
+    suspend fun prepare(progress: suspend (Int, Int) -> Unit): PreparedPublication {
         val endpoint = URI(resources.getString(R.string.descriptor_url))
         val descriptor = decode<Descriptor>(fetch(endpoint, resources.getInteger(R.integer.max_descriptor_bytes)))
         require(descriptor.formatVersion == 1 && descriptor.fixture) { "Unsupported fixture descriptor" }

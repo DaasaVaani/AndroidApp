@@ -140,7 +140,9 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         preparation = viewModelScope.launch {
             try {
                 val value = withContext(Dispatchers.IO) {
-                    repository.prepare { done, total -> mutable.update { it.copy(completed = done, total = total) } }
+                    repository.prepare { done, total ->
+                        withContext(Dispatchers.Main.immediate) { mutable.update { it.copy(completed = done, total = total) } }
+                    }
                 }
                 mutable.update { it.copy(prepared = value, visible = value.items, loading = false) }
             } catch (error: CancellationException) { throw error }

@@ -152,11 +152,25 @@ class LyricPreviewCodec(val bounds: PreviewBounds) {
             }
         }
     }
-    fun filter(catalog: LyricCatalog, query: String): List<LyricSummary> {
+    private fun validateQuery(query: String) {
         scalar(query)
         require(query.codePointCount(0, query.length) <= bounds.queryCodePoints) { "Query exceeds limit" }
+    }
+    fun filter(catalog: LyricCatalog, query: String): List<LyricSummary> {
+        validateQuery(query)
         return catalog.catalog.filter { it.title.contains(query, ignoreCase = true) }
     }
+
+    fun favorites(references: Set<PersonalReference>, catalog: LyricCatalog?, query: String): List<PersonalReference> {
+        validateQuery(query)
+        val matches = catalog?.let { filter(it, query) }.orEmpty().mapTo(hashSetOf()) { it.lyricId }
+        return references.filter { query.isEmpty() || (it.kind == "lyric" && it.id in matches) }
+    }
+}
+
+fun expandedResultCount(total: Int, pageSize: Int, pages: Int): Int {
+    require(total >= 0 && pageSize > 0 && pages > 0)
+    return minOf(total.toLong(), pageSize.toLong() * pages).toInt()
 }
 
 fun InputStream.readPreviewBounded(limit: Int, checkCancelled: () -> Unit = {}): ByteArray {

@@ -33,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Locale
 import `in`.daasavaani.core.uiLanguage
 import `in`.daasavaani.core.PersonalReference
+import `in`.daasavaani.core.expandedResultCount
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,12 +73,20 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     val state by model.state.collectAsState()
     val lyrics by lyricModel.state.collectAsState()
     val listScroll = rememberLazyListState()
+    val favoritesScroll = rememberLazyListState()
+    LaunchedEffect(lyrics.favoritesQuery, lyrics.favoritesFailed) { favoritesScroll.scrollToItem(0) }
     LaunchedEffect(state.selectedListId) { listScroll.scrollToItem(0) }
     var adding by remember { mutableStateOf<PersonalReference?>(null) }
     var fromList by remember { mutableStateOf(false) }
+    var fromFavorites by remember { mutableStateOf(false) }
+    BackHandler(enabled = state.section == "lyrics" && fromFavorites) { model.section("favorites") }
+    LaunchedEffect(state.section) {
+        if (state.section != "lyrics") { fromList = false; fromFavorites = false }
+    }
     fun openReference(reference: PersonalReference) {
         if (reference.kind == "lyric") {
             fromList = state.section == "lists"
+            fromFavorites = state.section == "favorites"
             lyricModel.request(reference.id)
             model.section("lyrics")
         }
@@ -117,7 +126,9 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
             val canSave = personal != null && state.personalError == null && !state.saving
             val selected = state.selected
             Row(horizontalArrangement = Arrangement.spacedBy(space)) {
-                TextButton(onClick = { model.section("lyrics") }, modifier = Modifier.weight(1f).testTag("owner-lyrics")) {
+                TextButton(onClick = {
+                    fromFavorites = false; fromList = false; model.section("lyrics")
+                }, modifier = Modifier.weight(1f).testTag("owner-lyrics")) {
                     Text(stringResource(R.string.owner_lyrics))
                 }
                 if (state.section == "library" && selected == null) {
@@ -129,9 +140,13 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
             if (state.section == "lyrics") {
                 Column(Modifier.weight(1f)) {
                     if (fromList) TextButton(onClick = { model.section("lists"); fromList = false }) { Text(stringResource(R.string.back_to_list)) }
+                    if (fromFavorites) TextButton(onClick = { model.section("favorites") }, modifier = Modifier.testTag("back-to-favorites")) {
+                        Text("← " + stringResource(R.string.favorites))
+                    }
                     LyricPreviewScreen(lyricModel, personal, canSave, { model.changePersonal(reference = it) },
                         { model.clearMutationError(); adding = it },
-                        if (fromList) ({ model.section("lists"); fromList = false }) else null, model::recordExposed)
+                        if (fromList) ({ model.section("lists"); fromList = false })
+                        else if (fromFavorites) ({ model.section("favorites") }) else null, model::recordExposed)
                 }
             } else if (state.section == "recents" && selected == null) {
                 Column(Modifier.weight(1f)) {
@@ -184,10 +199,19 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 }
             } else if (state.section == "favorites") {
                 if (personal?.favorites?.isEmpty() == true) Text(stringResource(R.string.empty_favorites))
-                LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(space)) {
-                    items(personal?.favorites.orEmpty().toList(), key = { it.kind + ":" + it.id }) { reference ->
+                val references = lyricModel.favoriteReferences(personal?.favorites.orEmpty())
+                val shown = expandedResultCount(references.size, integerResource(R.integer.trusted_max_page_size), lyrics.favoritesPages)
+                OutlinedTextField(value = lyrics.favoritesQuery, onValueChange = lyricModel::favoritesQuery,
+                    singleLine = true, label = { Text(stringResource(R.string.lyric_title_filter)) },
+                    modifier = Modifier.fillMaxWidth().testTag("favorites-filter"))
+                if (lyrics.favoritesFailed) Text(stringResource(R.string.lyrics_unavailable), color = MaterialTheme.colorScheme.error)
+                else if (references.isEmpty() && personal?.favorites?.isNotEmpty() == true) Text(stringResource(R.string.no_results))
+                Text(stringResource(R.string.result_count).replace("{shown}", shown.toString()).replace("{total}", references.size.toString()),
+                    modifier = Modifier.testTag("favorites-count"))
+                LazyColumn(Modifier.weight(1f).testTag("favorites-results"), state = favoritesScroll, verticalArrangement = Arrangement.spacedBy(space)) {
+                    items(references.take(shown), key = { it.kind + ":" + it.id }) { reference ->
                         val item = if (reference.kind == "legacyVideo") state.prepared?.items?.find { it.videoId == reference.id } else null
-                        Card(Modifier.fillMaxWidth()) {
+                        Card(Modifier.fillMaxWidth().testTag("favorite-${reference.kind}-${reference.id}")) {
                             Column(Modifier.padding(space)) {
                                 if (reference.kind == "lyric") ReferenceContent(reference.entry(), lyrics, ::openReference)
                                 else {
@@ -206,6 +230,11 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                                     Text(stringResource(R.string.add_to_list))
                                 }
                             }
+                        }
+                    }
+                    if (shown < references.size) item {
+                        TextButton(onClick = lyricModel::moreFavorites, modifier = Modifier.testTag("favorites-more")) {
+                            Text(stringResource(R.string.show_more_results))
                         }
                     }
                 }
