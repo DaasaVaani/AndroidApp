@@ -32,7 +32,8 @@ fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: Per
     canSave: Boolean = false, favorite: (PersonalReference) -> Unit = {}, add: (PersonalReference) -> Unit = {},
     backToList: (() -> Unit)? = null, opened: (PersonalReference) -> Unit = {},
     fontStep: (Int) -> Unit = {}, density: (String) -> Unit = {},
-    browseScroll: LazyListState = remember { LazyListState() }) {
+    browseScroll: LazyListState = remember { LazyListState() },
+    learning: (PersonalReference, String?) -> Unit = { _, _ -> }) {
     val state by model.state.collectAsState()
     val scope = rememberCoroutineScope()
     BackHandler(enabled = state.selected != null) { backToList?.invoke() ?: model.select(null) }
@@ -44,8 +45,11 @@ fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: Per
         more = model::more, browseScroll = browseScroll, another = model::showAnother,
         catalogBack = backToList == null) { summary ->
         val reference = PersonalReference.lyric(summary.lyricId)
-        OutlinedButton(enabled = canSave, onClick = { favorite(reference) }) {
-            Text(stringResource(if (reference in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
+        Row(horizontalArrangement = Arrangement.spacedBy(integerResource(R.integer.spacing_dp).dp)) {
+            OutlinedButton(enabled = canSave, onClick = { favorite(reference) }, modifier = Modifier.weight(1f)) {
+                Text(stringResource(if (reference in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
+            }
+            LearningControls(reference, personal, canSave, learning, Modifier.weight(1f), compact = true)
         }
         OutlinedButton(enabled = canSave, onClick = { add(reference) }) { Text(stringResource(R.string.add_to_list)) }
         ReadingControls(personal?.reading ?: ReadingPreferences(), canSave, fontStep, density)

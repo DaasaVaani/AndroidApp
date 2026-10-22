@@ -12,6 +12,7 @@ export. None of these operations prepares/downloads lyrics. Durable offline
 activation, recitation playback/resume and complete feature parity remain unimplemented.
 Device-only Recently opened records the latest configured distinct successful
 explicit reader opens, independently of favorites/lists and content preparation.
+Optional device-local self-assigned learning labels use the same personal database.
 Staged implementation is authorized; production gates remain.
 
 Start with [AGENTS.md](AGENTS.md),
@@ -206,11 +207,12 @@ or real-device/release acceptance.
 
 ### Personal schema, transactions and recovery
 
-`personal.db` is the only personal database. Room schema5 has one required
+`personal.db` is the only personal database. Room schema6 has one required
 `preferences` singleton (`id=1`, `language`, `theme`, nonnegative `revision`,
 `recentHistoryEnabled`, `lyricFontSizeSp`, `readingDensity`) and
 `favorites` keyed by `(kind,value)` with explicit positions, ordered `lists` and
-ordered `occurrences`, plus ordered typed `recents`. Lyric references require canonical lowercase UUIDv4;
+ordered `occurrences`, plus ordered typed `recents` and `learning` keyed by
+`(kind,value)` with `label` and contiguous `position`. Lyric references require canonical lowercase UUIDv4;
 `legacyVideo` preserves the opaque case-sensitive ASCII1–128 domain. An old value
 that resembles a UUID remains legacy; no mapping or media association is inferred.
 Device language/theme are stored
@@ -227,12 +229,16 @@ The v3→4 migration preserves every exact favorite/list/occurrence, language/th
 and revision, and creates empty history with the pinned Shared initial preference.
 No prior opens are reconstructed. The v4→5 migration adds configured native font
 and Shared density defaults without changing prior values or revision.
+The v5→6 migration adds an empty learning collection, never inferring assignments
+from preferences, history, favorites or list occurrences. Every old schema and
+its frozen accounting envelope, plus the prospective complete schema6 envelope,
+must validate before mutation.
 Supported v1/v2 inputs chain through these
 same migrations. Each reopened store has a fresh process-local epoch; history
 transactions participate in the existing revision/epoch fences, including pending
 imports and duplicate-name confirmations.
 The actual old schema and records (strict11-character IDs only for v1/v2;
-exact typed IDs for v3/v4) are validated before opening
+exact typed IDs for v3/v4/v5/v6) are validated before opening
 Room and rechecked within the migration transaction. Both old accounting and the
 projected new envelope must fit before migration. These are
 synthetic migration fixtures, not a claim that an earlier production personal schema
@@ -241,17 +247,21 @@ validation refuses unknown tables/columns, missing/extra singletons, malformed
 records and future versions. There is no destructive migration/downgrade fallback,
 automatic reset or advice to uninstall/delete data. Failure preserves the original
 records; retry is explicit and writing is disabled until storage reload succeeds.
+Singleton IDs are checked as exact SQLite longs; malformed large IDs/ordinals
+cannot wrap into valid Room integers during migration or live reads.
 
 Every write rechecks the expected revision and process-local store epoch and validates the whole next snapshot
 inside one Room transaction. A stale writer must reload before retrying. The count
 and deterministic UTF8 logical-envelope bounds come from pinned
 `shared/settings/personal-transfer.yml`, including preference/revision/header
 overhead. The compact UTF8 accounting envelope is exactly
-`{formatVersion:5,revision,preferences:{language,theme,lyricFontSizeSp,readingDensity},favorites:[typed-reference],
-lists:[{id,name,entries:[typed-entry-with-id]}],recentHistory:{enabled,entries:[typed-reference]}}`
+`{formatVersion:6,revision,preferences:{language,theme,lyricFontSizeSp,readingDensity},favorites:[typed-reference],
+lists:[{id,name,entries:[typed-entry-with-id]}],recentHistory:{enabled,entries:[typed-reference]},learning:{entries:[typed-reference-with-label]}}`
 in that field order, using
 `kotlinx.serialization` JSON string quoting and no spaces/BOM. Entries emit
 `kind`, present `videoId`/`lyricId`, present `fallback`/`text`, then `id`.
+Learning entries emit `kind`, the exact `lyricId`/`videoId`, then `label`.
+Empty learning-envelope overhead is counted; v3/v4/v5 accounting remains frozen.
 The epoch is not persisted/accounted and changes when the store closes/reopens.
 Accounting counts UTF8 incrementally without constructing a whole backup string.
 This envelope is storage accounting, not an implemented backup format.
@@ -260,9 +270,11 @@ SharedPreferences or a separate database.
 
 Room reads group occurrences once by list rather than scanning all occurrences
 per list. Reading changes validate/account the complete snapshot but update only
-the reading preference columns/revision. Other writes retain whole-snapshot
+the reading preference columns/revision. Learning changes update only the learning
+collection and revision after full validation; unrelated tables are not rewritten.
+Other writes retain whole-snapshot
 replacement. Validation/accounting and replacement are linear in
-favorites + lists + occurrences + recents + bounded JSON/text bytes, apart from SQLite
+favorites + lists + occurrences + recents + learning + bounded JSON/text bytes, apart from SQLite
 ordering/index maintenance and the separately described Unicode name-key work.
 Memory includes the bounded personal snapshot and one bounded list JSON at a time;
 capacity checks precede replacement and aggregate row-count checks precede loading.
@@ -274,6 +286,43 @@ Malformed/unsupported storage explains preservation and supported-app recovery;
 ordinary write failures expose explicit retry without advising data deletion.
 Loading, follow-device, Warm and unavailable-favorite labels use the pinned
 bilingual Shared catalog.
+
+### Self-assigned local Learning
+
+Partial LEARN-04/SET-04/QUAL-05 follows the authoritative
+[Shared learning contract](shared/docs/learning-labels.md). Explicit reader dropdowns
+on both canonical and visibly synthetic fixture readers offer Want to learn
+(`wantToLearn`), Practising (`practising`) and Comfortable reciting
+(`comfortableReciting`); No label clears the exact assignment. None is absence,
+not a persisted fourth label or an inferred default. Changes preserve first-assignment
+order; clearing then reassigning appends. Same-label/absent-clear actions make no
+write/revision, including at an exhausted revision. Typed uniqueness uses a single
+linear-time set check, retaining UUID-looking legacy distinctions and unresolved IDs.
+The pinned Shared `maxLearningLabels=10000` and complete aggregate personal UTF8 byte
+ceiling are enforced without truncation. Failed/stale/quota writes are explicit and
+retain all prior state, never showing a saved status.
+
+Learning is available before preparation/offline, with All labels and each individual
+label filter. It starts with the Shared page size; Show more results expands through
+the complete bounded collection in stored order. Filters/pages/viewport are process-local;
+labels survive Room reopen/process restart. Filters and label management never prepare
+or fetch content, create history, assess ability or establish offline lyric readiness.
+Only already available verified catalog titles are displayed; otherwise the exact ID
+and honest pending/unavailable notice remain. Explicit Read uses existing preparation
+and successful-exposure history rules, retaining the pending typed destination and
+Learning return origin. Canonical Show another lyric/Settings/Back retains that original
+origin; fixture Settings/Back retains its reader without replaying a successful open.
+Mounted label updates never replay history. UI locale and lyric script remain independent.
+Compact reader controls share the favorite-action row without consuming another
+lyric viewport row. Their full localized learning-label name/value remains
+accessible even when a long visible caption is ellipsized; the menu lists every
+complete label and No label. The Learning view and reader menus use the Shared
+bilingual caption explaining that reviewed verse-based Practice is not
+implemented; there is no fake Practice action or guessed verse boundary.
+
+Assignments remain device-local, outside every v1/v2 minimal-list file/link transfer.
+Full backup/restore inclusion remains gated by its unimplemented independent protocol;
+this logical storage accounting is not a backup format.
 
 ### Device-only Recently opened
 
@@ -451,7 +500,7 @@ six upstream source identities against Shared settings. Runtime loading verifies
 the packaged profile and data hash; missing/corrupt/unsupported resources fail
 explicitly, with no platform fallback.
 
-Room schema5 stores raw list names, not persisted name keys. Create, rename,
+Room schema6 stores raw list names, not persisted name keys. Create, rename,
 duplicate and import use this profile and explicit independent-reuse confirmation.
 No list is automatically renamed/merged; no cached keys require migration.
 A future persisted-key/profile change still needs a preserving migration.
@@ -463,7 +512,7 @@ and SET-01; not full requirement acceptance.
 ### Remaining approved slices
 
 This batch does **not** implement recitation mode/resume, full personal
-backup/restore, system backup, bookmarks/learning state, persistent offline
+backup/restore, system backup, bookmarks, verse-based Practice/resume, persistent offline
 snapshots, production migrations or full Android parity. Android system backup is
 still disabled rather than backing up false content readiness. Remaining selected
 directions include personal-only backup allowlists, same-platform recoverable full
@@ -480,7 +529,8 @@ signing key belongs in CI/repository/logs.
 
 Partial requirement coverage: LIB-01/02/03/04/05/08/09/10/11,
 XFER-01/02/03/04/05/06/08, I18N-01/02/03,
-SET-04 (UI language/theme/lyric typography only), UX-02/03/14 (bounded lyric
+LEARN-04 (optional self-assigned local labels only),
+SET-04 (UI language/theme/lyric typography/labels only), UX-02/03/14 (bounded lyric
 typography/layout only), QUAL-05/06 (local-only state and explicit errors).
 Canonical Kannada and required preparation remain unchanged. This is neither
 complete requirement acceptance nor production/release readiness.
@@ -503,7 +553,18 @@ Use the existing actionlint/ShellCheck binaries on PATH for workflow checking.
 Connected tests require an intended API36 emulator selected with ANDROID_SERIAL and
 the Website demo at the endpoint in settings/android.yml. Configuration is generated
 from owned settings and pinned Shared policy. Never target another user's device.
+When coordinating with Website work, wait for its owner to freeze the tested dist
+and grant the device/HTTP slot before any connected run; do not rebuild its dist,
+start a replacement server or alter unrelated processes.
 The Gradle wrapper distribution and wrapper JAR have checked SHA256 pins.
+
+Learning pure/Room/Compose synthetic cases cover exact states, typed semantic duplicates,
+stable order/filters, configured complete count/byte limits, no-op writes/revisions,
+stale/overflow/transaction failure, preserving v5 migration and frozen accounting,
+invalid/future storage refusal, unresolved identities, canonical/fixture controls,
+preparation-free management and pending destinations, mounted-reader history isolation,
+repeated discovery/Settings/origin returns, locale/reopen and minimal-transfer exclusion.
+App JVM test tasks have NO-SOURCE, not a passing application unit suite.
 
 Reading preference core/Room/Compose cases cover configured default/bounds/step,
 all three density states, no-op revisions, persistence/restart, exact old/current

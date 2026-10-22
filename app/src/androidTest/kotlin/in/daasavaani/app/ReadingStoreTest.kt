@@ -34,6 +34,7 @@ class ReadingStoreTest {
             db.execSQL("INSERT INTO preferences SELECT id, language, theme, revision, recentHistoryEnabled FROM old_preferences")
             db.execSQL("DROP TABLE old_preferences")
             db.execSQL("DELETE FROM room_master_table")
+            db.execSQL("DROP TABLE learning")
             db.version = 4
         }
         return s
@@ -57,7 +58,7 @@ class ReadingStoreTest {
             assertNotEquals(epoch, s.epoch)
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use {
-            assertEquals(5, it.version)
+            assertEquals(6, it.version)
         }
     }
 
@@ -103,7 +104,8 @@ class ReadingStoreTest {
         val old = PersonalStore.storedBytes(before, 4)
         val current = PersonalStore.storedBytes(before)
         val extra = ""","lyricFontSizeSp":${ReadingPolicy.readerFontSizeSp},"readingDensity":"${ReadingPolicy.defaultDensity}"""".toByteArray(Charsets.UTF_8).size
-        assertEquals(old + extra, current)
+        assertEquals(old + extra, PersonalStore.storedBytes(before, 5))
+        assertEquals(old + extra + ""","learning":{"entries":[]}""".toByteArray(Charsets.UTF_8).size, current)
         val bytes = context.getDatabasePath(name).readBytes()
         listOf(old - 1, old, current - 1).forEach { limit ->
             PersonalStore(context, name, maxBytes = limit).use { store -> failure(R.string.personal_capacity) { store.load() } }
@@ -134,7 +136,7 @@ class ReadingStoreTest {
             PersonalStore(context, name).use { store -> failure(R.string.personal_invalid) { store.load() } }
             assertArrayEquals(original, context.getDatabasePath(name).readBytes())
         }
-        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 6 }
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 7 }
         original = context.getDatabasePath(name).readBytes()
         PersonalStore(context, name).use { store -> failure(R.string.personal_future) { store.load() } }
         assertArrayEquals(original, context.getDatabasePath(name).readBytes())

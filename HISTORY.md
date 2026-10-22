@@ -1119,3 +1119,114 @@ Project-authored software follows the existing DaasaVaani [Apache 2.0 license](L
 Third-party lyrics, descriptions, images, recordings and trademarks are not
 relicensed by that software license; preserve rights, attribution and notices.
 See [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+# Native local Learning slice (2026-10-22)
+
+- Authorized exact independently adopted Shared pin:
+  `166b7af343064f2190f2fe89aee98d42fef8e03a` (detached submodule).
+  Read its learning record/schema/types/accepted, rejected and rejectedSemantic
+  vectors plus existing personal/history/preparation/navigation contracts.
+- Superseded README described Room schema5, with no learning table, v1→5
+  preserving migrations and the compact accounting envelope
+  `{formatVersion:5,revision,preferences:{language,theme,lyricFontSizeSp,readingDensity},favorites:[typed-reference],lists:[{id,name,entries:[typed-entry-with-id]}],recentHistory:{enabled,entries:[typed-reference]}}`.
+  It classified bookmarks/learning state together as unimplemented. Schema6 now
+  adds only explicit device-local labels; bookmarks and reviewed verse Practice/
+  resume, full backups and durable content readiness remain unimplemented.
+- Incremental `npm run config` and
+  `.\gradlew.bat :core:test :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  passed before adding the complete Learning connected cases. Existing Kotlin
+  reified-intersection warnings remain in preference migration bind arrays.
+- First non-device full attempt:
+  `npm run config` passed;
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  failed lint's `ViewModelConstructorInComposable` on the new Learning test harness.
+  Moved construction outside composition; no production assertion was weakened.
+  Device/HTTP/Website slot remains owned by the parent; no connected tests or
+  Website/dist/server/device operations have been run by this slice yet.
+- The second non-device attempt used the same command and failed core JUnit
+  discovery because the new Shared-fixture test was accidentally nested in another
+  test. Moved it to a normal public test method; retained all assertions. The next
+  complete non-device run passed48 actual core tests, all app variants and both
+  lints, plus connected APK compilation. App JVM tests were NO-SOURCE.
+- Observed lint reports: debug57/release58 warnings, zero errors (unused
+  resources40/41, dependency/update notices15, missing app icon1 and data-extraction
+  rules1). These remain explicit limitations, not ignored errors or release acceptance.
+- Final staged non-device rerun after pending-origin fixes:
+  `npm run config` and
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  passed (48 actual core tests, zero failures; all variants; both lints with the
+  above57/58 warnings and zero errors; connected APK compiled only; app JVM
+  NO-SOURCE). No connected test has run yet (82 staged `@Test` methods).
+  `python tools\check_repository.py` passed94 tracked files; the README's exact
+  Node strict/unique-key YAML command passed all5 workflow/issue/dependabot YAML
+  files. `actionlint .github\workflows\hygiene.yml` passed with the installed
+  ShellCheck0.11.0 on PATH; both `git --no-pager diff --check` and
+  `git --no-pager diff --cached --check` passed. Owned intermediate logs were
+  removed; no server/device helper was started. Remaining required completion
+  gate: parent authorization of stable tested Website dist/HTTP/device slot,
+  then full final configured validation including every connected test. No
+  commit or push yet; this is staged implementation, not native parity/release acceptance.
+- After the parent's explicit frozen-dist/device/HTTP grant, verified the existing
+  user5173 fixture descriptor returned HTTP200 and the already running
+  `emulator-5556` was API36. Used JDK21/SDK36 and
+  `ANDROID_SERIAL=emulator-5556`; did not restart/replace either process, run
+  Website builds/checks or create a server.
+- First granted final command:
+  `npm run config` passed; full
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  failed: all82 connected cases executed, six failures, zero errors/skips.
+  Launch/Personal reader text and one history-failure text-visibility assertion
+  exposed the real added-control viewport regression. Put compact learning and
+  favorite actions in one row and moved the honest Practice explanation into the
+  reader menu (it remains visible in Learning). Full localized label/value remains
+  accessible; long compact captions ellipsize rather than steal lyric height.
+  Three new Learning Settings/Back cases also needed mounted-Settings and
+  settled-Back synchronization; retained every state/history/origin assertion.
+- Targeted regression command:
+  `.\gradlew.bat :core:test :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.LaunchTest,in.daasavaani.app.LearningUiTest,in.daasavaani.app.PersonalUiTest,in.daasavaani.app.RecentHistoryUiTest,in.daasavaani.app.ReadingUiTest' --no-daemon --console=plain`
+  executed12 connected cases:11 passed, one failure, zero errors/skips. All
+  original viewport cases and the other new navigation cases passed; the
+  preparation-free unresolved fixture case exposed a genuine duplicated pending
+  return/unavailable branch. Kept one pending/preparation gate and moved the
+  unavailable branch to the completely prepared catalog. Added coverage for
+  unresolved fixture Settings/Back after preparation; no assertion was weakened.
+- `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.LearningUiTest' --no-daemon --console=plain`
+  then passed all3 actual Learning UI cases, zero failures/errors/skips, including
+  both unresolved pending gates and prepared unavailable Settings/Back. The prior
+  targeted `:core:test` also passed48 actual core tests, zero failures.
+- Final preserving-migration review found a tightly coupled integer-narrowing
+  hazard: SQLite singleton ID4294967297 could wrap to Room ID1, and a live ordinal
+  4294967296 could wrap to position0. Changed legacy/current singleton checks to
+  exact longs and refused out-of-range live ordinals before accepting a snapshot.
+  Extended the existing Learning storage cases with old-v5 non-destructive ID
+  refusal and live-v6 ID/ordinal refusals plus exact-state recovery after repairing
+  only the synthetic corruption. Valid records and migration defaults are unchanged.
+  A complete fresh validation is required after this final fence hardening.
+- The complete post-viewport/pending-fix command above finished successfully:
+  all82 connected tests passed, zero failures/errors/skips, along with the full
+  configured build/lint/core tasks. Because the additional integer-fence hardening
+  was prepared while that prior APK was running, it is not treated as validation
+  of the latest final source; the same complete command is rerun on that source.
+- Final exact-source validation after the integer-fence hardening:
+  `npm run config` and
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed (BUILD SUCCESSFUL,19m6s). Actual final XML:48 core tests and82 connected
+  tests, each with zero failures/errors/skips. All app variants and both required
+  lint suites passed; debug57/release58 warnings, zero lint errors. The two
+  pre-existing migration-array compiler warnings emitted twice each (four
+  emissions across debug/release). App JVM test tasks were NO-SOURCE, not a
+  passing application JVM suite.
+- Final ancillary checks on the same source passed:
+  `python tools\check_repository.py` (94 tracked files);
+  the exact README Node strict/unique-key YAML command (all5 YAML files);
+  `actionlint .github\workflows\hygiene.yml` with installed ShellCheck0.11.0;
+  `git --no-pager diff --check` and `git --no-pager diff --cached --check`.
+  The final history-only evidence update receives the same ancillary checks.
+  All owned intermediate logs are removed after extracting these actual results;
+  normal Gradle reports remain under ignored build outputs. No helper/server was
+  started, user5173 and emulator5556 remain running and unchanged, and no Website
+  build/dist/check, Library source or other consumer pin was modified by this slice.
+- Coverage remains partial LEARN-04/SET-04/QUAL-05: optional self-assigned device-local
+  labels, not assessment or reviewed verse Practice/resume, persistent content
+  readiness, full backup/restore or production/release acceptance. Synthetic
+  API36 instrumentation is not real-device/font-shaping/accessibility acceptance.
+  No main push is performed; parent owns publication gates.

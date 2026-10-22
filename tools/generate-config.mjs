@@ -12,7 +12,7 @@ if (defaults.readingDensity !== "normal" ||
   throw new Error("Unsupported Shared reading defaults");
 if (personal.formatVersion !== 1 || !["maxFavorites", "maxPersonalStoredBytes", "maxListEncodedBytes",
     "maxListDecodedBytes", "maxSharedUrlAscii", "maxListNameCodePoints", "maxEntryTextCodePoints", "maxEntriesPerList",
-    "maxLists", "maxTotalEntries", "maxRecents"]
+    "maxLists", "maxTotalEntries", "maxRecents", "maxLearningLabels"]
     .every(key => Number.isSafeInteger(personal[key]) && personal[key] > 0)) throw new Error("Invalid personal settings");
 if (!search || search.formatVersion !== 1 || !Number.isInteger(search.maxQueryCodePoints) ||
     !Number.isInteger(search.maxTerms) || !Number.isInteger(search.pageSize)) throw new Error("Invalid trusted search settings");
@@ -69,7 +69,8 @@ await mkdir(new URL("build/generated/kotlin", root), { recursive: true });
 await writeFile(new URL("build/generated/kotlin/PersonalPolicy.kt", root),
   `package \`in\`.daasavaani.core\n\n// Generated from pinned Shared settings.\n` +
   `object PersonalPolicy {\n    const val recentHistoryEnabled = ${defaults.recentHistoryEnabled}\n` +
-  `    const val maxRecents = ${personal.maxRecents}\n}\n`);
+  `    const val maxRecents = ${personal.maxRecents}\n` +
+  `    const val maxLearningLabels = ${personal.maxLearningLabels}\n}\n`);
 await writeFile(new URL("build/generated/kotlin/ReadingPolicy.kt", root),
   `package \`in\`.daasavaani.core\n\n// Generated from owned native settings and pinned Shared defaults.\n` +
   `object ReadingPolicy {\n` +

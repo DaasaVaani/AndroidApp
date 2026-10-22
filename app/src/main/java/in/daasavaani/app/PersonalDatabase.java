@@ -13,8 +13,9 @@ import androidx.room.RoomDatabase;
 import java.util.List;
 
 @Database(entities = {PersonalDatabase.Preference.class, PersonalDatabase.Favorite.class,
-        PersonalDatabase.SavedList.class, PersonalDatabase.Entry.class, PersonalDatabase.Recent.class},
-        version = 5, exportSchema = true)
+        PersonalDatabase.SavedList.class, PersonalDatabase.Entry.class, PersonalDatabase.Recent.class,
+        PersonalDatabase.Learning.class},
+        version = 6, exportSchema = true)
 public abstract class PersonalDatabase extends RoomDatabase {
     public abstract Records records();
 
@@ -62,6 +63,14 @@ public abstract class PersonalDatabase extends RoomDatabase {
         @Nullable public String text;
     }
 
+    @Entity(tableName = "learning", primaryKeys = {"kind", "value"})
+    public static class Learning {
+        @NonNull public String kind = "";
+        @NonNull public String value = "";
+        @NonNull public String label = "";
+        public int position;
+    }
+
     @Dao
     public interface Records {
         @Query("SELECT * FROM preferences") List<Preference> preferences();
@@ -69,6 +78,11 @@ public abstract class PersonalDatabase extends RoomDatabase {
         @Query("SELECT * FROM lists ORDER BY position") List<SavedList> lists();
         @Query("SELECT * FROM occurrences ORDER BY position") List<Entry> entries();
         @Query("SELECT * FROM recents ORDER BY position") List<Recent> recents();
+        @Query("SELECT * FROM learning ORDER BY position") List<Learning> learning();
+        @Insert void insertLearning(Learning assignment);
+        @Query("DELETE FROM learning") void clearLearning();
+        @Query("UPDATE preferences SET revision = :revision WHERE id = 1")
+        void updateRevision(long revision);
         @Query("UPDATE preferences SET language = :language, theme = :theme, revision = :revision, recentHistoryEnabled = :enabled WHERE id = 1")
         void updatePreference(String language, String theme, long revision, boolean enabled);
         @Query("UPDATE preferences SET lyricFontSizeSp = :fontSize, readingDensity = :density, revision = :revision WHERE id = 1")

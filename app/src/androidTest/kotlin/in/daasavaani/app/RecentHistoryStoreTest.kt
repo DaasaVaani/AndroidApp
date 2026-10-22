@@ -173,7 +173,7 @@ class RecentHistoryStoreTest {
             assertNotEquals(epoch, it.load().epoch)
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use {
-            assertEquals(5, it.version)
+            assertEquals(6, it.version)
         }
     }
 

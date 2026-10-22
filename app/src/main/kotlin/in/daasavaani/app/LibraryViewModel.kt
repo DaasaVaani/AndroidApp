@@ -35,6 +35,8 @@ data class LibraryState(
     val mutationError: Int? = null,
     val selectedListId: String? = null,
     val readerOpen: String? = null, val historyError: Int? = null,
+    val learningError: Int? = null,
+    val pendingFixture: String? = null, val fixtureReturnSection: String? = null,
 )
 class LibraryViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PublicationRepository(application.resources)
@@ -64,7 +66,40 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-    fun section(value: String) { mutable.update { it.copy(section = value, selected = null, readerOpen = null) } }
+    fun section(value: String) { mutable.update { it.copy(section = value, selected = null, readerOpen = null,
+        pendingFixture = null, fixtureReturnSection = null) } }
+    fun fixtureRequest(reference: PersonalReference) {
+        require(reference.kind == "legacyVideo" && reference.valid())
+        mutable.update { before ->
+            val item = before.prepared?.items?.find { it.videoId == reference.id }
+            before.copy(section = "library", selected = item, readerOpen = item?.let { UUID.randomUUID().toString() },
+                pendingFixture = reference.id, fixtureReturnSection = before.section)
+        }
+    }
+    fun fixtureBack() {
+        val origin = mutable.value.fixtureReturnSection
+        if (origin != null) section(origin) else select(null)
+    }
+    fun resumeFixture(before: LibraryState) {
+        mutable.update {
+            val selected = before.selected ?: before.pendingFixture?.let { id -> it.prepared?.items?.find { item -> item.videoId == id } }
+            it.copy(section = before.section, selected = selected,
+                readerOpen = if (before.selected != null) before.readerOpen else selected?.let { UUID.randomUUID().toString() },
+                pendingFixture = before.pendingFixture, fixtureReturnSection = before.fixtureReturnSection)
+        }
+    }
+    fun changeLearning(reference: PersonalReference, label: String?) {
+        val before = mutable.value.personal ?: return
+        if (mutable.value.saving || mutable.value.personalError != null) return
+        mutable.update { it.copy(saving = true, learningError = null) }
+        viewModelScope.launch {
+            try {
+                val next = withContext(Dispatchers.IO) { personalStore.learning(before, reference, label) }
+                mutable.update { it.copy(personal = next) }
+            } catch (error: PersonalFailure) { mutable.update { it.copy(learningError = error.label) } }
+            finally { mutable.update { it.copy(saving = false) } }
+        }
+    }
     fun recordExposed(reference: PersonalReference) {
         if (mutable.value.personal?.recentHistory?.enabled == false) return
         if (opens.trySend(reference).isFailure) mutable.update { it.copy(historyError = R.string.personal_failed) }
@@ -96,7 +131,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 val value = withContext(Dispatchers.IO) { personalStore.load() }
-                mutable.update { it.copy(personal = value, personalError = null, mutationError = null, historyError = null) }
+                mutable.update { it.copy(personal = value, personalError = null, mutationError = null, historyError = null, learningError = null) }
             } catch (error: PersonalFailure) { mutable.update { it.copy(personalError = error.label) } }
             finally { mutable.update { it.copy(saving = false) } }
         }
@@ -164,7 +199,11 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                         withContext(Dispatchers.Main.immediate) { mutable.update { it.copy(completed = done, total = total) } }
                     }
                 }
-                mutable.update { it.copy(prepared = value, visible = value.items, loading = false) }
+                mutable.update {
+                    val pending = it.pendingFixture?.let { id -> value.items.find { item -> item.videoId == id } }
+                    it.copy(prepared = value, visible = value.items, loading = false, selected = pending,
+                        readerOpen = pending?.let { UUID.randomUUID().toString() })
+                }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) { mutable.update { it.copy(loading = false, error = error.message ?: error.javaClass.simpleName) } }
         }

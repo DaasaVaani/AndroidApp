@@ -36,6 +36,7 @@ import `in`.daasavaani.core.uiLanguage
 import `in`.daasavaani.core.PersonalReference
 import `in`.daasavaani.core.expandedResultCount
 import `in`.daasavaani.core.ReadingPreferences
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,6 +73,7 @@ private enum class CanonicalOrigin(val section: String, val caption: Int, val ta
     LISTS("lists", R.string.back_to_list, "back-to-list"),
     FAVORITES("favorites", R.string.favorites, "back-to-favorites"),
     RECENTS("recents", R.string.recent_history, "back-to-recents"),
+    LEARNING("learning", R.string.learning, "back-to-learning"),
     TRANSFER("transfer", R.string.transfer_title, "back-to-transfer"),
 }
 
@@ -83,6 +85,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     val lyrics by lyricModel.state.collectAsState()
     val listScroll = rememberLazyListState()
     val favoritesScroll = rememberLazyListState()
+    val learningScroll = rememberLazyListState()
+    var learningFilter by remember { mutableStateOf<String?>(null) }
+    var learningPages by remember { mutableIntStateOf(1) }
+    val scope = rememberCoroutineScope()
     val lyricBrowseScroll = remember { LazyListState() }
     LaunchedEffect(lyrics.query, lyrics.queryFailed) { lyricBrowseScroll.scrollToItem(0) }
     LaunchedEffect(lyrics.favoritesQuery, lyrics.favoritesFailed) { favoritesScroll.scrollToItem(0) }
@@ -90,6 +96,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     var adding by remember { mutableStateOf<PersonalReference?>(null) }
     var readerOrigin by remember { mutableStateOf<CanonicalOrigin?>(null) }
     var fromLyricsSettings by remember { mutableStateOf(false) }
+    var fixtureSettings by remember { mutableStateOf<LibraryState?>(null) }
+    BackHandler(enabled = state.section == "settings" && fixtureSettings != null) {
+        fixtureSettings?.let(model::resumeFixture); fixtureSettings = null
+    }
     BackHandler(enabled = state.section == "settings" && fromLyricsSettings) {
         fromLyricsSettings = false; model.section("lyrics")
     }
@@ -113,7 +123,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     val space = integerResource(R.integer.spacing_dp).dp
     val contentPadding = integerResource(R.integer.content_padding_dp).dp
     val reading = state.personal?.reading ?: ReadingPreferences()
-    BackHandler(enabled = state.selected != null) { model.select(null) }
+    BackHandler(enabled = state.selected != null || state.fixtureReturnSection != null) { model.fixtureBack() }
     Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(contentPadding), verticalArrangement = Arrangement.spacedBy(space * 2)) {
             if (state.section == "library" || state.selected != null) Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
@@ -128,6 +138,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 Text(stringResource(it), color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("history-error"))
                 TextButton(enabled = !state.saving, onClick = model::retryPersonal) { Text(stringResource(R.string.retry)) }
             }
+            state.learningError?.let {
+                Text(stringResource(it), color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("learning-error"))
+                TextButton(enabled = !state.saving, onClick = model::retryPersonal) { Text(stringResource(R.string.retry)) }
+            }
             if (state.personal == null && state.saving) Text(stringResource(R.string.personal_loading))
             if (state.mutationError == R.string.personal_stale) {
                 Text(stringResource(R.string.personal_stale), color = MaterialTheme.colorScheme.error)
@@ -138,7 +152,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 TextButton(onClick = { model.section("favorites") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.favorites)) }
                 TextButton(onClick = { model.section("lists") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.lists)) }
                 TextButton(onClick = {
-                    fromLyricsSettings = state.section == "lyrics"
+                    if (state.section != "settings") {
+                        fromLyricsSettings = state.section == "lyrics"
+                        fixtureSettings = state.takeIf { it.selected != null || it.fixtureReturnSection != null }
+                    }
                     model.section("settings")
                 }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.settings)) }
             }
@@ -146,6 +163,9 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
             val canSave = personal != null && state.personalError == null && !state.saving
             val selected = state.selected
             Row(horizontalArrangement = Arrangement.spacedBy(space)) {
+                TextButton(onClick = { model.section("learning") }, modifier = Modifier.testTag("learning")) {
+                    Text(stringResource(R.string.learning))
+                }
                 TextButton(onClick = {
                     readerOrigin = null; model.section("lyrics")
                 }, modifier = Modifier.weight(1f).testTag("owner-lyrics")) {
@@ -167,8 +187,14 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                     LyricPreviewScreen(lyricModel, personal, canSave, { model.changePersonal(reference = it) },
                         { model.clearMutationError(); adding = it },
                         readerOrigin?.let { origin -> ({ model.section(origin.section) }) }, model::recordExposed,
-                        { model.changeReading(direction = it) }, { model.changeReading(density = it) }, lyricBrowseScroll)
+                        { model.changeReading(direction = it) }, { model.changeReading(density = it) }, lyricBrowseScroll,
+                        model::changeLearning)
                 }
+            } else if (state.section == "learning" && selected == null) {
+                LearningScreen(personal, canSave, state.prepared, lyrics, learningFilter, learningPages, learningScroll,
+                    { learningFilter = it; learningPages = 1; scope.launch { learningScroll.scrollToItem(0) } },
+                    { if (learningPages < Int.MAX_VALUE) learningPages++ },
+                    { if (it.kind == "lyric") openReference(it) else model.fixtureRequest(it) }, model::changeLearning)
             } else if (state.section == "recents" && selected == null) {
                 Column(Modifier.weight(1f)) {
                     RecentHistoryScreen(personal, canSave, state.prepared, lyrics, ::openReference,
@@ -210,12 +236,17 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 }
             } else if (selected != null) {
                 LaunchedEffect(state.readerOpen) { state.readerOpen?.let(model::fixtureExposed) }
-                TextButton(onClick = { model.select(null) }) { Text(stringResource(R.string.back)) }
+                TextButton(onClick = model::fixtureBack) { Text(stringResource(if (state.fixtureReturnSection == "learning") R.string.learning else R.string.back)) }
                 Text(selected.title, style = MaterialTheme.typography.headlineSmall)
                 Text(stringResource(R.string.canonical), style = MaterialTheme.typography.labelSmall)
                 ReadingControls(reading, canSave, { model.changeReading(direction = it) }, { model.changeReading(density = it) })
-                OutlinedButton(enabled = canSave, onClick = { model.changePersonal(favorite = selected.videoId) }) {
-                    Text(stringResource(if (PersonalReference.legacy(selected.videoId) in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
+                Row(horizontalArrangement = Arrangement.spacedBy(space)) {
+                    OutlinedButton(enabled = canSave, onClick = { model.changePersonal(favorite = selected.videoId) },
+                        modifier = Modifier.weight(1f)) {
+                        Text(stringResource(if (PersonalReference.legacy(selected.videoId) in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
+                    }
+                    LearningControls(PersonalReference.legacy(selected.videoId), personal, canSave, model::changeLearning,
+                        Modifier.weight(1f), compact = true)
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(reading.lineSpacingDp().dp)) {
                     selected.lines.forEach { line -> Text(line.text, Modifier.testTag("fixture-line-${line.id}"),
@@ -263,6 +294,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                     }
                 }
             } else if (state.prepared == null) {
+                state.pendingFixture?.let {
+                    Text(it)
+                    TextButton(onClick = model::fixtureBack, modifier = Modifier.testTag("back-to-learning")) { Text(stringResource(R.string.learning)) }
+                }
                 Text(stringResource(R.string.preparation_notice))
                 if (state.loading) {
                     LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -273,6 +308,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 }
                 Text(stringResource(R.string.unavailable_features), style = MaterialTheme.typography.bodySmall)
             } else {
+                state.pendingFixture?.let {
+                    Text(it); Text(stringResource(R.string.unavailable_favorite))
+                    TextButton(onClick = model::fixtureBack, modifier = Modifier.testTag("back-to-learning")) { Text(stringResource(R.string.learning)) }
+                }
                 OutlinedTextField(value = state.query, onValueChange = model::query,
                     label = { Text(stringResource(R.string.search)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(space * 1.5f)) {
