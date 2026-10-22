@@ -34,6 +34,9 @@ fun TransferScreen(prepared: PreparedPublication?, model: TransferViewModel = vi
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/gzip")) {
         if (it == null) model.cancel() else model.exportFile(it)
     }
+    val sharer = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        // Chooser return codes cannot establish recipient delivery or user cancellation.
+    }
     val fileName = stringResource(R.string.list_file_name)
     var importing by remember { mutableStateOf<ListSnapshot?>(null) }
     importing?.let { snapshot -> personalModel?.let { personal ->
@@ -73,6 +76,11 @@ fun TransferScreen(prepared: PreparedPublication?, model: TransferViewModel = vi
                 OutlinedButton(enabled = !state.working, onClick = model::createLink) { Text(stringResource(R.string.transfer_create_link)) }
                 state.link?.let { link ->
                     SelectionContainer { Text(link, Modifier.testTag("transfer-output-link")) }
+                    OutlinedButton(enabled = !state.working, onClick = {
+                        shareListLink(link, { sharer.launch(it) }, model::feedback)
+                    }, modifier = Modifier.testTag("transfer-share-link")) {
+                        Text(stringResource(R.string.share_list_link))
+                    }
                     OutlinedButton(onClick = {
                         try {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

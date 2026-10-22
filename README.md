@@ -376,12 +376,29 @@ against only the verified in-memory catalog, and absence from that available cat
 Literal placeholders never become references. Known catalog titles are display-only
 and never copied into transfer payloads; no offline availability is inferred.
 Complete gzip export uses Android's Create Document adapter; complete canonical
-links are displayed/selectable and can be explicitly copied. Oversized links explain
-the lossless file fallback. System provider/clipboard errors are explicit, not
+links are displayed/selectable and can be explicitly copied or handed to the
+native Android Sharesheet using **Share snapshot link**. This explicit action is
+available only after complete successful canonical link creation, on the common
+export surface for Settings v1/v2 file/link previews and saved typed-v2 lists.
+The standard ACTION_SEND chooser receives text/plain containing only that exact
+complete link, not a title, caption, file, shortened URL or additional personal
+state. Creating/previewing/exporting a link never automatically opens the chooser.
+Oversized links explain the lossless file fallback and expose no Share action.
+No FileProvider, temporary file or direct file sharing is introduced.
+
+Unavailable activity/security failures use the localized sharing-failed caption;
+display/select/copy and complete Create Document fallback remain usable. A
+successful chooser launch reports only handoff to the system interface, never
+receiver delivery. ACTION_SEND provides no trustworthy delivery or chooser-dismissal
+receipt; returning/dismissing does not infer success, cancellation or a personal
+mutation. Sharing neither prepares/fetches lyrics nor writes personal state,
+history or revisions. The existing sensitive-text/forwarding notice remains
+visible; this is an independent complete snapshot, not synchronization or a
+privacy/revocation guarantee. System provider/clipboard errors are explicit, not
 reported as success. A failed/cancelled document write attempts deletion of only its
 new destination; providers can retain an incomplete copy, so destination cleanup and
 retry remain necessary. No delivery guarantee, encryption, revocation or verified
-OS share/App Link interoperability is claimed.
+receiver/device Sharesheet or incoming App Link interoperability is claimed.
 
 Save to My Library opens a separate confirmation, permits editing the imported
 name and applies the same duplicate-name/revision/epoch fences. Each confirmed
@@ -540,8 +557,22 @@ LF/CRLF from a peer URL text file, not from the URL codec or user fields.
 The native transfer journey covers pre-preparation link/file-stream preview,
 no implicit save, confirmed new-list-only Save, cancellation, invalid input/provider failure, known/pending/unavailable
 catalog states, complete link re-export and unchanged favorites/preferences/theme.
+Sharesheet device tests inspect standard chooser/inner ACTION_SEND intents with
+only exact complete text/plain payloads for v1/v2 and the configured2048-ASCII
+boundary. Instrumentation-intercepted chooser cancellation and unavailable/security
+failures exercise explicit actions on link/file previews and saved typed lists,
+no automatic handoff, unchanged complete personal records (including history and
+revisions), retained display/copy/document fallback and over-cap no-share refusal.
+Unexpected programming exceptions are not hidden as system sharing failures.
+These synthetic/intercepted tests do not demonstrate actual receiver delivery,
+chooser target availability or real-device interoperability. Since plain
+ACTION_SEND has no trustworthy receiver/cancellation receipt, no result code is
+interpreted as either one. A separate API36 emulator smoke case opens the actual
+system chooser and returns with Android Back, checking preserved
+snapshot/link/fallbacks and unchanged personal state without selecting a receiver.
 Document picker/provider interoperability across real devices, destination failure
-semantics, signed App Links and OS sharing remain required later acceptance gates;
+semantics, signed incoming App Links and actual receiver/device Sharesheet
+interoperability remain required later acceptance gates;
 injected local streams do not establish those claims.
 Personal-name tests execute the identical Shared independent integer vectors,
 all official Unicode16 NFC/NFD equations and unlisted scalar invariants, and

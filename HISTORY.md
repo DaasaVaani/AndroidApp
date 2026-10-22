@@ -1,5 +1,81 @@
 # Documentation history
 
+## 2026-10-22: explicit native minimal-list link Sharesheet handoff
+
+- Owner authorized this bounded native-only XFER-02/06/08 and QUAL-05 slice from
+  main `cde5b199eb08a285e3fc441c90c4d5d00710f5f5`, retaining independent Shared
+  `44c21b9d139239e3003c293dfe8058ad80393fa6`, the complete codec/file fallback,
+  Room5 and unrelated work. No Root, Shared, Library or dependency change.
+- Archived superseded README status: complete canonical links were displayed,
+  selectable and explicitly copyable; complete gzip used Create Document, but
+  native OS sharing was still open. Its old limitations said no verified OS
+  share/App Link interoperability and listed OS sharing among later gates.
+  Actual receiver/device interoperability and signed incoming App Links remain
+  open; this batch does not close those acceptance gates.
+- Added one explicit Share snapshot link action to the common successful
+  link-export surface used by Settings v1/v2 document/link previews and saved
+  typed-v2 lists. It passes only the exact already validated complete canonical
+  link through ACTION_SEND/text/plain in Android's standard chooser. It adds no
+  file/URI grant, FileProvider, temporary file, network, personal/history/revision
+  write, preparation, automatic handoff or save.
+- Reused pinned bilingual share/action/failure/handoff captions. Unavailable
+  activity and security failures show the existing fallback caption, with no
+  broad exception catch. Launch feedback claims only system-interface handoff,
+  not recipient receipt/delivery. ACTION_SEND supplies no trustworthy delivery
+  or chooser-cancellation receipt; dismissal never fabricates either result.
+  Display/select/copy and complete Create Document fallback remain available,
+  including after failure/dismissal. Oversized links never gain a Share action.
+- Added five connected cases using only synthetic snapshots for exact
+  v1/v2/2048-ASCII-character-link
+  chooser/payload shape; narrow expected failures and unexpected-bug propagation;
+  explicit link/file preview and saved-list actions, intercepted cancellation,
+  visible failure, copy/document fallback and complete personal-row preservation;
+  and over-cap refusal with complete gzip fallback. A separate emulator smoke
+  case actually opens the system chooser and returns with Android Back,
+  preserving the snapshot/link/fallbacks and personal state. Intercepted cases
+  use Android instrumentation monitors; none establishes actual receiver
+  delivery or real-device Sharesheet/provider interoperability.
+- The initial unquoted PowerShell instrumentation selector was split into an
+  invalid Gradle task before compilation; quoting the complete `-P...` argument
+  corrected that command. The first compiled five-case run then correctly
+  exposed two failures: the app's localized Compose context is a configuration
+  context, not an Activity context, so direct `startActivity` required NEW_TASK.
+  Corrected the cause by launching through the existing owning Activity result
+  registry, without adding a new task/flag or guessing return-code meaning.
+- Corrected focused
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.ListLinkShareTest' --no-daemon --console=plain`
+  passed all5 cases, zero failures/errors/skips (2m23s), including actual system
+  chooser/Back. No assertion, suite, timeout or retry policy was weakened.
+- Full validation uses the parent's exclusive connected/HTTP slot with unchanged
+  validated Website installation dist
+  `71ad82a6cdc51623e6eca1905963bde1bc7ac729`, the existing configured5173 server
+  (HTTP200) and intended API36 `emulator-5556`. Existing JDK21/SDK36 and
+  dependencies are reused, with
+  `JAVA_HOME=C:\Users\pots\AppData\Local\DaasaVaani\toolchains\jdk` and
+  `ANDROID_HOME=C:\Users\pots\AppData\Local\DaasaVaani\toolchains\android-sdk`;
+  no dependency/toolchain install or Website rebuild is involved.
+- Final full `npm run config` passed. Ran
+  `.\gradlew.bat :core:cleanTest --no-daemon --console=plain` first so the
+  unchanged complete core suite actually re-executed, then the documented
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed in13m49s: all40 core tests and66 connected tests, zero
+  failures/errors/skips, both app variants built. XML reports confirm53 warnings
+  and zero errors in each lint variant. App JVM tasks remain NO-SOURCE, not
+  passing tests; Gradle conditional no-source/vital tasks are not test suites.
+- Final `python tools\check_repository.py` passed for85 tracked files; the
+  README's exact `node -e` unique-key YAML command parsed all5 `.github` YAML
+  files; `actionlint .github\workflows\hygiene.yml` passed with existing
+  ShellCheck0.11.0; both `git --no-pager diff --check` and
+  `git --no-pager diff --cached --check` passed. No lint/test suppression,
+  suite removal, skipped test or timeout/retry weakening was introduced.
+- All bounded Gradle helpers completed; no HTTP server or emulator was started,
+  stopped or reconfigured. Existing5173 still returnedHTTP200 and intended5556
+  remained a device. Owned project-local diagnostic logs were removed and the
+  exclusive connected/HTTP slot was released. Main publication awaits the
+  parent's explicit same-task authorization; no native remote push/preflight
+  was performed by this batch. Actual receiver/device/provider interoperability,
+  incoming signed App Links and full transfer/release acceptance remain open.
+
 ## 2026-10-22: canonical title-catalog session continuity
 
 - Owner authorized the bounded Android-only UX-13 slice from clean published main
