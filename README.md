@@ -179,8 +179,35 @@ Preference changes neither prepare content nor create another reader-open receip
 A still-mounted reader stays history-cleared after another writer clears history,
 including after explicit stale recovery and typography changes. Existing query,
 page, reader-return and list-origin state is retained. This is partial UX-02/03/14
-and SET-04 coverage, not Recite/Practice/helpers, offline support, full accessibility
+and SET-04 coverage, not Practice/helpers, offline support, full accessibility
 or real-device/release acceptance.
+
+### Focused individual Recite and optional screen awake
+
+REC-01/02 adds explicit **Recite** only after successful canonical/fixture reader
+exposure. It keeps the existing canonical script, literal text, line IDs, wrapping,
+font, density and theme. Secondary navigation/details/actions are hidden;
+**Show/Hide reading controls** restores the existing functional controls, and
+**Exit Recite** is always visible. Android Back first exits focus without leaving
+the reader; normal Back then retains its original Catalog/Favorites/Lists/Recent/
+Learning/unsaved-preview origin. Settings, reader replacement and departure end
+focus. No automatic entry/resume, content request, extra exposure/history receipt,
+personal write, schema/default change, audio/video, fullscreen or orientation
+coercion follows from mode or awake changes.
+
+**Keep screen awake** starts off for each explicit entry. The narrow native adapter
+uses the current Compose view's `keepScreenOn`, reporting the owned request rather
+than an operating-system guarantee. It preserves a pre-existing true flag it did
+not set. Exit, replacement, navigation, background `ON_STOP` and disposal release
+its request; foreground return does not reacquire. Detached views and rejected/
+security-denied requests use the pinned Shared unavailable/failed captions; Recite
+remains usable. Release failure is not reported as off/success. This synchronous
+view adapter has no asynchronous acquisition or pending operation.
+
+The visible Shared notice explicitly states that list traversal and Continue
+recitation are unimplemented. This is bounded individual focus, not REC-03/04,
+verse inference, Practice, durable offline readiness, complete power-policy/device
+support or full recitation/release acceptance.
 
 - No bundled lyrics. Explicit validated full preparation gates lyrics, not
   Settings/recovery/list preview. Preserve destinations without automatic saving.
@@ -396,7 +423,8 @@ that exact UUID if available. Failure/cancel preserves personal state and the
 prior validated set; unavailable UUIDs remain visible. Back to list returns to the
 same list and process-local list viewport. Legacy IDs are never matched to real lyrics. The separately labeled
 fixture favorite reader retains its old synthetic lookup, isolated from real
-list resolution. User text stays plain text. Recitation mode/resume is not implemented.
+list resolution. User text stays plain text. Individual Recite does not implement
+list traversal or Continue recitation.
 
 Settings → List snapshot preview is reachable before preparation and regardless of
 personal-storage availability. Choose a local document or explicitly paste a
@@ -511,7 +539,7 @@ and SET-01; not full requirement acceptance.
 
 ### Remaining approved slices
 
-This batch does **not** implement recitation mode/resume, full personal
+This implementation does **not** implement list recitation/Continue, full personal
 backup/restore, system backup, bookmarks, verse-based Practice/resume, persistent offline
 snapshots, production migrations or full Android parity. Android system backup is
 still disabled rather than backing up false content readiness. Remaining selected
@@ -530,6 +558,7 @@ signing key belongs in CI/repository/logs.
 Partial requirement coverage: LIB-01/02/03/04/05/08/09/10/11,
 XFER-01/02/03/04/05/06/08, I18N-01/02/03,
 LEARN-04 (optional self-assigned local labels only),
+REC-01/02 (focused individual reading and optional scoped native awake request only),
 SET-04 (UI language/theme/lyric typography/labels only), UX-02/03/14 (bounded lyric
 typography/layout only), QUAL-05/06 (local-only state and explicit errors).
 Canonical Kannada and required preparation remain unchanged. This is neither
@@ -565,6 +594,15 @@ invalid/future storage refusal, unresolved identities, canonical/fixture control
 preparation-free management and pending destinations, mounted-reader history isolation,
 repeated discovery/Settings/origin returns, locale/reopen and minimal-transfer exclusion.
 App JVM test tasks have NO-SOURCE, not a passing application unit suite.
+
+Recite synthetic Compose/native-view cases cover explicit canonical/fixture entry,
+literal identified lines and typography, restored working reading controls,
+unchanged complete personal/history state without exposure replay, ordinary
+Catalog/collection/Learning/unsaved-preview Back origins, Settings/replacement/
+navigation cleanup, actual native flag ownership including a prior true flag,
+background release/no foreground reacquisition, detached/denied/rejected requests
+and explicit release failure. These are current-platform adapter proofs, not
+physical-device power-policy, real-content, full accessibility or REC-03/04 proof.
 
 Reading preference core/Room/Compose cases cover configured default/bounds/step,
 all three density states, no-op revisions, persistence/restart, exact old/current

@@ -123,8 +123,13 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     val space = integerResource(R.integer.spacing_dp).dp
     val contentPadding = integerResource(R.integer.content_padding_dp).dp
     val reading = state.personal?.reading ?: ReadingPreferences()
+    val recite = remember(state.section, state.selected, lyrics.selected, lyrics.item) { ReciteState() }
+    LaunchedEffect(state.readerOpen, lyrics.readerOpen) {
+        if (state.readerOpen != null || lyrics.readerOpen != null) recite.exit()
+    }
+    val secondary = !recite.active || recite.controls
     BackHandler(enabled = state.selected != null || state.fixtureReturnSection != null) { model.fixtureBack() }
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }) { padding ->
+    Scaffold(topBar = { if (secondary) TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(contentPadding), verticalArrangement = Arrangement.spacedBy(space * 2)) {
             if (state.section == "library" || state.selected != null) Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
                 Text(stringResource(R.string.fixture_notice), Modifier.padding(space * 1.5f), style = MaterialTheme.typography.bodySmall)
@@ -147,7 +152,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 Text(stringResource(R.string.personal_stale), color = MaterialTheme.colorScheme.error)
                 TextButton(enabled = !state.saving, onClick = model::retryPersonal) { Text(stringResource(R.string.retry)) }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(space)) {
+            if (secondary) Row(horizontalArrangement = Arrangement.spacedBy(space)) {
                 TextButton(onClick = { model.section("library") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.library)) }
                 TextButton(onClick = { model.section("favorites") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.favorites)) }
                 TextButton(onClick = { model.section("lists") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.lists)) }
@@ -162,7 +167,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
             val personal = state.personal
             val canSave = personal != null && state.personalError == null && !state.saving
             val selected = state.selected
-            Row(horizontalArrangement = Arrangement.spacedBy(space)) {
+            if (secondary) Row(horizontalArrangement = Arrangement.spacedBy(space)) {
                 TextButton(onClick = { model.section("learning") }, modifier = Modifier.testTag("learning")) {
                     Text(stringResource(R.string.learning))
                 }
@@ -179,7 +184,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
             }
             if (state.section == "lyrics") {
                 Column(Modifier.weight(1f)) {
-                    readerOrigin?.let { origin ->
+                    if (secondary) readerOrigin?.let { origin ->
                         TextButton(onClick = { model.section(origin.section) }, modifier = Modifier.testTag(origin.tag)) {
                             Text((if (origin == CanonicalOrigin.LISTS) "" else "← ") + stringResource(origin.caption))
                         }
@@ -188,7 +193,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                         { model.clearMutationError(); adding = it },
                         readerOrigin?.let { origin -> ({ model.section(origin.section) }) }, model::recordExposed,
                         { model.changeReading(direction = it) }, { model.changeReading(density = it) }, lyricBrowseScroll,
-                        model::changeLearning)
+                        model::changeLearning, recite)
                 }
             } else if (state.section == "learning" && selected == null) {
                 LearningScreen(personal, canSave, state.prepared, lyrics, learningFilter, learningPages, learningScroll,
@@ -236,11 +241,17 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 }
             } else if (selected != null) {
                 LaunchedEffect(state.readerOpen) { state.readerOpen?.let(model::fixtureExposed) }
-                TextButton(onClick = model::fixtureBack) { Text(stringResource(if (state.fixtureReturnSection == "learning") R.string.learning else R.string.back)) }
+                if (secondary) Row(horizontalArrangement = Arrangement.spacedBy(space)) {
+                    TextButton(onClick = model::fixtureBack) {
+                        Text(stringResource(if (state.fixtureReturnSection == "learning") R.string.learning else R.string.back))
+                    }
+                    if (!recite.active) ReciteControls(recite, state.readerOpen == null)
+                }
                 Text(selected.title, style = MaterialTheme.typography.headlineSmall)
                 Text(stringResource(R.string.canonical), style = MaterialTheme.typography.labelSmall)
-                ReadingControls(reading, canSave, { model.changeReading(direction = it) }, { model.changeReading(density = it) })
-                Row(horizontalArrangement = Arrangement.spacedBy(space)) {
+                if (recite.active) ReciteControls(recite, state.readerOpen == null)
+                if (secondary) ReadingControls(reading, canSave, { model.changeReading(direction = it) }, { model.changeReading(density = it) })
+                if (secondary) Row(horizontalArrangement = Arrangement.spacedBy(space)) {
                     OutlinedButton(enabled = canSave, onClick = { model.changePersonal(favorite = selected.videoId) },
                         modifier = Modifier.weight(1f)) {
                         Text(stringResource(if (PersonalReference.legacy(selected.videoId) in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))

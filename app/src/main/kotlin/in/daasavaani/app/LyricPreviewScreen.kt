@@ -33,17 +33,20 @@ fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: Per
     backToList: (() -> Unit)? = null, opened: (PersonalReference) -> Unit = {},
     fontStep: (Int) -> Unit = {}, density: (String) -> Unit = {},
     browseScroll: LazyListState = remember { LazyListState() },
-    learning: (PersonalReference, String?) -> Unit = { _, _ -> }) {
+    learning: (PersonalReference, String?) -> Unit = { _, _ -> },
+    recite: ReciteState = remember { ReciteState() }) {
     val state by model.state.collectAsState()
     val scope = rememberCoroutineScope()
     BackHandler(enabled = state.selected != null) { backToList?.invoke() ?: model.select(null) }
     DisposableEffect(model) { onDispose { model.cancel() } }
+    if (state.selected != null) ReciteControls(recite, state.item != null && state.readerOpen == null &&
+        state.lastOpenedLyricId == state.selected?.lyricId)
     LyricPreviewContent(state, model::load, model::cancel, {
         model.query(it); scope.launch { browseScroll.scrollToItem(0) }
     }, { summary -> if (summary == null && backToList != null) backToList() else model.select(summary) },
         exposed = { token -> model.exposed(token)?.let(opened) }, reading = personal?.reading ?: ReadingPreferences(),
         more = model::more, browseScroll = browseScroll, another = model::showAnother,
-        catalogBack = backToList == null) { summary ->
+        catalogBack = backToList == null, recite = recite) { summary ->
         val reference = PersonalReference.lyric(summary.lyricId)
         Row(horizontalArrangement = Arrangement.spacedBy(integerResource(R.integer.spacing_dp).dp)) {
             OutlinedButton(enabled = canSave, onClick = { favorite(reference) }, modifier = Modifier.weight(1f)) {
@@ -66,6 +69,7 @@ fun LyricPreviewContent(
     browseScroll: LazyListState = remember { LazyListState() },
     another: () -> Unit = {},
     catalogBack: Boolean = true,
+    recite: ReciteState = remember(state.selected, state.item) { ReciteState() },
     personalActions: @Composable (LyricSummary) -> Unit = {},
 ) {
     val space = integerResource(R.integer.spacing_dp).dp
@@ -80,6 +84,8 @@ fun LyricPreviewContent(
         }
     }
     val shown = expandedResultCount(state.visible.size, integerResource(R.integer.trusted_max_page_size), state.pages)
+    val secondary = !recite.active || recite.controls
+    LaunchedEffect(state.readerOpen) { if (state.readerOpen != null) recite.exit() }
     LaunchedEffect(state.selected?.lyricId) { if (state.selected != null) readerScroll.scrollToItem(0) }
     LaunchedEffect(state.readerOpen, state.item) {
         val token = state.readerOpen
@@ -90,12 +96,12 @@ fun LyricPreviewContent(
     }
     LazyColumn(Modifier.fillMaxSize().testTag("lyric-preview"), state = scroll,
         verticalArrangement = Arrangement.spacedBy(space)) {
-        item {
+        if (secondary) item {
             Text(stringResource(R.string.lyric_preview_notice), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.lyric_personal_limits), style = MaterialTheme.typography.bodySmall)
             Text(stringResource(R.string.lyric_no_media), style = MaterialTheme.typography.bodySmall)
         }
-        item {
+        if (secondary) item {
             if (state.selected != null && catalogBack) TextButton(onClick = { select(null) }) { Text(stringResource(R.string.lyric_back)) }
             if (state.pendingLyricId != null && state.selected == null) {
                 Text(state.pendingLyricId)
@@ -112,7 +118,7 @@ fun LyricPreviewContent(
                 }
             }
         }
-        if (state.prepared != null && (state.selected == null || state.item?.lyricId == state.selected.lyricId)) item {
+        if (secondary && state.prepared != null && (state.selected == null || state.item?.lyricId == state.selected.lyricId)) item {
             Text(stringResource(R.string.another_lyric_notice), style = MaterialTheme.typography.bodySmall)
             OutlinedButton(onClick = another, modifier = Modifier.testTag("show-another-lyric")) {
                 Text(stringResource(R.string.show_another_lyric))
@@ -124,7 +130,7 @@ fun LyricPreviewContent(
         if (selected != null) {
             item {
                 Text(selected.title, style = MaterialTheme.typography.headlineSmall)
-                personalActions(selected)
+                if (secondary) personalActions(selected)
             }
             val lyric = state.item
             if (lyric != null) {

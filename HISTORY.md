@@ -1,5 +1,96 @@
 # Documentation history
 
+## 2026-10-22: bounded native individual Recite and optional screen awake
+
+- Owner independently authorized this Native-only REC-01/02 batch from
+  `128e9ebfd2edd9debc1100e32b71895f6071953b` and only its Shared pin advance from
+  `166b7af` to published `52564f6bc5954f077749a333cfb6e97bbea59b6f`.
+  No other consumer/source, dependency, personal schema, Room migration or
+  configurable default was changed. Shared's consumer-main publication gate
+  remains the parent's responsibility; no Native main push is authorized.
+- Archived superseded current claims: README said recitation mode/resume was
+  entirely unimplemented, including the remaining-slices and list-reader notes,
+  and excluded Recite from the typography slice. Explicit individual reader focus
+  and optional scoped native view requests now exist; list traversal/Continue,
+  Practice, durable offline and complete recitation/device support remain open.
+- Parent granted the exclusive stable-dist/device/HTTP slot after its completed
+  Website check (115 units/357 browser tests) and froze that dist. Before device
+  work, the intended `emulator-5556` reported `device`, the existing5173 fixture
+  descriptor returnedHTTP200 and protected userPID3840 remained running. No
+  helper/server/emulator was created, stopped or reconfigured.
+- Reused existing JDK21/SDK36/actionlint1.7.12/ShellCheck0.11.0 and dependencies.
+  `npm run config` and
+  `.\gradlew.bat :core:cleanTest :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  passed (4m35s), compiling all tests without executing connected tests. All48
+  core cases passed; app JVM tasks were NO-SOURCE, not passing unit suites.
+- Initial
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.ReciteUiTest' --no-daemon --console=plain`
+  ran all5 initial cases and failed2 (2m45s): the duplicate-occurrence list test
+  addressed two identical Read buttons ambiguously, and explicit Exit released
+  its native flag only on deferred composition disposal rather than immediately.
+  The list test now explicitly chooses its first original occurrence (preserving
+  both entries); Exit/Back synchronously release through the same scoped adapter,
+  with disposal remaining a safety cleanup. No assertion or limit was weakened.
+  The identical complete5-case command then passed (3m32s), zero skipped.
+- A first complete-run helper was deliberately cancelled before completion to
+  strengthen failed-release semantics: a still-owned request must retain its on
+  switch when release fails, with an explicit failed caption and a usable release
+  retry, not visually report off. Cancellation is not a passing full check. Added
+  a sixth UI case for unsupported/denied/acquired/failed-release/retry captions
+  and actual ownership, in addition to the direct adapter failure assertions.
+- The next complete-run attempt exposed the unchanged existing `LaunchTest`
+  first-visible-fixture-line assertion: an extra ordinary-reader Recite row had
+  pushed that first line below the viewport. Stopped this already-failing run
+  after32 of88 cases to fix the actual layout, not its assertion. The entry action
+  now shares the existing fixture Back row; the focus-only controls occupy space
+  only after explicit entry. Backgrounding without ever requesting awake now
+  keeps the honest initial Off caption rather than claiming a request ended.
+- Combined diagnostic
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.LaunchTest,in.daasavaani.app.ReciteUiTest' --no-daemon --console=plain`
+  ran all7 cases (6m34s): the original Launch case and all5 preceding Recite cases
+  passed, but the added failure-UI case failed because overriding Compose's
+  `LocalView` with a detached test view also broke Material ripple's real parent
+  lookup. Narrowed injection to only the awake adapter's view argument, leaving
+  the actual Compose view hierarchy intact and all UI assertions unchanged.
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.ReciteUiTest#unavailableAndFailedCaptionsRetainReciteAndActualOwnedRequestUntilReleaseRetry' --no-daemon --console=plain`
+  then passed that1 case (3m39s), zero failures/errors/skips. A diagnostic
+  multiple-Kotlin-daemon-session warning followed the intentionally stopped run;
+  it was not hidden or treated as failed-suite success.
+- Final `npm run config` and the complete
+  `.\gradlew.bat :core:cleanTest :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed (28m12s;136 tasks,23 executed/113 up-to-date). XML reports confirm
+  all48 core and88 connected cases, including all6 Recite cases, with zero
+  failures/errors/skips. The core suite actually re-executed after `cleanTest`.
+  Both debug/release app variants built; debug lint has zero errors/58 warnings
+  and release lint zero errors/59 warnings. The respective warning inventories
+  are41/42 unused resources,7 Gradle dependency,6 newer-version,2 Android Gradle
+  Plugin version,1 data-extraction-rules and1 missing-icon warning. No warning
+  was suppressed. The existing SDK XML3-versus4 diagnostic remained. App JVM
+  tasks are NO-SOURCE, not a passing application unit suite; conditional Gradle
+  configuration/pre-AndroidTest/redundant lint-vital task skips are not skipped
+  test cases. No dependency install, limit/timeout/retry relaxation or removed
+  assertion/suite was used.
+- Final `python tools\check_repository.py` passed for96 tracked files;
+  `node -e "const fs=require('node:fs'),path=require('node:path'),yaml=require('yaml');for(const p of fs.readdirSync('.github',{recursive:true}).filter(p=>p.endsWith('.yml')||p.endsWith('.yaml'))){const d=yaml.parseDocument(fs.readFileSync(path.join('.github',p),'utf8'),{uniqueKeys:true});if(d.errors.length)throw d.errors[0];console.log(p)}"`
+  parsed all5 workflow/forms YAML files. `actionlint .github\workflows\hygiene.yml`
+  using existing ShellCheck0.11.0, `git --no-pager diff --check` and
+  `git --no-pager diff --cached --check` passed. Existing Git CRLF-to-LF
+  normalization notices were not whitespace-check failures. Final history edits
+  were included in repeated hygiene/YAML/actionlint/whitespace checks.
+- After the successful complete run, the existing5173 descriptor still
+  returnedHTTP200, intended5556 remained a device, and protectedPID3840 remained
+  running. All bounded helpers completed; only this batch's four diagnostic
+  log files were removed. No server/emulator/tab, other repository, user process
+  or other Shared pin was changed. Explicitly released the exclusive frozen-dist/
+  device/HTTP slot before completing this Native-only local commit. The pin
+  remains exactly525, not the parent's subsequent additive list-caption release.
+  No main push or validation ref was created.
+- This is synthetic/current-platform proof of focused individual REC-01/02,
+  literal-reader preservation and narrow owned native-view requests only.
+  List traversal/Continue REC-03/04, verse-based Practice, durable offline,
+  real-content/linguistic, physical-device power-policy/accessibility acceptance
+  and complete production/release readiness remain unimplemented or unproven.
+
 ## 2026-10-22: bounded prepared-catalog Show another lyric
 
 - Owner authorized native EXP-02 work from clean published
