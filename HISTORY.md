@@ -1,5 +1,111 @@
 # Documentation history
 
+## 2026-10-22: bounded prepared-catalog Show another lyric
+
+- Owner authorized native EXP-02 work from clean published
+  `334dab8a5b1303c115e41901e2e16ead83e849f2` and independently authorized only
+  published/validated Shared `f4f8aecb2af5f7614ba81a3fb770048324b8850f`.
+  This advances the native pin from `44c21b9d139239e3003c293dfe8058ad80393fa6`;
+  the additive bilingual discovery captions are consumed without changing any
+  dependency, native product setting, content source, schema or other repository.
+- Archived superseded native behavior: the complete prepared canonical catalog
+  supported explicit title selection only; no Show another lyric action existed.
+  Reader choices now use one normal non-security platform random index over every
+  eligible summary in that same complete verified session catalog, not the title
+  filter/page subset. Current valid reader identity or last successfully exposed
+  canonical session identity is excluded. No-candidate state is explicit and
+  localized, with no navigation/history/personal mutation. The selector has no
+  persistence, preparation, network, guessed taxonomy, personalization or legacy
+  fixture identity path. Current documentation retains durable-offline and full
+  requirement/release gates.
+- Reused existing canonical reader, literal layout, typed Favorite/Add to list,
+  preferences and one-shot successful-exposure receipt. Consecutive choices
+  replace reader state, retaining original catalog focus/query/pages/viewport.
+  List/Favorites/Recent/unsaved-preview origins and Settings return now retain truthful labels
+  and one-Back context; pending list selection is not discarded. Previously the
+  inner catalog arrow always appeared for external origins, Recently opened had
+  no dedicated return origin, and Settings cleared collection origins.
+- Added four pure core selection cases and six synthetic connected cases for
+  complete candidate coverage/exclusion/index errors, preparation gating,
+  filtered/page-tail selection, selector/request/write isolation, one-shot
+  exposure/history semantics, literal text, sole/current unavailability,
+  collection/typography controls, catalog viewport/focus and original collection
+  origins through repeated choices/Settings/Back, including an unsaved transfer
+  preview before preparation and after discovery without saving the snapshot.
+- Reused the existing JDK21/SDK36 toolchain and dependencies; no install was
+  needed. `npm run config` passed. Initial non-device
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease --no-daemon --console=plain`
+  passed (4m9s), followed by a complete core rerun with
+  `.\gradlew.bat :core:cleanTest :core:build :app:build :app:lintDebug :app:lintRelease --no-daemon --console=plain`
+  (3m10s): all44 core tests, zero failures/errors/skips. Both lint reports have
+  zero errors and58 warnings; five additive adopted Shared shell captions are
+  unused natively, in addition to the previous53 warnings. No suppression,
+  dependency/policy change or assertion/suite/timeout/retry weakening was added.
+- After final typed-origin and pending-preview changes,
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon --console=plain`
+  passed (3m51s), compiling the complete six-case discovery test APK without
+  executing device checks. App JVM tasks remain NO-SOURCE, not passing tests.
+  `python tools\check_repository.py` passed for88 tracked files; the README's
+  unique-key `node -e` YAML command parsed all5 workflow/forms YAML files;
+  `actionlint .github\workflows\hygiene.yml` with existing ShellCheck0.11.0 and
+  both `git --no-pager diff --check` / `git --no-pager diff --cached --check`
+  passed. Owned build diagnostic logs were removed; no HTTP helper or emulator
+  was started, stopped, queried or reconfigured.
+- Initial handoff awaited the parent's Website/dist/browser/HTTP slot.
+  The parent then explicitly granted it after successful Website validation,
+  freezing dist throughout native connected checks. The existing configured5173
+  fixture endpoint returnedHTTP200 and intended API36 `emulator-5556` was a
+  device; no helper/emulator was created or reconfigured.
+- Initial focused
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.AnotherLyricUiTest' --no-daemon --console=plain`
+  failed test-class initialization because the unsaved-preview test declaration
+  had accidentally remained inside the preceding test method. Compilation alone
+  had not exposed this JUnit discovery error. Moved it to a proper independent
+  instance test without changing its assertions or weakening the configured
+  suite, retry or timeout policy.
+- The next full six-case focused run exposed three Settings-return failures:
+  those test journeys injected Android Back immediately after clicking Settings,
+  before asserting that Settings had actually rendered. Strengthened the shared
+  test helper with an explicit displayed Settings-entry assertion, matching the
+  actual user-visible transition before Back. No production navigation code,
+  history/collection assertion, suite, retry or timeout was relaxed. The same
+  exact focused Gradle command then passed all6 discovery cases, zero
+  failures/errors/skips (2m59s).
+- The first complete
+  `.\gradlew.bat :core:cleanTest :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  executed all72 connected cases (14m22s) and exposed one existing Favorites
+  rejection-render assertion: the model correctly retained the accepted query
+  and marked rejection, but the displayed result count still showed the prior
+  valid results rather than zero. Changed Favorites derivation to receive the
+  exact Compose-collected lyric state used by its failure/count UI, instead of
+  separately rereading hidden mutable flow state inside the derivation. This
+  preserves the existing invalid-query contract; its original assertions remain
+  unchanged. No failing case was removed, retried automatically or weakened.
+- Corrected combined
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.FavoritesBrowsingTest,in.daasavaani.app.AnotherLyricUiTest' --no-daemon --console=plain`
+  passed all8 Favorites/discovery cases with zero failures/errors/skips (5m31s).
+- Final `npm run config` and the complete
+  `.\gradlew.bat :core:cleanTest :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  passed (14m19s). XML reports confirm all44 core and72 connected tests,
+  zero failures/errors/skips, both app variants built and both lint variants
+  with zero errors/58 warnings. The entire core suite actually re-executed;
+  app JVM tasks remain NO-SOURCE. Required suites were neither narrowed nor
+  skipped; Gradle's conditional no-source/vital tasks are not test suites.
+- Final tracked-file hygiene passed for88 files; the README's exact unique-key
+  YAML command parsed all5 `.github` YAML files; actionlint with existing
+  ShellCheck0.11.0 and both staged/unstaged whitespace checks passed. All bounded
+  Gradle helpers completed and owned discovery diagnostic logs were removed.
+  Existing5173 still returnedHTTP200 and intended5556 remained a device.
+  No server/emulator was started, stopped or reconfigured, and no Website file,
+  dist output, other consumer pin or dependency was changed. The exclusive
+  stable-dist/device/HTTP slot was explicitly released after these checks.
+- These permitted synthetic tests establish the bounded session selector,
+  literal reader, local-state isolation and navigation behavior only, not real
+  lyric correctness, personalized recommendations, durable offline preparation,
+  full EXP-02/OFF-12 conformance, physical-device/accessibility acceptance or a
+  release-ready APK. Native main publication remains the parent's separately
+  authorized follow-up; this batch creates a local discovery commit only.
+
 ## 2026-10-22: explicit native minimal-list link Sharesheet handoff
 
 - Owner authorized this bounded native-only XFER-02/06/08 and QUAL-05 slice from

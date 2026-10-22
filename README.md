@@ -50,6 +50,23 @@ catalog and expansion. Session browsing state and prepared content are not saved
 to Room or restored after an app/process restart. Navigation/filtering/paging
 neither prepares content nor writes personal data or creates a fixture index.
 Returning or changing reading preferences does not create another history open.
+**Show another lyric** is available only in the completely prepared canonical
+catalog and its valid reader. Its bilingual notice explicitly describes the
+entire verified catalog, independently of the title filter, not a personalized
+recommendation. One normal non-security random index selects from every eligible
+canonical summary, including beyond expanded pages. The current valid reader is
+excluded, or the most recently successfully opened canonical lyric in this
+prepared-catalog session when selecting from the catalog. No candidate (including
+a sole/current lyric) shows explicit localized unavailability without navigation
+or personal/history writes. Selection itself writes nothing and never fetches or
+prepares content; normal successful reader exposure records history exactly once
+under the existing preference. Favorite/Add to list and typography controls are
+unchanged. Consecutive choices replace the reader, retaining the original catalog,
+list, Favorites, Recently opened or unsaved list-preview return context through Settings and Android
+Back rather than creating a chain of reader destinations. The catalog query,
+pages, viewport and originating title focus are retained. Selection scans/copies
+O(catalog items) summaries, never lyric bodies. In-session network-free selection
+does not establish durable offline preparation or complete EXP-02/OFF-12 parity.
 Favorites has its own independently retained literal title filter over only the
 already verified real catalog. It never matches lyric UUIDs, tags, unavailable
 references or legacy fixture titles. With an empty filter, every saved typed
@@ -117,7 +134,8 @@ fallback or evidence of successful owner-text review.
 Partial requirement mapping: UX-01 (bounded canonical reader only), UX-03 (explicit
 line/layout preservation without inferring verses), LANG-01 (no translation),
 OFF-01/OFF-10 (explicit complete canonical preparation gate only),
-I18N-01/02/03, UX-13 (bounded canonical catalog/session return only)
+I18N-01/02/03, UX-13 (bounded canonical catalog/session return only),
+EXP-02 (bounded verified-catalog session selection only)
 and current theme preferences. This does not close their complete
 acceptance criteria. Typed personal references and lists have the separate bounded
 implementation described below; this does not establish offline parity.
@@ -507,6 +525,14 @@ chain, explicit complete-preparation gating, pre-consent personal isolation,
 typed reader Favorite/Add to list, pending list destinations without implicit
 downloads, filter/reader text and cancel/retry/reload-failure preservation. It is not a live
 feed or real-content demo.
+EXP-02 selection core cases cover every candidate (including page tails), exact
+exclusion, empty/sole-current candidates, both index boundaries and explicit
+invalid-index rejection. Synthetic connected cases cover the preparation gate,
+full-catalog selection beyond a filtered/paged subset, no new requests or
+selector writes, one successful-open history receipt, literal canonical text,
+localized sole-current unavailability, existing collection/typography controls,
+catalog viewport/focus and original list/Favorites/Recent/unsaved-preview
+Back/Settings continuity, including a pending preview before preparation.
 Favorites core/connected synthetic tests cover the actual configured page,
 two-page and two-page-plus-one boundaries, complete tail reachability, literal/
 case-insensitive matching, no-match and invalid-query distinction, ordinary

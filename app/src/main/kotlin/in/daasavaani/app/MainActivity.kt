@@ -68,6 +68,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+private enum class CanonicalOrigin(val section: String, val caption: Int, val tag: String) {
+    LISTS("lists", R.string.back_to_list, "back-to-list"),
+    FAVORITES("favorites", R.string.favorites, "back-to-favorites"),
+    RECENTS("recents", R.string.recent_history, "back-to-recents"),
+    TRANSFER("transfer", R.string.transfer_title, "back-to-transfer"),
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPreviewViewModel = viewModel(),
@@ -81,21 +88,23 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     LaunchedEffect(lyrics.favoritesQuery, lyrics.favoritesFailed) { favoritesScroll.scrollToItem(0) }
     LaunchedEffect(state.selectedListId) { listScroll.scrollToItem(0) }
     var adding by remember { mutableStateOf<PersonalReference?>(null) }
-    var fromList by remember { mutableStateOf(false) }
-    var fromFavorites by remember { mutableStateOf(false) }
+    var readerOrigin by remember { mutableStateOf<CanonicalOrigin?>(null) }
     var fromLyricsSettings by remember { mutableStateOf(false) }
     BackHandler(enabled = state.section == "settings" && fromLyricsSettings) {
         fromLyricsSettings = false; model.section("lyrics")
     }
-    BackHandler(enabled = state.section == "lyrics" && fromFavorites) { model.section("favorites") }
+    BackHandler(enabled = state.section == "lyrics" && readerOrigin != null) {
+        readerOrigin?.let { model.section(it.section) }
+    }
     LaunchedEffect(state.section) {
-        if (state.section != "lyrics") { fromList = false; fromFavorites = false }
+        if (state.section != "lyrics" && !(state.section == "settings" && fromLyricsSettings)) {
+            readerOrigin = null
+        }
         if (state.section != "lyrics" && state.section != "settings") fromLyricsSettings = false
     }
     fun openReference(reference: PersonalReference) {
         if (reference.kind == "lyric") {
-            fromList = state.section == "lists"
-            fromFavorites = state.section == "favorites"
+            readerOrigin = CanonicalOrigin.entries.find { it.section == state.section }
             lyricModel.request(reference.id)
             model.section("lyrics")
         }
@@ -129,7 +138,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 TextButton(onClick = { model.section("favorites") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.favorites)) }
                 TextButton(onClick = { model.section("lists") }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.lists)) }
                 TextButton(onClick = {
-                    fromLyricsSettings = state.section == "lyrics" && !fromFavorites && !fromList
+                    fromLyricsSettings = state.section == "lyrics"
                     model.section("settings")
                 }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.settings)) }
             }
@@ -138,7 +147,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
             val selected = state.selected
             Row(horizontalArrangement = Arrangement.spacedBy(space)) {
                 TextButton(onClick = {
-                    fromFavorites = false; fromList = false; model.section("lyrics")
+                    readerOrigin = null; model.section("lyrics")
                 }, modifier = Modifier.weight(1f).testTag("owner-lyrics")) {
                     Text(stringResource(R.string.owner_lyrics))
                 }
@@ -150,14 +159,14 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
             }
             if (state.section == "lyrics") {
                 Column(Modifier.weight(1f)) {
-                    if (fromList) TextButton(onClick = { model.section("lists"); fromList = false }) { Text(stringResource(R.string.back_to_list)) }
-                    if (fromFavorites) TextButton(onClick = { model.section("favorites") }, modifier = Modifier.testTag("back-to-favorites")) {
-                        Text("← " + stringResource(R.string.favorites))
+                    readerOrigin?.let { origin ->
+                        TextButton(onClick = { model.section(origin.section) }, modifier = Modifier.testTag(origin.tag)) {
+                            Text((if (origin == CanonicalOrigin.LISTS) "" else "← ") + stringResource(origin.caption))
+                        }
                     }
                     LyricPreviewScreen(lyricModel, personal, canSave, { model.changePersonal(reference = it) },
                         { model.clearMutationError(); adding = it },
-                        if (fromList) ({ model.section("lists"); fromList = false })
-                        else if (fromFavorites) ({ model.section("favorites") }) else null, model::recordExposed,
+                        readerOrigin?.let { origin -> ({ model.section(origin.section) }) }, model::recordExposed,
                         { model.changeReading(direction = it) }, { model.changeReading(density = it) }, lyricBrowseScroll)
                 }
             } else if (state.section == "recents" && selected == null) {
@@ -214,7 +223,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 }
             } else if (state.section == "favorites") {
                 if (personal?.favorites?.isEmpty() == true) Text(stringResource(R.string.empty_favorites))
-                val references = lyricModel.favoriteReferences(personal?.favorites.orEmpty())
+                val references = lyricModel.favoriteReferences(personal?.favorites.orEmpty(), lyrics)
                 val shown = expandedResultCount(references.size, integerResource(R.integer.trusted_max_page_size), lyrics.favoritesPages)
                 OutlinedTextField(value = lyrics.favoritesQuery, onValueChange = lyricModel::favoritesQuery,
                     singleLine = true, label = { Text(stringResource(R.string.lyric_title_filter)) },

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import kotlin.random.Random
 
 data class LyricPreviewState(
     val prepared: PreparedLyricPreview? = null, val visible: List<LyricSummary> = emptyList(),
@@ -23,9 +24,11 @@ data class LyricPreviewState(
     val readerOpen: String? = null,
     val pages: Int = 1, val browseFocusId: String? = null, val queryFailed: Boolean = false,
     val favoritesQuery: String = "", val favoritesFailed: Boolean = false, val favoritesPages: Int = 1,
+    val lastOpenedLyricId: String? = null, val anotherUnavailable: Boolean = false,
 )
 
-class LyricPreviewViewModel(application: Application, private val repository: LyricPreviewSource) : AndroidViewModel(application) {
+class LyricPreviewViewModel(application: Application, private val repository: LyricPreviewSource,
+    private val randomIndex: (Int) -> Int = Random.Default::nextInt) : AndroidViewModel(application) {
     constructor(application: Application) : this(application, LyricPreviewRepository(application.resources))
     private val mutable = MutableStateFlow(LyricPreviewState())
     val state = mutable.asStateFlow()
@@ -46,6 +49,7 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
                     val destination = prepared.catalog.catalog.find { entry -> entry.lyricId == it.pendingLyricId }
                     it.copy(prepared = prepared, visible = repository.codec.filter(prepared.catalog, it.query), favoritesPages = 1, queryFailed = false,
                         selected = destination, item = destination?.let { entry -> prepared.items.getValue(entry.lyricId) }, loading = false,
+                        lastOpenedLyricId = null, anotherUnavailable = false,
                         readerOpen = destination?.let { UUID.randomUUID().toString() }, pendingLyricId = if (destination != null) null else it.pendingLyricId)
                 }
             } catch (error: CancellationException) { throw error }
@@ -58,6 +62,7 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
         val prepared = mutable.value.prepared
         val destination = prepared?.catalog?.catalog?.find { it.lyricId == lyricId }
         mutable.update { it.copy(pendingLyricId = if (destination == null) lyricId else null, selected = destination,
+            anotherUnavailable = false,
             item = destination?.let { entry -> requireNotNull(prepared).items.getValue(entry.lyricId) },
             readerOpen = destination?.let { UUID.randomUUID().toString() }) }
     }
@@ -65,14 +70,29 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
         val prepared = mutable.value.prepared ?: return
         require(summary == null || summary in prepared.catalog.catalog) { "Lyric is not prepared" }
         mutable.update { it.copy(selected = summary, pendingLyricId = null, item = summary?.let { entry -> prepared.items.getValue(entry.lyricId) },
+            anotherUnavailable = false,
             browseFocusId = summary?.lyricId ?: it.browseFocusId,
             readerOpen = summary?.let { UUID.randomUUID().toString() }) }
+    }
+    fun showAnother() {
+        val state = mutable.value
+        val prepared = state.prepared ?: return
+        val destination = anotherLyric(prepared.catalog.catalog,
+            state.selected?.takeIf { prepared.items[it.lyricId] == state.item }?.lyricId ?: state.lastOpenedLyricId,
+            randomIndex)
+        if (destination == null) {
+            mutable.update { it.copy(anotherUnavailable = true) }
+            return
+        }
+        // Replacing the reader must not replace the original catalog return focus.
+        mutable.update { it.copy(selected = destination, item = prepared.items.getValue(destination.lyricId),
+            pendingLyricId = null, anotherUnavailable = false, readerOpen = UUID.randomUUID().toString()) }
     }
     fun exposed(token: String): PersonalReference? {
         val state = mutable.value
         if (state.readerOpen != token || state.item == null || state.item.lyricId != state.selected?.lyricId ||
             state.prepared?.items?.get(state.item.lyricId) != state.item) return null
-        mutable.update { it.copy(readerOpen = null) }
+        mutable.update { it.copy(readerOpen = null, lastOpenedLyricId = state.item.lyricId) }
         return PersonalReference.lyric(state.item.lyricId)
     }
     fun query(value: String) {
@@ -85,9 +105,9 @@ class LyricPreviewViewModel(application: Application, private val repository: Ly
         }
     }
     fun more() { mutable.update { it.copy(pages = Math.addExact(it.pages, 1)) } }
-    fun favoriteReferences(references: Set<PersonalReference>): List<PersonalReference> =
-        if (mutable.value.favoritesFailed) emptyList()
-        else repository.codec.favorites(references, mutable.value.prepared?.catalog, mutable.value.favoritesQuery)
+    fun favoriteReferences(references: Set<PersonalReference>, state: LyricPreviewState): List<PersonalReference> =
+        if (state.favoritesFailed) emptyList()
+        else repository.codec.favorites(references, state.prepared?.catalog, state.favoritesQuery)
 
     fun favoritesQuery(value: String) {
         try {

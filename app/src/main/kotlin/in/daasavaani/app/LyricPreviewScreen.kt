@@ -39,9 +39,10 @@ fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: Per
     DisposableEffect(model) { onDispose { model.cancel() } }
     LyricPreviewContent(state, model::load, model::cancel, {
         model.query(it); scope.launch { browseScroll.scrollToItem(0) }
-    }, model::select,
+    }, { summary -> if (summary == null && backToList != null) backToList() else model.select(summary) },
         exposed = { token -> model.exposed(token)?.let(opened) }, reading = personal?.reading ?: ReadingPreferences(),
-        more = model::more, browseScroll = browseScroll) { summary ->
+        more = model::more, browseScroll = browseScroll, another = model::showAnother,
+        catalogBack = backToList == null) { summary ->
         val reference = PersonalReference.lyric(summary.lyricId)
         OutlinedButton(enabled = canSave, onClick = { favorite(reference) }) {
             Text(stringResource(if (reference in personal?.favorites.orEmpty()) R.string.remove_favorite else R.string.add_favorite))
@@ -59,6 +60,8 @@ fun LyricPreviewContent(
     reading: ReadingPreferences = ReadingPreferences(),
     more: () -> Unit = {},
     browseScroll: LazyListState = remember { LazyListState() },
+    another: () -> Unit = {},
+    catalogBack: Boolean = true,
     personalActions: @Composable (LyricSummary) -> Unit = {},
 ) {
     val space = integerResource(R.integer.spacing_dp).dp
@@ -73,6 +76,7 @@ fun LyricPreviewContent(
         }
     }
     val shown = expandedResultCount(state.visible.size, integerResource(R.integer.trusted_max_page_size), state.pages)
+    LaunchedEffect(state.selected?.lyricId) { if (state.selected != null) readerScroll.scrollToItem(0) }
     LaunchedEffect(state.readerOpen, state.item) {
         val token = state.readerOpen
         if (token != null && state.item != null) {
@@ -88,7 +92,7 @@ fun LyricPreviewContent(
             Text(stringResource(R.string.lyric_no_media), style = MaterialTheme.typography.bodySmall)
         }
         item {
-            if (state.selected != null) TextButton(onClick = { select(null) }) { Text(stringResource(R.string.lyric_back)) }
+            if (state.selected != null && catalogBack) TextButton(onClick = { select(null) }) { Text(stringResource(R.string.lyric_back)) }
             if (state.pendingLyricId != null && state.selected == null) {
                 Text(state.pendingLyricId)
                 Text(stringResource(if (state.prepared == null) R.string.lyric_catalog_pending else R.string.lyrics_unavailable))
@@ -103,6 +107,14 @@ fun LyricPreviewContent(
                     Text(stringResource(if (state.failed) R.string.retry else R.string.prepare_library))
                 }
             }
+        }
+        if (state.prepared != null && (state.selected == null || state.item?.lyricId == state.selected.lyricId)) item {
+            Text(stringResource(R.string.another_lyric_notice), style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(onClick = another, modifier = Modifier.testTag("show-another-lyric")) {
+                Text(stringResource(R.string.show_another_lyric))
+            }
+            if (state.anotherUnavailable) Text(stringResource(R.string.no_another_lyric),
+                modifier = Modifier.testTag("no-another-lyric"))
         }
         val selected = state.selected
         if (selected != null) {
