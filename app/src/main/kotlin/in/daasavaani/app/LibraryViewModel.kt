@@ -38,6 +38,7 @@ data class LibraryState(
     val selectedListId: String? = null,
     val readerOpen: String? = null, val historyError: Int? = null,
     val learningError: Int? = null,
+    val rememberingRecitation: Boolean = false,
     val pendingFixture: String? = null, val fixtureReturnSection: String? = null,
 )
 class LibraryViewModel(application: Application) : AndroidViewModel(application) {
@@ -127,6 +128,26 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     fun selectList(id: String?) { mutable.update { it.copy(selectedListId = id) } }
+    suspend fun rememberRecitation(list: RecitationList, entryId: String,
+        isCurrent: () -> Boolean = { true }): Boolean {
+        val before = mutable.value.personal ?: return false
+        if (mutable.value.saving || mutable.value.personalError != null) return false
+        mutable.update { it.copy(saving = true, rememberingRecitation = true, mutationError = null) }
+        return try {
+            val next = withContext(Dispatchers.IO) {
+                val job = currentCoroutineContext()
+                personalStore.rememberRecitation(before, list, entryId) {
+                    job.ensureActive()
+                    if (!isCurrent()) throw CancellationException("Recitation selection departed")
+                }
+            }
+            mutable.update { it.copy(personal = next) }
+            true
+        } catch (error: PersonalFailure) {
+            mutable.update { it.copy(mutationError = error.label) }
+            false
+        } finally { mutable.update { it.copy(saving = false, rememberingRecitation = false) } }
+    }
     fun observeRecitationLists(changed: () -> Unit): Job = viewModelScope.launch {
         val observerScope = this
         var observer: AutoCloseable? = null

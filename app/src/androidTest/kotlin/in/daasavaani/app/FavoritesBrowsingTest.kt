@@ -4,6 +4,7 @@ import android.os.Looper
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.ViewModelProvider
@@ -135,86 +136,101 @@ class FavoritesBrowsingTest {
                 real = LyricPreviewViewModel(activity.application, source)
                 activity.setContent { MaterialTheme { LibraryScreen(library, real) } }
             }
-            compose.waitUntil(10000) { library.state.value.personal != null && !library.state.value.saving }
-            compose.onNodeWithText(context.getString(R.string.favorites)).performClick()
-            more(); more()
-            compose.onNodeWithTag("favorites-results").performScrollToNode(hasText(id(999)))
-            compose.onNodeWithText(id(999)).assertExists()
-            assertEquals(0, source.requests)
-            openTitle(999)
-            assertEquals(id(999), real.state.value.pendingLyricId)
-            compose.onNodeWithTag("back-to-favorites").assertIsDisplayed()
-            scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-            count(total + 2, total + 2)
-            assertEquals(before, library.state.value.personal)
-            assertEquals(0, source.requests)
-            compose.onNodeWithTag("favorites-filter").performTextInput("synthetic")
-            count(0, 0)
-            assertEquals(0, source.requests)
-            compose.onNodeWithTag("favorites-filter").performTextClearance()
-            count(page, total + 2)
-            scenario.onActivity { real.load() }
-            compose.waitUntil(10000) { real.state.value.prepared != null }
-            scenario.onActivity { real.query("[001]") }
-            compose.onNodeWithTag("favorites-filter").performTextInput("[")
-            count(page, total)
-            more(); more()
-            count(total, total)
-            compose.onNodeWithText(context.getString(R.string.settings)).performClick()
-            compose.onNodeWithText(context.getString(R.string.favorites)).performClick()
-            count(total, total)
-            val position = openTitle(total)
-            compose.onNodeWithTag("lyric-preview").performScrollToNode(hasTestTag("lyric-text"))
-            compose.waitUntil(10000) { library.state.value.personal?.recentHistory?.entries?.isNotEmpty() == true && !library.state.value.saving }
-            assertEquals(listOf(PersonalReference.lyric(id(total))), library.state.value.personal!!.recentHistory.entries)
-            scenario.onActivity { library.changeReading(direction = 1); library.changeReading(density = "compact") }
-            compose.waitUntil(10000) { !library.state.value.saving && library.state.value.personal?.reading?.density == "compact" }
-            compose.onNodeWithTag("back-to-favorites").performClick()
-            count(total, total)
-            assertEquals("[", real.state.value.favoritesQuery)
-            assertEquals("[001]", real.state.value.query)
-            assertEquals(position, compose.onNodeWithTag("favorites-results").fetchSemanticsNode()
-                .config[SemanticsProperties.VerticalScrollAxisRange].value(), 1f)
-            compose.onNodeWithTag("favorites-filter").performTextReplacement(".*")
-            count(0, 0)
-            compose.onNodeWithText(context.getString(R.string.no_results)).assertExists()
-            compose.onNodeWithTag("favorites-filter").performTextReplacement("SyNtHeTiC")
-            count(page, total)
-            compose.onNodeWithTag("favorites-filter").performTextReplacement("x".repeat(context.resources.getInteger(R.integer.lyric_query_code_points) + 1))
-            compose.waitForIdle()
-            assertTrue(real.state.value.favoritesFailed)
-            assertEquals("SyNtHeTiC", real.state.value.favoritesQuery)
-            count(0, 0)
-            compose.onNodeWithText(context.getString(R.string.no_results)).assertDoesNotExist()
-            compose.onNodeWithTag("favorites-filter").performTextClearance()
-            count(page, total + 2)
-            more(); more()
-            compose.onNodeWithTag("favorites-results").performScrollToNode(hasText(id(999)))
-            compose.onNodeWithText(id(999)).assertExists()
-            assertEquals(total + 1, source.requests)
-            val after = library.state.value.personal!!
-            assertEquals(before.favorites, after.favorites)
-            assertEquals(before.lists, after.lists)
-            assertEquals(before.language, after.language)
-            assertEquals(before.theme, after.theme)
-            assertEquals(before.revision + 3, after.revision)
-            compose.onNodeWithTag("favorites-filter").performTextReplacement("[${total.toString().padStart(3, '0')}]")
-            count(1, 1)
-            openTitle(total)
-            compose.onNodeWithTag("lyric-preview").performScrollToNode(hasTestTag("lyric-text"))
-            compose.waitForIdle()
-            scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-            count(1, 1)
-            compose.onNodeWithTag("favorites-results").performScrollToNode(hasText(title(total)))
-            compose.onNode(hasText(context.getString(R.string.remove_favorite)) and
-                hasAnyAncestor(hasTestTag("favorite-lyric-${id(total)}"))).performClick()
-            compose.waitUntil(10000) { library.state.value.personal?.favorites?.size == total + 1 && !library.state.value.saving }
-            count(0, 0)
-            compose.onNodeWithTag("favorites-filter").performTextClearance()
-            count(page, total + 1)
-            more(); more()
-            count(total + 1, total + 1)
-            scenario.onActivity { real.cancel() }
+            val diagnosticState = {
+                val state = real.state.value
+                "section=${library.state.value.section} saving=${library.state.value.saving} " +
+                    "prepared=${state.prepared != null} loading=${state.loading} failed=${state.failed} " +
+                    "completed=${state.completed} total=${state.total} requests=${source.requests}"
+            }
+            diagnosticUiCase("FavoritesBrowsing-independentLiteralFilter", diagnosticState) {
+                compose.waitUntil(10000) { library.state.value.personal != null && !library.state.value.saving }
+                compose.onNodeWithText(context.getString(R.string.favorites)).performClick()
+                more(); more()
+                compose.onNodeWithTag("favorites-results").performScrollToNode(hasText(id(999)))
+                compose.onNodeWithText(id(999)).assertExists()
+                assertEquals(0, source.requests)
+                openTitle(999)
+                assertEquals(id(999), real.state.value.pendingLyricId)
+                compose.onNodeWithTag("back-to-favorites").assertIsDisplayed()
+                scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+                count(total + 2, total + 2)
+                assertEquals(before, library.state.value.personal)
+                assertEquals(0, source.requests)
+                compose.onNodeWithTag("favorites-filter").performTextInput("synthetic")
+                count(0, 0)
+                assertEquals(0, source.requests)
+                compose.onNodeWithTag("favorites-filter").performTextClearance()
+                count(page, total + 2)
+                scenario.onActivity { real.load() }
+                diagnosticUiWait("Favorites-prepared", diagnosticState) {
+                    compose.waitUntil(10000) { real.state.value.prepared != null }
+                }
+                scenario.onActivity { real.query("[001]") }
+                compose.onNodeWithTag("favorites-filter").performTextInput("[")
+                count(page, total)
+                more(); more()
+                count(total, total)
+                compose.onNodeWithTag("favorites-filter").performTextInputSelection(TextRange(0))
+                count(total, total)
+                compose.onNodeWithText(context.getString(R.string.settings)).performClick()
+                compose.onNodeWithText(context.getString(R.string.favorites)).performClick()
+                count(total, total)
+                val position = openTitle(total)
+                compose.onNodeWithTag("lyric-preview").performScrollToNode(hasTestTag("lyric-text"))
+                compose.waitUntil(10000) { library.state.value.personal?.recentHistory?.entries?.isNotEmpty() == true && !library.state.value.saving }
+                assertEquals(listOf(PersonalReference.lyric(id(total))), library.state.value.personal!!.recentHistory.entries)
+                scenario.onActivity { library.changeReading(direction = 1); library.changeReading(density = "compact") }
+                compose.waitUntil(10000) { !library.state.value.saving && library.state.value.personal?.reading?.density == "compact" }
+                compose.onNodeWithTag("back-to-favorites").performClick()
+                count(total, total)
+                assertEquals("[", real.state.value.favoritesQuery)
+                assertEquals("[001]", real.state.value.query)
+                assertEquals(position, compose.onNodeWithTag("favorites-results").fetchSemanticsNode()
+                    .config[SemanticsProperties.VerticalScrollAxisRange].value(), 1f)
+                compose.onNodeWithTag("favorites-filter").performTextReplacement(".*")
+                count(0, 0)
+                compose.onNodeWithText(context.getString(R.string.no_results)).assertExists()
+                compose.onNodeWithTag("favorites-filter").performTextReplacement("SyNtHeTiC")
+                count(page, total)
+                compose.onNodeWithTag("favorites-filter").performTextReplacement("x".repeat(context.resources.getInteger(R.integer.lyric_query_code_points) + 1))
+                compose.waitForIdle()
+                assertTrue(real.state.value.favoritesFailed)
+                assertEquals("SyNtHeTiC", real.state.value.favoritesQuery)
+                count(0, 0)
+                compose.onNodeWithText(context.getString(R.string.no_results)).assertDoesNotExist()
+                compose.onNodeWithTag("favorites-filter").performTextInputSelection(TextRange(0))
+                count(0, 0)
+                assertTrue(real.state.value.favoritesFailed)
+                compose.onNodeWithTag("favorites-filter").performTextClearance()
+                count(page, total + 2)
+                more(); more()
+                compose.onNodeWithTag("favorites-results").performScrollToNode(hasText(id(999)))
+                compose.onNodeWithText(id(999)).assertExists()
+                assertEquals(total + 1, source.requests)
+                val after = library.state.value.personal!!
+                assertEquals(before.favorites, after.favorites)
+                assertEquals(before.lists, after.lists)
+                assertEquals(before.language, after.language)
+                assertEquals(before.theme, after.theme)
+                assertEquals(before.revision + 3, after.revision)
+                compose.onNodeWithTag("favorites-filter").performTextReplacement("[${total.toString().padStart(3, '0')}]")
+                count(1, 1)
+                openTitle(total)
+                compose.onNodeWithTag("lyric-preview").performScrollToNode(hasTestTag("lyric-text"))
+                compose.waitForIdle()
+                scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+                count(1, 1)
+                compose.onNodeWithTag("favorites-results").performScrollToNode(hasText(title(total)))
+                compose.onNode(hasText(context.getString(R.string.remove_favorite)) and
+                    hasAnyAncestor(hasTestTag("favorite-lyric-${id(total)}"))).performClick()
+                compose.waitUntil(10000) { library.state.value.personal?.favorites?.size == total + 1 && !library.state.value.saving }
+                count(0, 0)
+                compose.onNodeWithTag("favorites-filter").performTextClearance()
+                count(page, total + 1)
+                more(); more()
+                count(total + 1, total + 1)
+                scenario.onActivity { real.cancel() }
+            }
         }
         PersonalStore(context).use { store ->
             assertEquals(before.favorites - PersonalReference.lyric(id(total)), store.load().favorites)

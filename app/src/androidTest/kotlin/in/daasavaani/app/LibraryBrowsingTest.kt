@@ -3,6 +3,7 @@ package `in`.daasavaani.app
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.ViewModelProvider
@@ -134,6 +135,9 @@ class LibraryBrowsingTest {
             compose.onNodeWithTag("owner-lyrics").performClick()
             filter("SyNtHeTiC")
             more(); more(); count(total, total)
+            compose.onNodeWithTag("lyric-filter").performTextInputSelection(TextRange(0))
+            count(total, total)
+            assertEquals(3, real.state.value.pages)
             scenario.onActivity { real.favoritesQuery("[001]"); real.moreFavorites() }
             filter("[")
             count(page, total)
@@ -146,12 +150,25 @@ class LibraryBrowsingTest {
             filter("tag-not-title"); count(0, 0)
             filter(id(1)); count(0, 0)
             filter("synthetic"); more()
-            filter("x".repeat(context.resources.getInteger(R.integer.lyric_query_code_points) + 1))
-            assertTrue(real.state.value.failed)
-            assertTrue(real.state.value.queryFailed)
-            assertEquals("synthetic", real.state.value.query)
-            count(0, 0)
-            compose.onNodeWithText(context.getString(R.string.no_results)).assertDoesNotExist()
+            fun queryState(state: LyricPreviewState) =
+                "query=${state.query} visible=${state.visible.size} failed=${state.failed} " +
+                    "queryFailed=${state.queryFailed} loading=${state.loading} pages=${state.pages} requests=${source.requests}"
+            diagnosticUiCase("Library-invalid-query", { queryState(real.state.value) }) {
+                filter("x".repeat(context.resources.getInteger(R.integer.lyric_query_code_points) + 1))
+                assertTrue(real.state.value.failed)
+                assertTrue(real.state.value.queryFailed)
+                assertEquals("synthetic", real.state.value.query)
+                count(0, 0)
+                compose.onNodeWithText(context.getString(R.string.no_results)).assertDoesNotExist()
+                compose.onNodeWithTag("lyric-filter").performTextInputSelection(TextRange(0))
+                count(0, 0)
+                assertTrue(real.state.value.queryFailed)
+                filter("[001]"); count(1, 1)
+                filter("[002]"); count(1, 1)
+                assertEquals("[002]", real.state.value.query)
+                assertEquals(id(2), real.state.value.visible.single().lyricId)
+                assertFalse(real.state.value.queryFailed)
+            }
             scenario.onActivity { real.query("\uD800") }
             assertTrue(real.state.value.queryFailed)
             filter("")

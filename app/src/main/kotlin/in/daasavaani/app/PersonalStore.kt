@@ -25,6 +25,7 @@ data class PersonalSnapshot(
     val recentHistory: RecentHistory = RecentHistory(),
     val reading: ReadingPreferences = ReadingPreferences(),
     val learning: List<LearningAssignment> = emptyList(),
+    val recitation: RecitationPositionV1 = RecitationPositionV1(),
 ) {
     // Process-local write fence; deliberately not part of the durable record or equality.
     var epoch: String = ""
@@ -54,8 +55,8 @@ class PersonalStore(
         else SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY) {
             throw PersonalFailure(R.string.personal_invalid)
         }.use { db ->
-            if (db.version > 6) throw PersonalFailure(R.string.personal_future)
-            if (db.version !in 1..6) throw PersonalFailure(R.string.personal_invalid)
+            if (db.version > 7) throw PersonalFailure(R.string.personal_future)
+            if (db.version !in 1..7) throw PersonalFailure(R.string.personal_invalid)
             checkSchema(db.version) { db.rawQuery(it, null) }
             if (db.version < 3) validateOld(db.version) { db.rawQuery(it, null) }
             else {
@@ -112,6 +113,16 @@ class PersonalStore(
                         if (storedBytes(snapshot, 5) > maxBytes) capacity()
                         validate(snapshot)
                         db.execSQL("CREATE TABLE learning (kind TEXT NOT NULL, value TEXT NOT NULL, label TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(kind, value))")
+                    }
+                }, object : Migration(6, 7) {
+                    override fun migrate(db: SupportSQLiteDatabase) {
+                        checkSchema(6, db::query)
+                        checkCounts(6, db::query)
+                        val snapshot = readRaw(db::query, 6)
+                        if (storedBytes(snapshot, 6) > maxBytes) capacity()
+                        validate(snapshot)
+                        db.execSQL("ALTER TABLE preferences ADD COLUMN recitationListId TEXT")
+                        db.execSQL("ALTER TABLE preferences ADD COLUMN recitationEntryId TEXT")
                     }
                 })
             .enableMultiInstanceInvalidation()
@@ -173,8 +184,20 @@ class PersonalStore(
                 if (size !in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) invalid()
                 ReadingPreferences(size.toInt(), c.getString(c.getColumnIndexOrThrow("readingDensity")))
             }
+            val recitation = if (version < 7) RecitationPositionV1() else {
+                fun pointer(key: String): String? {
+                    if (c.isNull(c.getColumnIndexOrThrow(key))) return null
+                    string(c, key)
+                    return c.getString(c.getColumnIndexOrThrow(key))
+                }
+                val list = pointer("recitationListId")
+                val entry = pointer("recitationEntryId")
+                if ((list == null) != (entry == null)) invalid()
+                RecitationPositionV1(list?.let { ExactRecitationPosition(it, requireNotNull(entry)) })
+            }
             PersonalSnapshot(c.getString(c.getColumnIndexOrThrow("language")), c.getString(c.getColumnIndexOrThrow("theme")),
-                revision = c.getLong(c.getColumnIndexOrThrow("revision")), recentHistory = RecentHistory(enabled), reading = reading)
+                revision = c.getLong(c.getColumnIndexOrThrow("revision")), recentHistory = RecentHistory(enabled),
+                reading = reading, recitation = recitation)
         }
         val favorites = linkedSetOf<PersonalReference>()
         query("SELECT * FROM favorites ORDER BY position").use { c ->
@@ -235,7 +258,7 @@ class PersonalStore(
     private fun read(db: PersonalDatabase): PersonalSnapshot {
         // Raw reads also check SQLite storage classes and positions, not just Room coercions.
         val raw = db.openHelper.readableDatabase
-        checkCounts(6, raw::query)
+        checkCounts(7, raw::query)
         val records = db.records().preferences()
         if (records.size != 1) invalid()
         val p = records.single()
@@ -250,8 +273,10 @@ class PersonalStore(
                 .map { Occurrence(it.id, ListEntry(it.kind, it.videoId, it.fallback, it.text, it.lyricId)) }) },
             RecentHistory(p.recentHistoryEnabled, db.records().recents().map { PersonalReference(it.kind, it.value) }),
             ReadingPreferences(p.lyricFontSizeSp, p.readingDensity),
-            db.records().learning().map { LearningAssignment(PersonalReference(it.kind, it.value), it.label) })
+            db.records().learning().map { LearningAssignment(PersonalReference(it.kind, it.value), it.label) },
+            RecitationPositionV1(p.recitationListId?.let { ExactRecitationPosition(it, p.recitationEntryId ?: invalid()) }))
             .apply { epoch = this@PersonalStore.epoch }
+        if (p.recitationListId == null && p.recitationEntryId != null) invalid()
         if (favorites.map { it.position } != favorites.indices.toList() ||
             lists.map { it.position } != lists.indices.toList() ||
             grouped.keys.any { it !in listIds } ||
@@ -266,7 +291,8 @@ class PersonalStore(
                     val column = c.getColumnName(i)
                     val integer = column in setOf("revision", "position", "recentHistoryEnabled", "lyricFontSizeSp") || (table == "preferences" && column == "id")
                     if (c.getType(i) != (if (integer) Cursor.FIELD_TYPE_INTEGER else Cursor.FIELD_TYPE_STRING) &&
-                        !(table == "occurrences" && column in setOf("videoId", "lyricId", "fallback", "text") && c.isNull(i))) invalid()
+                        !(table == "occurrences" && column in setOf("videoId", "lyricId", "fallback", "text") && c.isNull(i)) &&
+                        !(table == "preferences" && column in setOf("recitationListId", "recitationEntryId") && c.isNull(i))) invalid()
                     if (column == "recentHistoryEnabled" && c.getLong(i) !in 0L..1L) invalid()
                     if (column == "lyricFontSizeSp" && c.getLong(i) != p.lyricFontSizeSp.toLong()) invalid()
                     if (table == "preferences" && column == "id" && c.getLong(i) != 1L) invalid()
@@ -280,7 +306,8 @@ class PersonalStore(
 
     private fun validate(snapshot: PersonalSnapshot) {
         if (snapshot.language !in setOf("device", "en", "kn") || snapshot.theme !in setOf("device", "light", "dark", "warm") ||
-            snapshot.revision < 0 || snapshot.favorites.any { !it.valid() } || !snapshot.reading.valid()) invalid()
+            snapshot.revision < 0 || snapshot.favorites.any { !it.valid() } || !snapshot.reading.valid() ||
+            !snapshot.recitation.valid()) invalid()
         if (snapshot.recentHistory.entries.size > PersonalPolicy.maxRecents) capacity()
         if (!snapshot.recentHistory.valid()) invalid()
         if (snapshot.learning.size > maxLearningLabels || snapshot.learning.size > PersonalPolicy.maxLearningLabels) capacity()
@@ -388,8 +415,17 @@ class PersonalStore(
             before.copy(recentHistory = history)
         }
 
+    @Synchronized fun rememberRecitation(expected: PersonalSnapshot, list: RecitationList, entryId: String,
+        checkActive: () -> Unit = {}): PersonalSnapshot =
+        transact(expected.revision, expected.epoch, noOp = true, positionOnly = true, checkActive = checkActive) { before ->
+            if (before.lists.find { it.id == list.id } != list) throw PersonalFailure(R.string.personal_stale)
+            if (list.entries.none { it.id == entryId }) invalid()
+            before.copy(recitation = RecitationPositionV1(ExactRecitationPosition(list.id, entryId)))
+        }
+
     private fun transact(revision: Long, expectedEpoch: String, noOp: Boolean = false, readingOnly: Boolean = false,
         learningOnly: Boolean = false,
+        positionOnly: Boolean = false, checkActive: () -> Unit = {},
         operation: (PersonalSnapshot) -> PersonalSnapshot): PersonalSnapshot = guarded {
         val db = open()
         if (expectedEpoch != epoch) throw PersonalFailure(R.string.personal_stale)
@@ -397,6 +433,7 @@ class PersonalStore(
         var listsChanged = false
         db.runInTransaction {
             val before = read(db)
+            checkActive()
             if (before.revision != revision) throw PersonalFailure(R.string.personal_stale)
             val candidate = operation(before)
             if (noOp && candidate == before) {
@@ -408,6 +445,13 @@ class PersonalStore(
             validate(after)
             listsChanged = before.lists != after.lists
             val dao = db.records()
+            if (positionOnly) {
+                val pointer = requireNotNull(after.recitation.position)
+                dao.updateRecitation(pointer.listId, pointer.entryId, after.revision)
+                result = read(db)
+                checkActive()
+                return@runInTransaction
+            }
             if (learningOnly) {
                 dao.clearLearning()
                 after.learning.forEachIndexed { i, assignment -> dao.insertLearning(PersonalDatabase.Learning().apply {
@@ -449,6 +493,7 @@ class PersonalStore(
     }
 
     private fun <T> guarded(block: () -> T): T = try { block() }
+        catch (error: kotlinx.coroutines.CancellationException) { throw error }
         catch (error: PersonalFailure) { throw error }
         catch (error: IllegalArgumentException) { throw PersonalFailure(R.string.personal_invalid, error) }
         catch (error: IllegalStateException) { throw PersonalFailure(R.string.personal_schema, error) }
@@ -477,8 +522,8 @@ class PersonalStore(
     companion object {
         private val listObservers = CopyOnWriteArraySet<Pair<String, () -> Unit>>()
 
-        fun storedBytes(snapshot: PersonalSnapshot, formatVersion: Int = 6): Int {
-            require(formatVersion in 3..6)
+        fun storedBytes(snapshot: PersonalSnapshot, formatVersion: Int = 7): Int {
+            require(formatVersion in 3..7)
             var bytes = 0L
             fun append(value: String) { bytes += value.toByteArray(Charsets.UTF_8).size }
             fun quote(value: String) = Json.encodeToString(value)
@@ -517,6 +562,13 @@ class PersonalStore(
                 }
                 append("]}")
             }
+            if (formatVersion >= 7) {
+                append(",\"recitation\":{\"position\":")
+                val pointer = snapshot.recitation.position
+                if (pointer == null) append("null")
+                else append("{\"listId\":${quote(pointer.listId)},\"entryId\":${quote(pointer.entryId)}}")
+                append("}")
+            }
             append("}")
             return bytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         }
@@ -543,7 +595,8 @@ class PersonalStore(
                 "favorites" to listOf("kind:TEXT:1:1", "value:TEXT:1:2", "position:INTEGER:1:0"),
                 "preferences" to listOf("id:INTEGER:1:1", "language:TEXT:1:0", "theme:TEXT:1:0", "revision:INTEGER:1:0") +
                     (if (version >= 4) listOf("recentHistoryEnabled:INTEGER:1:0") else emptyList()) +
-                    (if (version >= 5) listOf("lyricFontSizeSp:INTEGER:1:0", "readingDensity:TEXT:1:0") else emptyList()),
+                    (if (version >= 5) listOf("lyricFontSizeSp:INTEGER:1:0", "readingDensity:TEXT:1:0") else emptyList()) +
+                    (if (version >= 7) listOf("recitationListId:TEXT:0:0", "recitationEntryId:TEXT:0:0") else emptyList()),
                 "lists" to listOf("id:TEXT:1:1", "name:TEXT:1:0", "position:INTEGER:1:0"),
                 "occurrences" to listOf("id:TEXT:1:1", "listId:TEXT:1:0", "position:INTEGER:1:0", "kind:TEXT:1:0",
                     "videoId:TEXT:0:0", "lyricId:TEXT:0:0", "fallback:TEXT:0:0", "text:TEXT:0:0"),

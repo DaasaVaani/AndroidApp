@@ -1,5 +1,1050 @@
 # Documentation history
 
+## 2026-10-25: approved browsing-input blocker repair; complete native validation passes
+
+- Owner explicitly broadened the bounded repair scope at02:33 to fix the
+  reproduced browsing blocker while preserving approved search/context behavior.
+  Reverified exact AVDdaasavaani_fixture_api36/serialemulator-5556 and managed
+  launcher51716 -> emulator22544 -> QEMU19920 before use. No restart, alternate
+  renderer, wipe, config/image/dependency change or user-workload action.
+- Replaced String-field feedback at canonical/Favorites input boundaries with
+  AcceptedQueryInput/AcceptedQueryField using the installed TextFieldValue API.
+  The editor preserves selection/composition and accepted text, submits only
+  changed text, and synchronously rereads the current model value after submit.
+  Selection/IME acknowledgement of retained text cannot clear rejection state
+  or restart a query. Its current-value provider reads the live model, rather
+  than resynchronizing from an older rendered snapshot. Owner identity keys
+  fresh editors; existing query validation, matching, bounds and explicit model
+  recovery actions are unchanged. No input-time coroutine/debounce/timeout added.
+  Installed Material3 does not expose the newer state-based outlined API;
+  used existing supported APIs, no dependency upgrade.
+- Canonical/Favorites actual fields share this boundary. New direct adapter
+  regressions cover rejected-input echo, subsequent explicit edits, preserved
+  selection, programmatic current-context restoration and fresh owners without
+  search submission. Existing Library/Favorites device cases now additionally
+  prove selection does not reset expanded pages or rejection state, and real
+  subsequent edits choose the latest identified title. Original reader arrow,
+  Android Back, Settings, independent-filter and fresh-session assertions remain.
+  Removed exploratory flow observer/transition recorder; retained bounded
+  failure-only Library state/screenshot/hierarchy capture.
+- Requirement coverage is bounded SEARCH-11/UX-13 error/input/context behavior
+  and LIB-01 Favorites isolation, with QUAL-05 regression evidence. This is
+  not full linguistic search/SEARCH-15, release/device-parity or complete product
+  gate closure. README now describes current repaired behavior; prior defect/
+  diagnosis records remain in HISTORY as historical evidence only.
+- Focused complete affected classes:
+  `.\gradlew.bat :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.AcceptedQueryInputTest,in.daasavaani.app.LibraryBrowsingTest,in.daasavaani.app.FavoritesBrowsingTest,in.daasavaani.app.LyricPreviewTest" --no-daemon --console=plain --max-workers=1 "-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8" "-Pkotlin.compiler.execution.strategy=in-process"`.
+  PASSED6m6s,72 tasks15 executed/57 up-to-date,12/12 device cases,
+  0 failures/errors/skips. Ran02:39:57–02:46:04+0530.
+- Final `npm run config` PASSED, then exactly:
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain --max-workers=1 "-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8" "-Pkotlin.compiler.execution.strategy=in-process"`.
+  PASSED15m17s,136 tasks29 executed/107 up-to-date; encompassing config/Gradle
+  command02:47:49–03:03:13+0530. All heavy commands ran serially, one worker/
+  1GiB Gradle heap, original test budgets unchanged. Core-only clean preserved
+  the app/build-owned AVD. No final selector, skip, quarantine or retry.
+- Authoritative final XML: fresh54 core tests/12 suites and112/112 device cases,
+  all0 failures/errors/skips. Device total includes every original110 plus2
+  new editor regressions. Original failing Library case now PASSED15.128s;
+  Library reader/Settings/Back context8.252s and paging/new-session24.151s passed.
+  All app variants built, release Kotlin newly compiled, debug compiled during
+  focused run and up-to-date in final run. Both lints completed with existing
+  debug58/release59 warnings,0 errors. Existing SDK XML3-versus4 processing
+  warning remains. App debug JVM tests are NO-SOURCE, not app unit passes.
+- Preserved full final device XML, combined12-suite core XML, count/lint summary,
+  config/Gradle logs and timings under owning-session `files/rec04-query-fix-*`.
+  Focused XML/logs use `rec04-query-fix-focused*`. These are genuine separate
+  successful focused/full runs, not merged earlier partial results. Prior failure
+  capture remains available as proof of the repaired root cause/output delivery.
+- Current repair/evidence paths: README.md, HISTORY.md,
+  app/src/main/kotlin/in/daasavaani/app/AcceptedQueryField.kt (new),
+  app/src/main/kotlin/in/daasavaani/app/LyricPreviewScreen.kt,
+  app/src/main/kotlin/in/daasavaani/app/MainActivity.kt,
+  app/src/androidTest/kotlin/in/daasavaani/app/AcceptedQueryInputTest.kt (new),
+  app/src/androidTest/kotlin/in/daasavaani/app/LibraryBrowsingTest.kt,
+  app/src/androidTest/kotlin/in/daasavaani/app/FavoritesBrowsingTest.kt.
+  Original staged20 tree52465b9a3a6c2dc695c5cf2e59d231797691d486 was kept
+  throughout runtime validation; only this tightly related scope is integrated
+  for final handoff. HEAD79acdb3 and independent Sharedc386 remain unchanged.
+- Intentionally staged exactly the eight listed repair/evidence paths after
+  successful runtime validation, producing25 pending staged paths:17 original
+  staged blobs unchanged, HISTORY/README/Favorites augmented without losing
+  prior work, and5 additional changed paths (including2 new files). No unrelated
+  path or gitlink changed and no work was unstaged. Git emitted only expected
+  working-copy CRLF-to-LF normalization notices during staging.
+- Final `python tools/check_repository.py` PASSED108 tracked files, now including
+  both new files. README's complete Node/YAML unique-key command parsed all5
+  files; `actionlint .github/workflows/hygiene.yml` with installed ShellCheck
+  PASSED. `git diff --check`, `git diff --cached --check` and
+  `git show --format= --check HEAD` all PASSED, every exit0.
+  Outputs in `rec04-query-fix-final-hygiene.log`. There is no CI/local gap in
+  these configured checks; connected112 remains locally validated because the
+  unchanged hygiene workflow does not run device instrumentation.
+- Final actual launcher screenshot healthy, boot-complete1, same system_server701/
+  SystemUI950, responsive activity/package/window and no ANR event. Available
+  3001MiB/commit48%/PagesInput733/s at final snapshot. AVD registry/config hashes
+  unchanged, user5173/PID3840 HTTP200, no Website rebuild. Healthy detached
+  handle `rec04-recovery-emulator` remains for expressly requested continued
+  Android work; other bounded validation helpers finished. No commit/push/PR,
+  merge, main push or deployment. Parent owns review-branch publication after
+  final guard. Runtime/HTTP SLOT RELEASED.
+
+## 2026-10-25: Library failure diagnosed as pre-existing same-value input replay
+
+- Owner authorized bounded precise diagnosis and targeted tests, preserving the
+  pending REC-04 scope and forbidding unrelated pre-existing fixes. No renderer/
+  emulator restart or product behavior change. Before diagnostics, `git rev-parse
+  HEAD:<path>` and `git hash-object <path>` matched for all three relevant files:
+  LibraryBrowsingTest `fc0e7c7b200bb154627ce050a36b7d58dbd77b8d`,
+  LyricPreviewViewModel `e69bc7e43a26ccad3edbca486e4679790243d995`,
+  LyricPreviewScreen `cd64d2f5b67b30602766cca2ebc3c4a7f8f25744`.
+  Their query producer/render/test behavior predates the pending REC-04 changes.
+- Added only test diagnostics to the existing invalid-query block: observe
+  synthetic query/visible/error/page/loading/request transitions while mounted,
+  log submission timing and invoke the existing failure-only capture before
+  ActivityScenario cleanup. Observer is cancelled in finally. No new test,
+  assertion change, sleep, readiness wait/budget change or production dependency.
+  Existing query limit128 still sends129 characters in the same assertion flow.
+- Exact one-method evidence command:
+  `.\gradlew.bat :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.LibraryBrowsingTest#literalIndependentQueriesResetExpansionAndRejectInvalidWithoutFalseNoMatch" --no-daemon --console=plain --max-workers=1 "-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8" "-Pkotlin.compiler.execution.strategy=in-process"`.
+  Ran02:21:39–02:25:45+0530, FAILED4m4s,72 tasks7 executed/65 up-to-date.
+  Instrumentation Kotlin compilation succeeded; exactly1 device test executed,
+  0 passed/1 failed/0 errors/skips, case29.557s including postfailure capture.
+  This authorized diagnostic selector is not final full validation or a retry
+  represented as a pass.
+- Precise reproduced state trace, elapsed realtime in milliseconds:
+  initial1537831 query=synthetic/visible41/failed=false/queryFailed=false/pages2;
+  rejected1539179 same accepted query/visible0/failed=true/queryFailed=true/pages1;
+  replay1539544 same query/visible41/failed=false/queryFailed=false/pages1.
+  Thus365ms after actual rejection the model itself changed, not merely a stale
+  semantics node or rendering/idle lag. Requests remained42 and loadingfalse:
+  no new preparation/network work. The expected0/0 versus actual20/41 assertion
+  failed again.
+- Static producer trace explains the reset: invalid-query catch in
+  LyricPreviewViewModel retains the accepted query while clearing visible results;
+  LyricPreviewScreen feeds that retained text back to its controlled field and
+  unconditionally forwards onValueChange to model.query. Replayed accepted text
+  is treated as a valid new query, restoring all41 results and clearing failure.
+  Apart from preparation (excluded by the trace), query is the visible-result
+  writer; the test performs no new query between rejection and count assertion.
+  Captured IME restart/replay accompanies that transition. This is a pre-existing
+  search-input defect, not a REC-04 departure/write-fence defect or platform ANR.
+  No unrelated product fix or invented same-text recovery semantics was applied
+  under this bounded scope. SEARCH-11/UX-13 input/error/context coverage remains
+  incomplete; REC-04 full-final validation remains blocked.
+- Failure-before-cleanup output persistence is now actually verified:
+  UTP retrieved state.txt7012B, screen.png214763B, hierarchy.xml7482B,
+  queue-art.txt1099B, logcat.txt99076B, gfxinfo.txt4323B; no capture-errors file.
+  Copied the complete directory into owning-session
+  `files/rec04-library-invalid-query-capture`; screenshot viewed successfully
+  after APK cleanup. Captured state agrees with the per-case log and semantics.
+  Full target XML/logcat and console output use
+  `rec04-library-diagnostic-target-*`/`.log`. This verifies the corrected runner
+  output destination for this failure, not recovery of previously lost captures.
+- Final diagnostic change strict check:
+  `.\gradlew.bat :app:lintDebug :app:lintRelease --no-daemon --console=plain --max-workers=1 "-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8" "-Pkotlin.compiler.execution.strategy=in-process"`
+  PASSED3m17s,46 tasks5 executed/41 up-to-date; existing debug58/release59
+  warnings,0 errors. Exact output `rec04-library-diagnostic-lints.log`.
+  No speculative fix/full110 rerun was attempted after a reproduced, precisely
+  identified unrelated blocker. Last complete run remains54 core passed,
+  109/110 device passed with this assertion; diagnostic final set is NOT a
+  successful full final run.
+- README now discloses the current invalid-query replay limitation and accurately
+  describes the instrumented Library block. This batch changes only README.md,
+  HISTORY.md and
+  app/src/androidTest/kotlin/in/daasavaani/app/LibraryBrowsingTest.kt, all unstaged
+  additions to the existing work; original staged20 blobs/tree
+  `52465b9a3a6c2dc695c5cf2e59d231797691d486` and Sharedc386 preserved.
+- Final `python tools/check_repository.py` passed106 files; README's complete
+  Node/YAML command parsed5 files; actionlint with ShellCheck and working,
+  staged and `git show --format= --check HEAD` whitespace checks all exited0.
+  Git additionally warned that the modified test's working-copy CRLF will be
+  normalized to LF when Git next touches it; no whitespace error or staging
+  change. Outputs: `rec04-library-diagnostic-hygiene.log`.
+  Final read-only device check retained boot-complete1/system_server701/
+  SystemUI950 and no ANR event; user5173/PID3840 still listened.
+- Read-only publication workflow evidence: workflow `Repository hygiene`, job
+  id `hygiene`, check name `Bootstrap files and YAML syntax`; all pull requests
+  trigger it, push triggers cover main and validation/** only. No workflow_dispatch
+  or path filter is configured. It runs all-variant builds/JVM/both lints plus
+  repository/YAML/committed-whitespace checks, not connected device tests.
+  No workflow edits, new branch/PR, commit/push, main merge or deployment.
+  Healthy emulator remains approved detached handle `rec04-recovery-emulator`,
+  launcher51716 -> emulator22544 -> QEMU19920, serialemulator-5556; user5173
+  preserved. Other bounded helpers completed. Runtime/HTTP SLOT RELEASED.
+
+## 2026-10-25: recovered native boot; complete validation finds one Library query assertion
+
+- Owner lifted HOLD at01:58 after voluntarily closing host apps and authorized
+  one non-wiping start/full serial validation. Precheck retained HEAD
+  `79acdb3b885c73382714ca8b0dd9b6ad9b39e875`, staged20 tree
+  `52465b9a3a6c2dc695c5cf2e59d231797691d486`, Shared
+  `c386bf8f4d7568350bb0e30bf342290b47e4b885` and prior unstaged HISTORY.
+  No emulator existed; available6062MiB, commit42%, PagesInput0/s.
+- Started the same AVD once at01:59:51+0530 with process-local
+  ANDROID_AVD_HOME=`app/build/owned-avd` and unchanged established CLI:
+  `emulator.exe -avd daasavaani_fixture_api36 -port 5556 -no-snapshot -no-boot-anim -no-audio -gpu swiftshader_indirect`.
+  Managed persistent handle `rec04-recovery-emulator`, launcher51716 ->
+  emulator22544 -> QEMU19920 owns5556/5557 and is retained, now healthy, for
+  expressly requested continued Android work. No wipe, install, persistent
+  config/image/renderer change, alternate-backend attempt or restart loop.
+  Owner's later conditional alternate-backend permission was not needed.
+- Single bounded300s boot observation: system_server701 stable at
+  uptime17.44/27.81/38.75/48.99s; boot-complete1 and all activity/package/window
+  services responsive in the final three samples. SystemUI950, actual launcher
+  screenshot without ANR, empty current-boot ANR event/error excerpts.
+  Boot ID `dfb20ab0-800c-413a-a256-44c4f5b8fcc3`.
+  Initial startup paging8085/s settled in three bounded samples to0/62/11/s,
+  CPU24/3/14%, available2910/2904/2900MiB. User5173/PID3840 HTTP200.
+  Health gate passed; no test timeout/assertion/pre-wait was modified.
+- Ran `npm run config` (exit0), then the complete serial command with existing
+  JDK/SDK and ANDROID_SERIAL=emulator-5556:
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain --max-workers=1 "-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8" "-Pkotlin.compiler.execution.strategy=in-process"`.
+  Core clean intentionally preserved the AVD-containing app/build directory.
+  Gradle FAILED only on connected assertion,14m14s,136 actionable tasks:
+  15 executed/121 up-to-date; enclosing command02:01:38–02:16:05+0530.
+- Fresh core XML:54 tests/12 suites,0 failures/errors/skips.
+  All-variant app build and both lints completed before connected failure;
+  existing debug58/release59 warnings,0 errors. Existing SDK XML3-versus4
+  processing warning remains. App debug JVM test tasks report NO-SOURCE,
+  not application-unit passes; no fabricated app unit count.
+  Complete connected XML:110 executed,109 passed/1 failed,
+  0 errors/skips/unrun; no selectors, retries, quarantine or weakened budgets.
+- All10 RecitationPositionStore and12 ListReciteUi cases passed, including
+  departure fencing; both Favorites cases and all5 ListLinkShare cases passed.
+  Previously failing Favorites preparation now completed1221ms with41 validated
+  items/42 requests. Correct actual `resolver_list` presentation took1993ms,
+  active packagecom.android.intentresolver, then Back return831ms to app,
+  within unchanged10s waits. This demonstrates this run's real chooser readiness,
+  not an acceptance of the earlier intermediate android package.
+- Sole failure: unchanged
+  `LibraryBrowsingTest.literalIndependentQueriesResetExpansionAndRejectInvalidWithoutFalseNoMatch`,
+  duration13.484s, line153 via count helper51. Expected `Showing 0 of 0`,
+  actual semantics `lyric-count`: `Showing 20 of 41`, after oversized-query
+  rejection. Earlier immediate failed/queryFailed/retained-query assertions
+  passed. Per-case logcat shows IME restart/input-connection activity, but
+  does not establish whether model state changed again or collection/render
+  synchronization lagged. This is an actual assertion failure, not an ANR or
+  timeout and not proof of its precise root cause. No speculative product/test
+  workaround, changed assertion, blind rerun or unrelated source change.
+  Next bounded diagnosis needs failure-time query/visible/error state inside
+  the mounted case; existing failure-only helper could provide that without
+  relaxing assertions. Defer unsupported fixes rather than invent correctness.
+- Preserved full XML and failing per-case logcat in owning-session
+  `files/rec04-recovery-device-results.xml` and
+  `rec04-recovery-library-failure-logcat.txt`; configuration/full Gradle logs,
+  former-regression wait logs, startup/final screenshots and readiness evidence
+  use the same `rec04-recovery-*` prefix. This Library case does not currently
+  use the failure-only capture wrapper, so no failure-time screenshot/model
+  terminal-state capture is claimed. Both wrapped cases passed, therefore the
+  corrected failure-output destination's persistence remains unverified.
+- Completed remaining lightweight suites serially after Gradle:
+  `python tools/check_repository.py` passed106 tracked files; README's complete
+  Node/YAML unique-key command parsed all5 files; installed
+  `actionlint .github/workflows/hygiene.yml` with existing ShellCheck passed;
+  `git diff --check` and `git diff --cached --check` passed, all exit0.
+  Exact results in `rec04-recovery-hygiene.log`.
+- Final device still boot-complete1, same system_server701/SystemUI950,
+  all three services responding, no ANR event, actual launcher screenshot healthy;
+  available4098MiB/commit47%/PagesInput0/s. Registry/config hashes unchanged.
+  User5173 remains untouched; no Website rebuild or other-user-process action.
+  Only related HISTORY appended unstaged; staged20/source/pin preserved.
+  No commit/push or ancillary helper. Runtime/HTTP SLOT RELEASED, with explicitly
+  requested healthy emulator retained under the named managed handle.
+  Native publication remains BLOCKED by the single genuine device assertion;
+  previous isolated/full results are not merged into a claimed complete pass.
+
+## 2026-10-25: owner-requested cleanup of bounded-validation emulator
+
+- Owner explicitly requested stopping the unhealthy helper, not another boot,
+  build or code change. Read-only metadata verified
+  `rec04-oct25-emulator`: launcher47336 -> emulator50184 -> QEMU3208,
+  original AVD/port arguments and5556/5557 listeners owned by3208.
+  `adb -s emulator-5556 emu avd name` returned
+  `daasavaani_fixture_api36`/OK before shutdown.
+- Exactly `adb -s emulator-5556 emu kill` gracefully returned
+  `OK: killing emulator, bye bye`, OK, exit0. Bounded process-exit observation
+  confirmed all three owned PIDs absent; managed handle
+  `rec04-oct25-emulator` completed naturally with exit0, so no forced launcher/
+  process termination was necessary. No restart, wipe, snapshot/config/image
+  change or unrelated-process action.
+- At00:28:23+0530, exact owned-PID checks remained empty and no5556/5557
+  listeners remained. User5173/PID3840 still listened;
+  `Invoke-WebRequest http://localhost:5173/demo/latest.json -TimeoutSec 10`
+  returned200. AVD registry/config SHA256 remained respectively
+  448f3ee28c10d503a10a88158336e75241d28f80846e973f9c7af509494a0f93 and
+  e2312215031885704d0bb680a013dddc73eb47df4a0abd4439ab93148a3ded23.
+  Same user data retained; host free RAM4382208kB after shutdown.
+- Staged20 tree remains `52465b9a3a6c2dc695c5cf2e59d231797691d486`;
+  existing source/pin/staging and prior unstaged HISTORY preserved, with only
+  this related cleanup evidence appended. No running owned helper remains.
+  No test/build/restart/commit/push; native full validation/publication remains
+  blocked, not converted into a pass by cleanup.
+
+## 2026-10-25: released runtime slot; single fresh AVD boot blocked by KeyguardService ANR
+
+- Parent released Website validation/runtime/HTTP slot at00:23 after its own
+  complete Website checks. Native alone owns this boot attempt; no Website
+  source/build/browser work or replacement HTTP server was performed.
+  Before boot, unchanged staged20 tree
+  `52465b9a3a6c2dc695c5cf2e59d231797691d486` and Sharedc386 were reverified,
+  no emulator/QEMU existed, user5173/PID3840 listened, host free RAM4942512kB.
+  Preboot CPU snapshots76/89% are observations, not proof of causal attribution.
+- At00:24:12+0530 started the existing installed executable exactly once:
+  `emulator.exe -avd daasavaani_fixture_api36 -port 5556 -no-snapshot -no-boot-anim -no-audio -gpu swiftshader_indirect`,
+  with process-local ANDROID_AVD_HOME pointing to the same native
+  `app/build/owned-avd`. Managed persistent handle `rec04-oct25-emulator`,
+  launcher47336 -> emulator50184 -> QEMU3208 is intentionally retained.
+  Already stopped device required no shutdown/kill. No wipe/recreation,
+  snapshot save/load, image/tool installation, RAM/GPU/config mutation or
+  additional restart occurred.
+- Bounded Python/subprocess adb probes had per-command timeouts and a single
+  300s startup deadline; ordinary10s boot polls, not test retries or changed
+  assertion budgets. `getprop sys.boot_completed`, `pidof system_server`,
+  `service check activity/package/window`, uptime and actual screenshot checked.
+  system_server702 stayed stable at uptime32.59/42.84/53.20/63.57/73.90s;
+  boot-complete1 and all three services responded in the final three samples.
+  New boot ID `cdd28bd8-889d-4785-973c-068b76d297ee`.
+  Top-resumed NexusLauncher alone was not accepted as actual healthy UI:
+  `adb -s emulator-5556 exec-out screencap -p` captured the visible
+  **System UI isn't responding** dialog over launcher. No dialog interaction.
+- Current event at00:25:20.799 and ActivityManager/normal DropBox record prove
+  SystemUI968 ANR: `executing service com.android.systemui/.keyguard.KeyguardService, waited 20086ms`.
+  Bounded `dumpsys -t 5 dropbox --print 2026-10-25 00:25 system_app_anr`
+  succeeded,103519 bytes persisted outside source. Its main thread was Native,
+  stateR, in Binder registerContentObserver through ImmersiveModeConfirmation/
+  SystemUIApplication startup/SystemUIService.onCreate. Captured lifetime
+  schedstat2.186360757s CPU/14.848229496s run-queue wait supports severe startup
+  scheduling delay; do not substitute the previous attempt's managed/Dagger
+  stack or assert a proven deeper Binder/graphics/host cause.
+  ANR guest CPU PSI some-avg10=72.32%, total CPU94%/kernel76%;
+  system_server91% and surfaceflinger67% in the recorded multicore interval.
+  Guest memory PSI some3.60%/full0.36%; I/O some9.26%/full0.50%.
+- Postboot host free RAM682704kB, CPU39%; subsequent available661MiB,
+  PagesInput13789/s/PageReads1478/s, free682440kB. This is concrete low-memory/
+  paging evidence but does not alone prove the ANR's ultimate driver/host cause.
+  Starting memory-heavy Gradle/device work would not satisfy the health gate.
+  Stop without another restart or runtime retry. Minimal remedy requires owner
+  choice: stabilize/isolate host memory pressure and authorize actual-UI health
+  recovery/recheck, or provide an already healthy intended target; no arbitrary
+  process termination or changed emulator/test settings were attempted.
+- Existing HTTP descriptor returned200 using
+  `Invoke-WebRequest http://localhost:5173/demo/latest.json -TimeoutSec 10`;
+  user listener remainedPID3840. Registry/config SHA256 unchanged from precheck;
+  same userdata/overlay preserved. Evidence lives in owning-session
+  `files/rec04-oct25-*`, including `ui.png`, `health.log`, full
+  `systemui-anr.txt`, host-final.log and emulator/start metadata.
+- Available lightweight checks ran without Gradle/device work:
+  `python tools/check_repository.py` passed106 tracked files; README's complete
+  Node/YAML unique-key command parsed all5 files; installed
+  `actionlint .github/workflows/hygiene.yml` with ShellCheck passed; both
+  `git diff --check` and `git diff --cached --check` passed (all exit0).
+  Exact outputs are in `rec04-oct25-hygiene.log`. These do not satisfy the
+  blocked build/core/device/lint gates.
+- Required health gate FAILED before config/Gradle:0 new core/54 expected and
+  0 device/110 expected, all unrun, not skipped/passed. No new all-variant build,
+  lint/warning or app JVM NO-SOURCE results. Corrected chooser/capture behavior
+  remains unverified on device; previous failed runs do not become passes.
+  No native source/pin/staging change, commit or push. Only related HISTORY
+  evidence appended unstaged; retained emulator is the only owned long-lived
+  process, no ancillary helper. Runtime/HTTP SLOT RELEASED; native publication
+  remains blocked by missing required successful final validation.
+
+## 2026-10-25: resumed native validation; read-only precheck awaiting Website slot
+
+- Owner authorized subsequent non-wiping restart/full native validation but
+  explicitly prohibited boot, heavy Gradle and device checks until the parent
+  sends `WEBSITE VALIDATION SLOT RELEASED`. No commit/push by this agent.
+  Read native AGENTS and README validation commands before this precheck.
+- `git status --short`, `git rev-parse HEAD`, `git write-tree`,
+  `git -C shared rev-parse HEAD` and `git diff --stat` confirmed HEAD
+  `79acdb3b885c73382714ca8b0dd9b6ad9b39e875`, unchanged staged20 tree
+  `52465b9a3a6c2dc695c5cf2e59d231797691d486`, independent Shared
+  `c386bf8f4d7568350bb0e30bf342290b47e4b885`, and only prior HISTORY evidence
+  unstaged. No adoption of a newer Shared pin or source change.
+- Read-only `Get-CimInstance Win32_Process` found no emulator/QEMU process;
+  `Get-NetTCPConnection -State Listen` found no5556/5557 listener and preserved
+  user5173/PID3840. Old process IDs/managed handle are obsolete, not reused.
+  Host snapshot00:11:49+0530: CPU76%, free3922008kB of24815196kB;
+  this is not a runtime-health pass or permission to compete with Website.
+- `Get-Item` verified installed emulator/adb/JDK and existing AVD registry,
+  config and userdata/overlay. `Get-FileHash -Algorithm SHA256` confirmed
+  unchanged registry448f3ee28c10d503a10a88158336e75241d28f80846e973f9c7af509494a0f93
+  and confige2312215031885704d0bb680a013dddc73eb47df4a0abd4439ab93148a3ded23.
+  Registry still targetsandroid-36 and the same
+  `app/build/owned-avd/daasavaani_fixture_api36.avd`; overlay3147956224 bytes.
+  No data/config/snapshot mutation or emulator/tool launch.
+- Existing node_modules/yaml and actionlint1.7.12/ShellCheck0.11.0 executables
+  are present under the installed toolchains directory. The latter are not on
+  this shell's PATH; located existing versioned executables read-only rather
+  than installing anything. Initial command discovery returned exit1 for those
+  missing PATH entries; explicit executable discovery succeeded.
+- No config generation, Gradle, JVM/device tests, lint/hygiene suite or browser/
+  HTTP interaction ran. Expected54 core/110 device remain wholly unrun in this
+  batch; no new warning/NO-SOURCE results. No helper started and emulator remains
+  stopped. Waiting for the explicit Website slot release before a fresh health
+  gate and full applicable validation; preserve the AVD-containing app/build
+  directory (use only the intended core clean). This record remains unstaged.
+
+## 2026-10-24: second explicitly authorized host restart; SystemUI startup ANR diagnosed
+
+- Owner's fresh18:12 request authorized one additional non-wiping host restart
+  of the same AVD/serial, with complete validation conditional on actual healthy
+  launcher UI. Verified managed handle `rec04-host-emulator-replacement` was
+  running, old emulatorPID51348/QEMUPID52140 owned ports5556/5557, AVD
+  `daasavaani_fixture_api36`, staged20 tree
+  `52465b9a3a6c2dc695c5cf2e59d231797691d486`, HEAD79acdb3 and Sharedc386.
+  Only prior related HISTORY evidence was unstaged; no external source/index
+  change was found.
+- Armed approved managed persistent replacement before shutdown, then exactly
+  `adb -s emulator-5556 emu kill` succeeded gracefully. No forced/name-based kill,
+  wipe, image/AVD recreation, new dependency, persistent config change or guest
+  reboot was used. Relaunched the identical installed executable, AVD/data disk,
+  port5556 and original `-no-snapshot -no-boot-anim -no-audio -gpu swiftshader_indirect`
+  arguments, with the same four-core/config2G RAM and no new RAM override.
+  New managed handle `rec04-host2-emulator-replacement`, launcherPID16236,
+  emulatorPID23152/QEMUPID42048 intentionally remain as the user's emulator.
+- Boot ID changed to `b97e9cab-a942-4042-a568-a93c5334dfb4`. Boot-complete1,
+  all activity/package/window services and system_serverPID710 persisted across
+  uptime48.24/54.40/60.35s and again128.99s. Activity/window reports showed
+  top-resumed/drawn NexusLauncher. Initial screenshot was a startup transition,
+  not accepted as complete UI readiness. Within the same bounded verification
+  window, actual final screenshot again showed **System UI isn't responding**.
+  Left its Wait/Close app controls untouched. No further restart or long suite
+  followed the failed actual-UI gate.
+- Unlike the prior short filtered log excerpt, bounded current-boot event and
+  exact DropBox records establish the concrete platform failure:
+  `18:15:16.716 am_anr` for PID972/com.android.systemui,
+  `executing service com.android.systemui/.SystemUIService, waited20648ms`.
+  ActivityManager logged the same reason. Its available
+  `2026-10-24 18:15 system_app_anr` record was read via normal dumpsys DropBox,
+  not protected-file/kernel access. `activity lastanr` alone still said none;
+  that absence does not override the actual event/record/screenshot.
+- The captured SystemUI main thread is Runnable, in CommunalViewModel/Dagger
+  construction through SystemUIApplication.startServicesIfNeeded and
+  SystemUIService.onCreate, not application code or a demonstrated sleeping
+  Java-monitor deadlock. Captured schedstat shows2.583262372s CPU execution
+  versus15.945652130s runnable-queue wait during startup. ANR guest CPU PSI
+  some-avg10=84.22%; memory some-avg10=6.70%, full-avg10=0%; I/O
+  some-avg10=15.28%. Guest total CPU was96%, predominantly kernel71–75%;
+  SystemUI itself20%,16% kernel. These establish boot-time SystemUI-service
+  timeout with severe guest scheduling delay before any native app/test ran,
+  not a REC-04 assertion failure.
+- Host/config evidence limits causal claims: before restart16 logical CPUs,
+  total CPU37%, queue0, free2520876kB; installed `emulator.exe -accel-check`
+  reported usable WHPX and existing startup log says its accelerator operational.
+  Same SwiftShader launch logs software-OpenGL failure/fallback and software
+  rendering, but no captured main-thread graphics stack proves that warning
+  caused the ANR. Later host snapshot CPU81%, available2188MiB,
+  PagesInput31229/s/PageReads2984/s showed transient paging; three subsequent
+  samples fell to CPU23/24/30%, queue0, available1938/1953/2061MiB and
+  PagesInput61/0/174 per second. These later samples are not falsely presented
+  as simultaneous proof of the earlier ANR's underlying host/driver cause.
+  SystemUI graphics report18 frames/15 janky (83.33%).
+- Minimal next owner choice is non-destructive authorization to use the
+  existing dialog's Wait after boot load settles and recheck actual UI health,
+  rather than repeating cold boots. If the failure recurs, authorize focused
+  guest-scheduling/graphics diagnosis or another already healthy intended
+  target. No Wait action, host-process termination, GPU/RAM adjustment or
+  access workaround was performed. Exact deeper host/driver cause remains
+  unproven; no product/test source change or timeout relaxation is justified.
+- Registry/config SHA256 remain unchanged, same userdata overlay/path retained
+  and248 installed packages observed. User5173/PID3840 remainedHTTP200 with
+  byte-identical frozen descriptor. Other devices/pages/processes untouched.
+  Metadata, startup/health/diagnosis logs, screenshots and exact available ANR
+  record are in owning-session `files/rec04-host2-*`; decisive UI is
+  `rec04-host2-ui-final.png`, full ANR record
+  `rec04-host2-systemui-anr.txt`.
+- No config/Gradle/unit/connected command ran:0 new core/0 device, all54/110
+  unrun rather than passes/skips. Builds/lints/NO-SOURCE and corrected test/
+  capture behavior were not re-evaluated. Prior failed full/isolated results
+  remain failed. Only related HISTORY evidence is newly unstaged; original
+  staged20/pin preserved. `python tools/check_repository.py` passed106 tracked
+  files; `git diff --check` and `git diff --cached --check` passed. No commit/push.
+  No ancillary helper remains; the
+  explicitly retained managed emulator stays running. Frozen-dist/device/
+  local-HTTP SLOT IS RELEASED.
+
+## 2026-10-24: one authorized host-emulator replacement; visual health blocked
+
+- Owner authorized one non-wiping host-emulator restart and health verification
+  only, not another guest adb reboot or any app tests/build/publication.
+  Read-only metadata identified existing serial emulator5556, AVD
+  `daasavaani_fixture_api36`, emulatorPID35516 and child QEMUPID21012 owning
+  ports5556/5557. Installed executable:
+  `C:\Users\pots\AppData\Local\DaasaVaani\toolchains\android-sdk\emulator\emulator.exe`.
+  Original parent-launch metadata located ANDROID_AVD_HOME at native
+  `app\build\owned-avd`, not the default user's unrelated AVD directory.
+- Confirmed existing registry and data directory
+  `app\build\owned-avd\daasavaani_fixture_api36.avd`, including
+  userdata-qemu.img and its existing qcow2 overlay. Original applicable arguments
+  were exactly `-avd daasavaani_fixture_api36 -port 5556 -no-snapshot -no-boot-anim -no-audio -gpu swiftshader_indirect`.
+  There was no RAM override: preserved config2G/four cores, with generated
+  runtime RAM2560MiB. No persistent configuration/image/AVD change was made.
+- Established approved managed detached replacement before closing anything:
+  shell handle `rec04-host-emulator-replacement`, launcherPID54004. Its receipt
+  confirmed the exact existing QEMU identity and waiting for that process exit.
+  Then `adb -s emulator-5556 emu kill` returned `OK: killing emulator, bye bye`.
+  Graceful close succeeded; no exact-PID fallback or arbitrary/name-based kill
+  was used. The managed launcher started the same installed executable/AVD/
+  port/arguments and existing userdata with transient no-snapshot, without
+  loading or overwriting a snapshot, wiping/recreating data or installing tools.
+- Retained replacement emulatorPID51348, QEMUPID52140, owned ports5556/5557.
+  Old PIDs35516/21012 exited. The managed detached handle was read back and
+  confirmed running; it intentionally remains alive as the user's replacement
+  emulator, not an incidental helper to terminate on return.
+- Registry SHA256 remained
+  `448f3ee28c10d503a10a88158336e75241d28f80846e973f9c7af509494a0f93`;
+  config SHA256 remained
+  `e2312215031885704d0bb680a013dddc73eb47df4a0abd4439ab93148a3ded23`.
+  Same userdata base10158080 bytes and same overlay created2026-10-21 remained;
+  overlay grew3121676288→3129278464 bytes through normal operation, rather than
+  being replaced. After boot248 packages were listed, matching the earlier
+  pre-guest-reboot count; the immediate pre-host-restart package service was
+  absent, so a same-moment package-set comparison/full data-integrity proof is
+  unavailable and not fabricated.
+- Within the single up-to300s verification window, new kernel boot ID
+  `1c38694e-a1c3-4b86-a35c-f2c280451cc3` was observed. Boot-complete1 and
+  system_serverPID698 persisted across uptime45.28/51.15/56.86s with all three
+  required services found; activity dumpsys returned actual top-resumed
+  NexusLauncher. Host free memory2186592kB/24815196kB. Initial screenshot still
+  showed a startup transition, so a boot/service-only preliminary readiness flag
+  was explicitly not accepted as complete visual health.
+- Continued actual UI confirmation within that same original window, without
+  another restart or input: window state reported system-booted/display-enabled
+  and a drawn NexusLauncher surface. Final screenshot visibly shows the launcher
+  and a **System UI isn't responding** dialog. Overall restart health therefore
+  FAILED despite boot-complete/responding services; no test-readiness pass is
+  claimed. Did not press Close app/Wait, dismiss the dialog, send Home/Back or
+  otherwise alter user UI. A bounded event/crash-buffer/lastanr read produced
+  no matching event and `no ANR has occurred since boot`; the screenshot is the
+  direct evidence, and underlying cause is not established by those buffers.
+- Exact process/AVD/config metadata, managed-launch receipt, restart/health logs,
+  preliminary/final actual screenshots and emulator output are retained in
+  owning-session `files/rec04-host-*`. Final UI evidence is
+  `rec04-host-restart-ui-final.png`. User5173/PID3840 remainedHTTP200 with a
+  byte-identical frozen descriptor;4173 had no listener. Other devices/processes/
+  browser pages were not modified. No additional helper/server remains; only
+  the explicitly retained managed replacement emulator continues.
+- No config/Gradle/unit/connected test command ran:0 new core/0 connected.
+  No source/pin/staging change beyond related unstaged HISTORY evidence;
+  staged20 tree remains `52465b9a3a6c2dc695c5cf2e59d231797691d486`, Sharedc386.
+  No commit/push. Further platform remediation or app validation requires owner
+  authorization; no second restart or timing relaxation follows this UI failure.
+  Frozen-dist/device/local-HTTP SLOT IS RELEASED.
+
+## 2026-10-24: bounded passive boot extension still blocked before validation
+
+- Owner authorized up to five additional minutes of passive read-only boot
+  observation on current emulator5556, without another restart, and complete
+  validation only after boot-complete/system-server/service/resource checks.
+  Confirmed the same `daasavaani_fixture_api36` AVD, staged20-path tree
+  `52465b9a3a6c2dc695c5cf2e59d231797691d486`, HEAD
+  `79acdb3b885c73382714ca8b0dd9b6ad9b39e875` and Shared `c386bf8`.
+  Existing unstaged HISTORY evidence was preserved.
+- First snapshot: adb device response0.063s, uptime288.51s, same rebooted kernel
+  boot ID `54d6810f-3530-4b11-9bec-081fe2da8c3f`, system_serverPID768.
+  Boot-complete and boot-animation state remained unset;
+  activity/package/window services were absent and activity dumpsys returned
+  `Can't find service: activity` in0.360s. Host free memory3613296kB.
+- Collected bounded read-only init/process, startup logcat, boot-event/crash
+  buffers and kernel evidence. Zygote, servicemanager, surfaceflinger and apexd
+  reported running. Boot events show progress rather than an established
+  permanently stuck phase: boot_progress_start162647ms, preload214394→250696ms,
+  system_run271823ms, pms_start295498ms, pms_scan_end314052ms and
+  pms_ready317439ms. PackageManager logged system-app scan14797ms, non-system
+  scan475ms and total scan15.357s. `dmesg` returned permission denied; no
+  privilege escalation or alternate kernel-access workaround was attempted.
+- After a212.690s passive wait within the additional five-minute allowance,
+  the single final health snapshot was at uptime551.94s with unchanged kernel
+  boot ID. `sys.boot_completed` and `init.svc.bootanim` were still unset.
+  system_server was nowPID1324; activity/package/window services all existed,
+  and activity dumpsys responded with actual activities in1.093s. Device
+  MemAvailable1715752kB/2531836kB; host free2919360kB/24815196kB.
+  Responsive services do not substitute for the missing required boot-complete
+  signal, so full validation was not started.
+- The system_server PID change occurred autonomously during observation; no
+  second reboot/restart/kill was issued. One bounded terminal crash-buffer read
+  found `10-24 17:54:13.498 PID278 F libc: Unwind request: crash_dump helper
+  failed to exec, or was killed`. That different-PID record does not establish
+  the cause of system_server replacement or attribute a failure to the app.
+  No more boot/service polling or runtime attempt followed the final health
+  gate. Root cause remains unestablished with these limited captures.
+- Actual new execution counts remain0 core/0 connected; all54/110 cases unrun,
+  not passes/skips. No config/Gradle/build/lint/test command, assertion change,
+  timeout extension, retry, wipe, image/configuration update, server/browser
+  operation or source/pin change occurred. Corrected chooser readiness and
+  diagnostic-output persistence remain device-unverified.
+- Exact commands/timings/startup evidence are retained in owning-session
+  `files/rec04-passive-boot-observation.log`. Minimal next owner choice is
+  non-destructive platform startup/system-server diagnosis (with fuller crash/
+  boot evidence if authorized) before granting complete validation; further
+  passive observation, restart or privileged diagnostics requires authorization.
+  No destructive remedy is inferred from this limited crash-dump message.
+- Only related HISTORY evidence is newly unstaged; the original staged20 tree
+  and independent pin remain unchanged. No commit/push or owned helper.
+  Frozen-dist/device/local-HTTP SLOT IS RELEASED.
+
+## 2026-10-24: authorized non-wiping reboot blocked before full validation
+
+- Owner explicitly authorized a normal non-wiping reboot of only current
+  emulator5556 followed by complete validation only if boot and service health
+  were established. Confirmed serial `emulator-5556`, AVD
+  `daasavaani_fixture_api36`, HEAD
+  `79acdb3b885c73382714ca8b0dd9b6ad9b39e875`, staged20-path tree
+  `52465b9a3a6c2dc695c5cf2e59d231797691d486` and independent Shared `c386bf8`.
+  User5173 remained PID3840; no Website build/browser/server operation or other
+  consumer pin change was performed.
+- Issued exactly `adb -s emulator-5556 reboot`, without wipe-data/image/AVD
+  recreation, toolchain update, arbitrary process kill or manual app-data removal.
+  Before reboot, uptime188754.19s, kernel boot ID
+  `2b7ed359-c657-4e6d-93f8-505e47e391d4` and248 installed packages were observed.
+  A bounded180s boot check required adb device state, boot-completed1, stopped
+  boot animation and a changed kernel boot ID; it timed out rather than
+  authorizing a suite on an incompletely booted device.
+- One bounded post-timeout snapshot found adb `device` (0.078s response),
+  uptime174.22s and changed kernel boot ID
+  `54d6810f-3530-4b11-9bec-081fe2da8c3f`, proving the kernel reboot occurred.
+  `sys.boot_completed`, `init.svc.bootanim` and `dev.bootcomplete` were unset;
+  `pidof system_server` returned no PID. Activity/package/window service checks
+  each returned `not found`; `dumpsys -t 5 activity activities` returned
+  `Can't find service: activity` in1.968s. This establishes incomplete framework
+  startup at that observation, not a proven crash/boot-loop or root cause.
+- Host free physical memory was3062776kB/24815196kB; device MemAvailable was
+  2128200kB/2531836kB. Installed-package preservation could not be rechecked
+  because the package service was absent; no successful postboot app/user-data
+  integrity check is fabricated. Reboot used no wiping operation.
+  Existing user5173/PID3840 remained the sole local listener among5173/4173.
+- No config regeneration, Gradle build/lint, unit or connected-suite command
+  was started. New actual execution counts are0 core and0 connected; all54/110
+  cases remain unrun for this attempt, not passes/skips. No failure screenshot/
+  hierarchy capture was triggered; corrected diagnostic-output persistence
+  remains device-unverified. Existing compile/lint evidence and prior failed
+  full/isolated results are not relabeled as post-reboot validation.
+- Stopped after this bounded evidence instead of retrying reboot/health polling
+  or launching the suite. Minimal next owner choice is explicitly authorized
+  longer passive boot/service observation, followed by boot/zygote/crash-log
+  diagnosis if framework services remain absent; no wipe/recreate or second
+  restart is authorized by this record. The complete frozen-source validation
+  still needs healthy services and a fresh grant.
+- Exact reboot/health outputs are retained in owning-session
+  `files/rec04-reboot-final-health.log`. Only this related HISTORY evidence is
+  newly unstaged; staged tree20 and all source/pins remain preserved. No commit
+  or push because the successful-full-suite prerequisite is unmet. No owned
+  helper remains. Frozen-dist/device/local-HTTP SLOT IS RELEASED.
+
+## 2026-10-24: owner-authorized actual chooser presentation test correction
+
+- Owner accepted the isolated diagnostic finding and authorized only a minimal
+  test-correctness fix plus host checks/staging, not device/runtime work or
+  publication. ListLinkShareTest now requires an active external accessibility
+  window containing a visible platform `android:id/resolver_list` before Back.
+  An Android starting window or other external package without actual resolver
+  content cannot satisfy this readiness condition. Uses existing UiAutomation/
+  AccessibilityNodeInfo APIs and platform view IDs, without a new dependency,
+  hardcoded chooser package or application/routing change.
+- FLAG_REPORT_VIEW_IDS is enabled on the first poll inside the same existing
+  `compose.waitUntil(10000)` budget and restored in finally afterward. There is
+  no pre-wait, idle sleep, second observation budget, warming step or retry.
+  Diagnostics now include chooserPresented alongside the observed package.
+  All required existing assertion lines and10000ms-wait counts are preserved:
+  Favorites7 waits, ListLinkShare13; all110 declared test methods remain.
+  This corrects premature Back synchronization, not platform performance:
+  the measured17s658ms chooser presentation still exceeds the unchanged10s
+  budget and would remain a failure rather than a delayed success.
+- Preserved test-only failure capture and the corrected runner
+  `additionalTestOutputDir` destination. The earlier screenshot/hierarchy/queue/
+  ART files were lost during configured UTP cleanup before extraction; only
+  actual logs/state/XML survived. Corrected capture persistence and this new
+  readiness condition have not been exercised on a device and are not claimed
+  to be verified by host compilation.
+- With existing JDK21/SDK36,
+  `.\gradlew.bat :app:compileDebugAndroidTestKotlin :app:lintDebug --no-daemon --console=plain --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8' '-Pkotlin.compiler.execution.strategy=in-process'`
+  passed in5m47s,38 actionable tasks,5 executed/33 up-to-date. Instrumentation
+  Kotlin compilation and instrumentation lint analysis executed; debug lint
+  reports58 warnings, zero errors. Existing SDK XML3-versus4 warning remains,
+  no Kotlin compiler warnings. No unit test, device test, release build/lint,
+  config regeneration or complete-suite command was run in this host-only batch.
+- Host hygiene passed: `python tools\check_repository.py` checked106 tracked
+  files after scoped staging; the exact README strict unique-key Node YAML
+  command parsed5 files; installed actionlint1.7.12 with explicit
+  ShellCheck0.11.0 passed `.github\workflows\hygiene.yml`;
+  `git --no-pager diff --check` and `git --no-pager diff --cached --check` passed.
+  Git emitted CRLF-to-LF normalization notices, not check failures.
+  Exact outputs are retained in owning-session
+  `files/rec04-chooser-presentation-hygiene.log`, with build output in
+  `files/rec04-chooser-presentation-compile.log`. User processes, device,
+  servers, dist and native independent Shared `c386bf8` were not touched.
+- Scoped staging integrated only the related README/HISTORY and diagnostic changes in
+  FavoritesBrowsingTest, ListLinkShareTest and new UiFailureDiagnostics.kt,
+  rather than replacing the original17 staged paths:20 staged paths total.
+  Tree comparison confirms no other original staged blob changed. No commit/push;
+  host checks are not final
+  REC-04 acceptance or a release-readiness claim.
+- After the owner's environment remedy and a fresh frozen-dist/device-slot
+  grant, complete validation remains required on the final combined source:
+  `npm run config` then
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8' '-Pkotlin.compiler.execution.strategy=in-process'`,
+  with all54 core and all110 connected cases, both app variants/full lints and
+  all documented ancillary checks. Earlier full108/110 and isolated1/2 results
+  stay failed; no result merging, skip/quarantine or timeout extension is allowed.
+
+## 2026-10-24: authorized one-shot isolated diagnostics for the two failed methods
+
+- Owner granted only the exact two methods from the failed XML on current
+  emulator5556, frozen dist and existing user5173. Initial and post-compilation
+  read-only checks found the same system_serverPID24454 and responding
+  activity/package/window services; HTTP200 descriptor bytes matched frozen
+  dist. No reboot/restart, manual data wipe, process kill, new server, browser
+  operation, Shared pin change or Website build was performed.
+- Added unstaged test-only `UiFailureDiagnostics.kt` and diagnostics around the
+  two existing method bodies/waits in FavoritesBrowsingTest/ListLinkShareTest.
+  Timing/state logs do not change predicates, assertions, routing,10000ms
+  budgets or test count110. Failure capture runs inside the mounted scenario
+  before cleanup, with state, bounded hierarchy, screenshot, main queue/stack,
+  ART stats, logcat and app graphics stats; no capture work runs on success.
+  README describes the current capture location and isolated-validation limit.
+- Existing JDK21/SDK36:
+  `.\gradlew.bat :app:assembleDebugAndroidTest :app:lintDebug --no-daemon --console=plain --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8' '-Pkotlin.compiler.execution.strategy=in-process'`
+  compiled diagnostic instrumentation and passed strict debug lint in6m44s,
+  63 actionable tasks,11 executed/52 up-to-date. Debug lint remained58 warnings,
+  zero errors; instrumentation Java was NO-SOURCE. Existing SDK XML3-versus4
+  warning remained, no Kotlin compiler warnings. No unit tests were selected.
+- Executed the authorized isolated selector exactly once, ANDROID_SERIAL=
+  emulator-5556:
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.FavoritesBrowsingTest#independentLiteralFilterResetUnknownsReturnAndSuccessfulOpenHistory,in.daasavaani.app.ListLinkShareTest#actualSystemChooserBackRetainsSnapshotLinkFallbacksAndPersonalState' --no-daemon --console=plain --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8' '-Pkotlin.compiler.execution.strategy=in-process'`.
+  BUILD FAILED in11m34s,72 actionable tasks,2 executed/70 up-to-date. Actual
+  XML schedules/executes exactly2 methods:1 passed,1 failed, zero errors/skips/
+  unrun, no retries or whole-class/full-suite execution.
+- Favorites passed its entire unchanged case in266.277s. The measured complete
+  preparation wait passed in7065ms: started loading=true, failed=false,
+  prepared=false, completed/total0/0, requests0; finished prepared=true,
+  loading=false, failed=false, completed/total41/41, requests42. This remains
+  an in-process synthetic catalog path, not chooser/network work. It does not
+  prove the earlier full-run timeout's missing terminal state or erase it.
+- Chooser failed its return-to-app wait, not the original launch wait, in a
+ 65.680s case. The unchanged generic external-window predicate passed in3298ms
+  at17:22:57.344 with activePackage=`android`; global Back was then dispatched.
+  Return wait started17:22:57.567 and failed17:23:09.810, measured12242ms
+  despite unchanged10000ms budget because accessibility polling may block.
+  Failure state before cleanup: section=transfer, personal=true, working=false,
+  link=true, snapshot=true, message=list_shared, activePackage=`android`.
+  Actual resolver onResume followed at17:23:03.930 and Displayed at17:23:11.613,
+  measured17s658ms after launch. Thus the broad “any external package” predicate
+  accepted an Android system window before the actual chooser was displayed;
+  Back was sent prematurely. This is concrete chooser-readiness synchronization
+  evidence alongside independently measured slow platform response, not proof
+  that the chooser returned to the app or that an app-state mutation occurred.
+- Failure capture logged its directory before scenario cleanup with no capture
+  errors, but its initial app external-files location was deleted by configured
+  UTP `uninstall_after_test:true` cleanup before extraction. Both app/test APK
+  uninstalls are visible in UTP logs; no manual uninstall/wipe was issued.
+  No screenshot, hierarchy or queue/ART capture file was recovered or fabricated.
+  State/timing and runner logcats are preserved. Inspected the actual UTP
+  configuration: its collected `additionalTestOutputDir` is
+  `/sdcard/Android/media/in.daasavaani.app/additional_test_output`. Corrected the
+  helper to require/use that argument and updated README, rather than retaining
+  a misleading ephemeral output location.
+- Reran only the same compile/debug-lint command after that capture-location
+  correction: passed7m16s,63 tasks,9 executed/54 up-to-date;58 debug warnings,
+  zero errors. This verifies compilation/lint, not corrected on-device capture
+  persistence. No second selector/device run was authorized or attempted.
+- Final focused hygiene: `python tools\check_repository.py` passed105 tracked
+  files; exact README strict unique-key YAML command parsed5 files; installed
+  actionlint1.7.12/ShellCheck0.11.0 and both working/staged whitespace commands
+  passed. Git emitted only CRLF-to-LF normalization notices for the two changed
+  test files. Compared with the preserved index, all existing assertion lines
+  and10000ms-wait counts are unchanged (Favorites7 waits; ListLinkShare13);
+  all110 declared instrumentation methods remain. No owned Gradle JVM remained.
+- Exact actual XML, both runner logcats, timing/state interpretation and compile
+  logs are retained in owning-session `files/rec04-isolated-*` files. The original
+  staged17-path tree remains `5786601e13f3a0359cec99ab271779c61440b6d9`;
+  diagnostics, README and related HISTORY additions remain unstaged. No commit
+  or push. No owned server/helper remains; existing user runtime is preserved.
+  Device/local-HTTP/frozen-dist SLOT IS RELEASED.
+- This is evidence gathering, not complete final validation. The prior full
+ 54-core/108-of110-device result stays failed; do not merge selected passes into
+  a fabricated full-suite pass. Parent must authorize any readiness-predicate
+  correction and fresh device/full validation. Any correction should establish
+  actual chooser visibility before Back while preserving10s budgets, real
+  system-chooser coverage and all existing state/return assertions.
+
+## 2026-10-24: bounded captured-artifact diagnosis of the two failed UI cases
+
+- Parent authorized diagnosis of only the Favorites and actual chooser failures,
+  not another device/runtime grant. Inspected their exact test/source flows,
+  actual XML and captured logcats without live device/HTTP/browser access,
+  rerunning tests, changing source or altering the unchanged10000ms budgets.
+  No screenshots were captured by this run; no replacement screenshot or
+  reconstructed terminal UI state is presented as evidence.
+- Favorites failed independently of sharing: generated page size20 makes this
+  case prepare41 synthetic lyrics. Its Source serializes/validates the catalog
+  and items in-process, without HTTP or a chooser. Preparation awaits42
+  Main-thread progress callbacks and publishes `prepared` only after complete
+  verification; the failing line157 checks that actual terminal state, not a
+  stale Compose node or unmounted reader. Captured ART serializer verification
+  delays164–289ms and MessageQueue contention116–263ms overlap preparation.
+  The capture lacks completed/total/failed/cancellation state at the timeout,
+  so it cannot establish that preparation was still loading rather than failed,
+  nor prove an exclusively platform cause. No specific synchronization defect
+  is established that would justify changing its readiness assertion.
+- Chooser launch is established by the external resolver logs. UiAutomation
+  initialized at15:41:27.455, resolver onResume occurred15:41:36.028, and its
+  Displayed event arrived15:41:39.408 with measured12s546ms launch latency.
+  Resolver/resource-lock contention, SurfaceSyncGroup timeouts and skipped
+  frames accompany that delay; MainActivity itself took6s597ms to display.
+  Successful launch is not equivalent to an external active window appearing
+  within10s. Replacing that check with launch acknowledgment, adding a second
+  wait or warming the chooser would change/hide the measured condition, not fix
+  an established app defect. No such change was made.
+- Actual order: Favorites was case7 after AnotherLyric case6; its configured
+  boundary companion then passed as case8 in137.479s. Chooser was case24,
+  immediately after ListInterop, and the first ListLinkShareTest case, before
+  its ActivityMonitor interception cases. Both failures preceded all12
+  ListReciteUi and all10 RecitationPositionStore cases, which passed. Single
+  instrumentationPID3099 and background platform/ART work were shared resource
+  conditions, not a demonstrated REC-04 departure-guard causality.
+- A limitation of failure cleanup is visible: the manually constructed
+  Favorites lyric model is not owned by the Activity ViewModelStore and its
+  explicit `real.cancel()` is after the failing assertion, so its preparation
+  could outlive that failed scenario. The capture does not show whether it did,
+  or establish that it was active at the chooser roughly11minutes later.
+  This possible order/resource coupling is not a proven cause and was not
+  changed as a speculative fix.
+- Full-run evidence remains54/54 core and108/110 connected, with all110 actual
+  connected methods across22 classes executed and no errors/skips/unrun. No
+  further tests were executed during diagnosis. Exact method names, order,
+  durations, status, class counts and selected raw log evidence are retained in
+  owning-session `files/rec04-two-failure-bounded-diagnosis.log`.
+- Disposition: source and17-path index remain unchanged; related HISTORY
+  evidence alone is unstaged. No commit/push, helper or runtime operation.
+  Keep finalization blocked. Parent may choose a responsive isolated intended
+  API36 target or explicitly authorized platform maintenance; a fresh diagnostic
+  grant with actual Favorites terminal-state/dispatcher evidence is needed if
+  that ambiguity persists. No reboot/restart/kill, automatic retry or new full
+  validation was authorized or performed by this investigation.
+
+## 2026-10-24: granted complete REC-04 run blocked by two existing UI timeouts
+
+- Parent explicitly granted the frozen Website dist/device/local-HTTP slot after
+  its fresh137-unit/447-browser pass. Website remained on its own published
+  Shared `b9ed532`; this native work retained independent `c386bf8` without pin
+  adoption. Initial bounded checks found API36 emulator5556 responsive, boot1,
+  system_serverPID24454 and responding activity/package/window services.
+  Existing user5173/PID3840 returnedHTTP200 with the fixture descriptor
+  byte-identical to frozen dist, SHA256
+  `882903345a5d3ce6dca8ecf23980438182c6af215196c6ed3859cec09f0dfe5d`.
+  No helper server, Website build, dist mutation or unrelated browser operation
+  was needed.
+- Executed exactly one complete final attempt, with existing JDK21/SDK36 and
+  ANDROID_SERIAL=emulator-5556: `npm run config` passed;
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8' '-Pkotlin.compiler.execution.strategy=in-process'`
+  ended BUILD FAILED in55m4s solely at connectedDebugAndroidTest;136 actionable
+  tasks,11 executed/125 up-to-date. No test selector, retry, limit reduction or
+  timeout change was used.
+- Fresh clean-core XML:54 tests/12 suites, zero failures/errors/skips.
+  All app variants and both complete lint tasks finished before the connected
+  failure. Actual lint reports retain58 debug/59 release warnings, zero errors;
+  their analyses/reports were UP-TO-DATE. App Kotlin/Java and instrumentation
+  Kotlin were UP-TO-DATE; instrumentation Java was NO-SOURCE. Core compilation
+  executed. App JVM tests remained
+  NO-SOURCE, not a passing app JVM suite. The existing SDK XML3-versus4 warning
+  was emitted, with no Kotlin compiler warnings in this attempt. Internal
+  lintVital/preDebugAndroidTestBuild marker skips were unchanged.
+- Actual connected XML executed all110 cases:108 passed,2 failed, zero
+  errors/skips/unrun; connected test time2878.161s. All10
+  RecitationPositionStoreTest cases and all12 ListReciteUiTest cases passed,
+  including the final blocked-writer background/navigation departure guard.
+  This bounded REC-04 evidence does not override the two failures:
+  `FavoritesBrowsingTest.independentLiteralFilterResetUnknownsReturnAndSuccessfulOpenHistory`
+  timed out at FavoritesBrowsingTest.kt:157 waiting for the synthetic source's
+  prepared catalog; and
+  `ListLinkShareTest.actualSystemChooserBackRetainsSnapshotLinkFallbacksAndPersonalState`
+  timed out at ListLinkShareTest.kt:252 waiting for an external active-window
+  package after Share. Both are existing tests with unchanged10000ms waits.
+- Bounded diagnosis inspected those exact source waits, actual XML and their
+  runner-captured logcats, without rerunning tests. The chooser log records its
+  Displayed event taking12s546ms, plus skipped-frame messages (including914
+  frames in an external process); favorites also records skipped frames. This
+  establishes delayed UI observations, not a proven shared root cause or an
+  app-correctness exemption. No timing/assertion was weakened and no speculative
+  source fix was made. These two asynchronous readiness/chooser observations
+  require investigation before a newly authorized full rerun; no automatic
+  retry or device-maintenance action is authorized by this failure.
+- One post-run bounded check found the same system_serverPID24454, device/boot1,
+  responding services and device MemAvailable1115080kB. User5173/PID3840 still
+  servedHTTP200 with unchanged frozen descriptor;4173 had no listener. Owned
+  Gradle JVMs exited; no helper was started and no process was stopped/rebooted.
+  Original HEAD/index tree remain
+  `79acdb3b885c73382714ca8b0dd9b6ad9b39e875`/
+  `5786601e13f3a0359cec99ab271779c61440b6d9`; only related HISTORY evidence is
+  unstaged. Required successful-full-suite prerequisite was not met, so no
+  commit or push occurred. The frozen-dist/device/local-HTTP SLOT IS RELEASED.
+- Ancillary checks passed105 tracked files, all5 strict unique-key YAML files,
+  installed actionlint1.7.12/ShellCheck0.11.0 and both whitespace checks.
+  Exact outputs are in owning-session files `rec04-granted-final-full.log`,
+  `rec04-granted-final-hygiene.log` and `rec04-granted-final-health.log`.
+  Actual device XML and the two failing runner logcats are also preserved there
+  under the `rec04-granted-final-` prefix. This is failed final validation,
+  not release readiness or closure of the remaining offline/backup gates.
+
+## 2026-10-24: resumed REC-04 host-only validation after device watchdog
+
+- Resumed the authorized unfinished native slice at exact HEAD
+  `79acdb3b885c73382714ca8b0dd9b6ad9b39e875`, staged tree
+  `5786601e13f3a0359cec99ab271779c61440b6d9`,17 staged paths and independent
+  Shared pin `c386bf8f4d7568350bb0e30bf342290b47e4b885`. Preserved that index,
+  implementation, all other worktrees and processes; this evidence is an
+  unstaged HISTORY addition, not a source correction or pin adoption.
+- Initial bounded read-only health checks found emulator5556 reporting `device`,
+  boot-completed1, uptime178697.53s and a responding system_serverPID24454.
+  Activity dumpsys returned and activity/package/window service checks all found
+  their services. Device MemAvailable was1051536kB; host free physical memory
+  was approximately1.2GiB. Former userPID3840 was not present when inspected;
+  no server was started, stopped or replaced and no port/browser/dist was touched.
+  No restart, reboot, kill, connected test or application launch was performed.
+- With the existing JDK21/SDK36, `npm run config` passed, followed by
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon --console=plain --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8' '-Pkotlin.compiler.execution.strategy=in-process'`.
+  BUILD SUCCESSFUL in6m44s;135 actionable tasks,18 executed/117 up-to-date.
+  Clean core compilation and all54 core tests in12 actual XML suites passed,
+  zero failures/errors/skips. Both app variants and the complete instrumentation
+  APK succeeded; app Kotlin/Java and instrumentation Kotlin compilation were
+  UP-TO-DATE, not newly recompiled. All110 declared instrumentation methods
+  remain unexecuted in this resume batch.
+- Both full lint tasks passed: debug58 warnings/release59 warnings, zero errors
+  in the actual XML reports. Release lint analysis executed; report outputs and
+  debug analysis were UP-TO-DATE. This command emitted the existing SDK XML
+  version3-versus4 warning, no new Kotlin compiler warnings. App JVM tests were
+  NO-SOURCE, not a passing app unit suite. Internal preDebugAndroidTestBuild and
+  lintVital marker skips do not replace the successful explicit full lint tasks.
+- `python tools\check_repository.py` passed105 tracked files. The exact README
+  strict unique-key Node YAML command parsed all5 `.github` YAML files.
+  Installed actionlint1.7.12 with explicit installed ShellCheck0.11.0 passed
+  `.github\workflows\hygiene.yml`; both working/staged whitespace checks passed.
+  Full command output is retained in the owning session's
+  `files/rec04-resume-host-build.log` and `files/rec04-resume-hygiene.log`, not
+  in source. The bounded Gradle invocation and its single-use JVM exited.
+- This is host-only final-departure-guard evidence for bounded REC-04, not a
+  connected-suite pass, complete requirement acceptance or release approval.
+  The preceding watchdog-interrupted device result remains a blocker; earlier
+  54-core/110-device passes predate the final guard. Await the parent's explicit
+  frozen-dist/device slot before any further device suite. No commit/push is
+  authorized or performed; durable offline/full-backup and other recorded
+  production gates remain open.
+
+## 2026-10-23: native latest exact position and explicit Continue implementation
+
+- Authorized native-only REC-04 latest-position slice independently adopts published
+  Shared `c386bf8f4d7568350bb0e30bf342290b47e4b885`; no Shared owner-worktree,
+  Website or Library changes. Room/personal accounting advances6→7 with a
+  null-only preserving upgrade; old complete versioned envelopes remain frozen.
+- Superseded current README statements were: “Continue recitation and durable
+  offline lyrics are unimplemented”; “History-disabled traversal leaves the
+  complete personal snapshot unchanged”; “List Recite never creates a schema,
+  preference, latest-position record or durable content cache.” The previous
+  current personal representation was schema6/formatVersion6 ending in
+  `learning:{entries:[typed-reference-with-label]}`, with frozen v3/v4/v5 envelopes.
+  Its REC-03-only session behavior and evidence remain in earlier history.
+  The current README now describes the bounded persisted pair and explicit action,
+  while durable offline content/full backups/Practice/release gates remain open.
+- Initial pre-device command `npm run config` passed.
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon`
+  initially failed during app Kotlin compilation because the new local selection
+  function was nested in a validation callback and a cross-module nullable property
+  could not be smart-cast. Corrected both; no test skip, retry budget or timing
+  allowance was changed.
+- Pre-device final-source validation:
+  `npm run config` and
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest --no-daemon`
+  passed with existing JDK21/SDK36 (135 actionable tasks;33 executed/102
+  up-to-date). Core ran54 tests in12 suites,0 failures/errors/skips. Debug/release
+  builds, both full lints and the complete instrumentation APK compiled;110
+  instrumentation methods are present but have not yet run for this slice.
+  Debug lint reports58 warnings/0 errors; release59 warnings/0 errors, including
+  dependency/update notices, backup-policy/resource/icon warnings. Two existing
+  mixed-type `arrayOf` Kotlin inference warnings remain in migration/creation SQL.
+  App JVM unit-test tasks are NO-SOURCE, not a passing app JVM suite; Gradle's
+  preDebugAndroidTestBuild/lintVital marker tasks are skipped internally, while
+  explicit complete debug/release lint tasks pass.
+- `python tools\check_repository.py` passed105 tracked files.
+  The documented strict unique-key YAML command passed5 workflow/template/config
+  files; installed actionlint1.7.12 with explicit ShellCheck0.11.0 passed
+  `.github\workflows\hygiene.yml`. Both working/staged
+  `git --no-pager diff --check` commands passed. These are pre-device results,
+  not full finalization: connected tests and the complete final rerun await the
+  parent's frozen fresh Website-dist and explicit exclusive device/HTTP-slot
+  grant. No device/adb/HTTP/server access, commit or push has occurred.
+- Parent subsequently granted the frozen Website v8/dist + Sharedc386 fixture/
+  device slot after126 Website units and411 browsers passed. Existing
+  user5173/PID3840 served HTTP200 with a descriptor byte-for-byte equal to the
+  frozen dist; intended emulator5556 reported API36/device. No helper was needed,
+  and neither server/device nor Website outputs were modified.
+- First complete granted command:
+  `npm run config` and
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  ran all110 connected tests:97 passed,13 failed,0 errors/skips (38m27s).
+  All54 core tests/builds/lints passed. Two existing ordinary-reader origin cases
+  exposed a new resume-panel viewport regression; moved that separate panel
+  below ordinary list controls/entries and paired Recite/Edit in one row.
+  Nine new Room cases shared an invalid synthetic placeholder containing forbidden
+  C0 newline/tab; kept its raw spaces/Unicode while removing those disallowed
+  fixture scalars. The SQL-failure UI check tried opening a fresh strict-schema
+  store while its synthetic trigger existed; now drops that trigger before the
+  fresh verification read, retaining the actual failed-write/cursor assertions.
+  The new50000-row/64MiB UI startup exceeded its existing10s wait. Existing
+  configured64MiB/one-byte Room coverage remains unchanged; the UI capacity case
+  independently exercises actual revision-header saturation with a previously
+  usable pair, failed new entry, and same-pair Continue no-op, without reducing
+  configured limits or widening any timing budget. All110 cases remain required.
+- Correction verification command:
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.RecitationPositionStoreTest,in.daasavaani.app.ListReciteUiTest#failedPeerStaleOrSqlWriteDoesNotAdvanceOrReopenAndExplicitRetryKeepsUnrelatedData,in.daasavaani.app.ListReciteUiTest#actualRevisionHeaderCapacityRefusesEntryBeforeModeAndPreservesEveryPersonalRecord,in.daasavaani.app.AnotherLyricUiTest#listFavoriteAndRecentOriginsSurviveRepeatedChoicesSettingsAndOneBack,in.daasavaani.app.ReciteUiTest#collectionAndUnsavedPreviewOriginsRetainedByFirstBackAndSettings' --no-daemon --console=plain`
+  ran14 cases:13 passed/1 failed/0 errors/skips (6m56s). All10 new Room cases,
+  capacity/no-op UI and both original normal-reader contexts passed. The remaining
+  new stale UI test raced active observer initialization, which legitimately
+  refreshed the peer revision before selection. It now performs the same
+  peer-stale assertion before explicit mode entry, where there is no active
+  observer, then separately asserts SQL-failure cursor preservation/retry in mode.
+- `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.ListReciteUiTest#failedPeerStaleOrSqlWriteDoesNotAdvanceOrReopenAndExplicitRetryKeepsUnrelatedData' --no-daemon --console=plain`
+  passed1/1,0 failures/errors/skips (2m25s), with unchanged10s waits.
+- The second complete command (same full config/clean-core/all-variant/both-lint/
+  connected command above) passed all54 core and110 connected cases,0 failures/
+  errors/skips (36m55s;136 actionable tasks,28 executed/108 up-to-date); lints
+  remained58 debug/59 release warnings and0 errors. During that run, direct
+  review found a remaining pending-choice departure gap: staying on the mounted
+  Lists screen after Back did not cancel its coroutine. Added a volatile departure
+  generation and current section/selected-list predicate to both in-transaction
+  cancellation checks. ON_STOP invalidates only pending choices, preserving
+  already active sessions and existing awake cleanup; empty completions ignore
+  departed requests too. Extended the existing SQL/stale connected case with an
+  actual blocked SQLite writer, background/navigation cancellation, unchanged
+  prior complete state and explicit later Continue. Test count remains110.
+  This final tightening still requires targeted and then complete revalidation;
+  the second full pass is not presented as validation of those later edits.
+- Final departure-fence correction verification repeated
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.ListReciteUiTest#failedPeerStaleOrSqlWriteDoesNotAdvanceOrReopenAndExplicitRetryKeepsUnrelatedData' --no-daemon --console=plain`
+  and passed1/1,0 failures/errors/skips (8m6s), including both actual blocked-writer
+  background and navigation cancellation branches. No server/device restart,
+  runner retry or timing-budget change was used.
+- The final complete command was then repeated on the departure-fenced source:
+  `npm run config` passed; `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain`
+  failed after10m22s at07:52:43+05:30. It first logged a device property-fetch
+  `ShellCommandUnresponsiveException`, then started all110 connected cases. The
+  actual XML contains3 cases:2 passed,1 failed during
+  `INSTRUMENTATION_ABORTED: System has crashed`,0 errors/skips;107 cases were not
+  run, not counted as skips or passes. The interrupted case was existing
+  `AnotherLyricUiTest.listFavoriteAndRecentOriginsSurviveRepeatedChoicesSettingsAndOneBack`.
+  This attempt did not finish core tests/all variants/both full lints and is not
+  represented as successful final validation. No test retry, budget widening,
+  server/emulator restart or process kill was performed.
+- Bounded read-only checks at07:55+05:30 found emulator5556 still reporting
+  `device`, boot-completed1, with system-server low-memory and pre-watchdog
+  DropBox metadata. These are observations, not an established root cause.
+  User5173/PID3840 remained the same Python process, returnedHTTP200, and its
+  descriptor still exactly matched the frozen Website dist. No helper was
+  started. The ended native command owns no active device operation. The
+  exclusive localHTTP/frozen-dist/device slot was released with this blocker;
+  source/staging and the exact c386 consumer pin remain preserved, with no
+  commit or push because final validation is incomplete.
+
 ## 2026-10-22: bounded native individual Recite and optional screen awake
 
 - Owner independently authorized this Native-only REC-01/02 batch from

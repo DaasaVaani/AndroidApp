@@ -32,6 +32,8 @@ class LearningStoreTest {
         val before = PersonalStore(context, name).use { seed(it) }
         context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use {
             it.execSQL("DROP TABLE learning")
+            it.execSQL("ALTER TABLE preferences DROP COLUMN recitationListId")
+            it.execSQL("ALTER TABLE preferences DROP COLUMN recitationEntryId")
             it.execSQL("DELETE FROM room_master_table")
             it.version = 5
         }
@@ -58,7 +60,7 @@ class LearningStoreTest {
             assertNotEquals(fence, it.load().epoch)
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use {
-            assertEquals(6, it.version)
+            assertEquals(7, it.version)
         }
     }
 
@@ -66,7 +68,7 @@ class LearningStoreTest {
         val before = v5()
         val frozen = PersonalStore.storedBytes(before, 5)
         val current = PersonalStore.storedBytes(before)
-        assertEquals(frozen + ""","learning":{"entries":[]}""".toByteArray(Charsets.UTF_8).size, current)
+        assertEquals(frozen + ""","learning":{"entries":[]},"recitation":{"position":null}""".toByteArray(Charsets.UTF_8).size, current)
         val bytes = context.getDatabasePath(name).readBytes()
         listOf(frozen - 1, frozen, current - 1).forEach { limit ->
             PersonalStore(context, name, maxBytes = limit).use { store ->
@@ -197,7 +199,7 @@ class LearningStoreTest {
             PersonalStore(context, name).use { store -> failure(R.string.personal_invalid) { store.load() } }
             assertArrayEquals(bytes, context.getDatabasePath(name).readBytes())
         }
-        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 7 }
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 8 }
         bytes = context.getDatabasePath(name).readBytes()
         PersonalStore(context, name).use { store -> failure(R.string.personal_future) { store.load() } }
         assertArrayEquals(bytes, context.getDatabasePath(name).readBytes())

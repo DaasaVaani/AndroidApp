@@ -64,7 +64,8 @@ class ReciteState {
     var active by mutableStateOf(false)
     var controls by mutableStateOf(false)
     internal var release: (() -> Unit)? = null
-    fun exit() { release?.invoke(); active = false; controls = false }
+    @Volatile internal var departure = 0L
+    fun exit() { departure++; release?.invoke(); active = false; controls = false }
 }
 
 @Composable

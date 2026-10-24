@@ -9,7 +9,9 @@ memory-only. Typed lyric/legacy favorites, recitation lists/independent occurren
 and UI language/theme/lyric reading preferences use one durable Room database. Settings offers process-local
 v1/v2 minimal-list preview, confirmed new-list-only import and complete file/link
 export. None of these operations prepares/downloads lyrics. Durable offline
-activation, audio/verse playback, Continue recitation and complete feature parity remain unimplemented.
+activation, audio/verse playback and complete feature parity remain unimplemented.
+Explicit Continue recitation remembers only the latest exact saved-list occurrence,
+not mode, scroll, screen-awake state or content readiness.
 Device-only Recently opened records the latest configured distinct successful
 explicit reader opens, independently of favorites/lists and content preparation.
 Optional device-local self-assigned learning labels use the same personal database.
@@ -45,6 +47,14 @@ also supports Android Back. An available visible originating title regains nativ
 focus. The reader has a separate viewport, so opening it does not consume the
 catalog position. Query edits/ordinary clear reset pages and position; invalid
 queries retain accepted text, clear results and show failure, not a false no-match.
+Canonical and Favorites title inputs preserve selection/composition separately
+from query submission. Only changed text submits a query; selection changes,
+IME acknowledgements of retained text and programmatic context restoration
+do not clear a rejection or reset paging. The editor reads the current accepted
+model value rather than replaying an older rendered query. Rejected input keeps
+the accepted text and failure state until a real edit or explicit model action.
+This is bounded SEARCH-11/UX-13 input/context behavior, not complete linguistic
+search or a change to the approved literal matching and query limits.
 Explicit replacement clamps shortened results to a valid context; it cannot
 promise an unavailable old title/position. A failed preparation retains the active
 catalog and expansion. Session browsing state and prepared content are not saved
@@ -205,7 +215,7 @@ remains usable. Release failure is not reported as off/success. This synchronous
 view adapter has no asynchronous acquisition or pending operation.
 
 The visible Shared notice describes exact list order and explicitly states that
-Continue recitation and durable offline lyrics are unimplemented. This is bounded individual focus, not REC-04,
+Individual focus does not write a recitation position; durable offline lyrics remain unimplemented. This is bounded individual focus, not complete REC-04,
 verse inference, Practice, durable offline readiness, complete power-policy/device
 support or full recitation/release acceptance.
 
@@ -233,11 +243,10 @@ Prepared items reuse individual canonical/fixture text rendering, preserving
 line/layout data, Kannada, typography, density, theme and locale. Explicit
 successful visible reader exposure uses existing bounded distinct history;
 consecutive opens of the same reference remain a history no-op. Missing,
-placeholder or cancelled/unexposed entries create no receipt. History-disabled
-traversal leaves the complete personal snapshot unchanged. Mode, awake and
+placeholder or cancelled/unexposed entries create no successful-open receipt. History-disabled
+traversal changes only the explicit latest occurrence/revision, not history. Mode, awake and
 preference changes do not replay an exposure, including after history clearing.
-List Recite never creates a schema, preference, latest-position record or durable
-content cache.
+List Recite has no durable content cache.
 
 The list owns one focus/awake session across explicit traversal; replacing an
 entry neither exits nor reacquires its optional request. Back/**Exit Recite**
@@ -250,7 +259,7 @@ any changed saved identity/content/order ends Recite with the existing stale-dat
 message, retains a valid selected-list context, and requires explicit fresh
 entry rather than silently continuing/resetting to a different occurrence.
 An active-session Room invalidation observer revalidates external list writes;
-entry, traversal and foreground return also reread the validated personal store.
+entry, traversal and foreground return also validate the complete personal store.
 Scoped same-process post-commit notifications cover a newly opened writer before
 Room's multi-instance service binds; registration also immediately revalidates
 the current snapshot. Both observers are removed on departure. Notifications
@@ -262,10 +271,62 @@ existing bounded complete personal read/validation, O(personal records/text).
 The saved-list snapshot retains occurrences, not copied lyric bodies;
 exact list comparison is O(list entries), canonical lookup
 uses its verified item map and fixture lookup scans the prepared fixture items.
-The additive Shared pin/captions change no personal, publication or fixture
-contracts. Coverage is bounded REC-03/LIB-08–10/UX-13/OFF-10, not REC-04,
+Coverage is bounded REC-03 and the REC-04 latest-position slice/LIB-08–10/UX-13/OFF-10, not complete REC-04,
 durable offline recitation, Practice, audio/video, orientation/fullscreen
 coercion, real-content linguistic proof or release acceptance.
+
+### Latest exact position and explicit Continue
+
+The pinned Shared [position contract](shared/docs/recitation-position.md),
+[schema](shared/schemas/recitation-position.schema.json) and
+[synthetic vectors](shared/fixtures/personal/recitation-position.json) own the
+portable `RecitationPositionV1`: exactly `{position:null|{listId,entryId}}`.
+Both identities are lowercase local UUIDv4 values. There is one latest pair,
+not per-list positions or a typed content reference/index/timestamp/scroll/mode.
+Existing users gain null only; history is never reconstructed into a position.
+
+**Recite list** starts at the first occurrence; each saved occurrence also has an
+explicit **Recite** action. Nonempty starts, explicit entry choices and
+Previous/Next remember the chosen occurrence, including placeholders/unresolved
+references. Starting another list replaces the sole pair; identical selection is
+a no-op. Empty Recite, list viewing/editing, ordinary/individual reading, Settings,
+reading preferences and awake controls neither clear nor replace it.
+
+The saved-list screen displays the local remembered location in a separate panel
+after ordinary controls/entries, preserving their initial viewport and interaction
+order, without preparing or downloading content. **Continue recitation** requires explicit action and the
+existing complete compatible preparation gate. It resolves current list then
+exact occurrence ID: reorder/rename/manual replacement retains identity and uses
+current contents. A missing list or occurrence remains structurally valid and
+saved, with distinct explanations, disabled Continue and normal explicit list/
+entry selection. No equal-reference/first/next/previous fallback or cascading
+clear exists. Duplicate/imported lists have new identities. Launch/restart,
+recreation, foreground and Back never automatically enter; Continue starts awake
+off and does not restore exact scroll. Preparation is still process-local, so a
+restart requires explicit preparation; a saved position is not offline readiness.
+
+Selection validates the latest complete stored list/occurrence inside the same
+revision/epoch-fenced personal transaction, accounting all personal state/header
+overhead. Cursor advancement appears only after commit. Pending/failing/stale/
+cancelled-before-commit/quota writes preserve the previous usable pair and all
+unrelated data, with explicit error/retry. A postcommit departure may retain the
+pair but never reopens departed mode. Position-only receipts update only pointer
+columns/revision. Back, selected-list/section departure and backgrounding invalidate
+pending selection at the same precommit fence; backgrounding alone does not end an
+already active session or reacquire awake on return. Empty-entry completion also
+ignores departed requests. Position-only writes do not change
+lists or editor identities; unrelated/stale drafts are never
+rebased. Active-list changes still conservatively end the current session.
+Successful-open history remains separate typed kind+ID projection after verified
+visible text, never occurrence metadata or preference/wake/position replay.
+
+Resolution is O(lists + selected-list entries). Complete selection validation/
+accounting is O(personal records + bounded text bytes); only a pair, not copied
+lyric content, is persisted. Both minimal-list projections exclude the pair and
+all local identities. Future same-platform full backups must explicitly include
+this record through their versioned personal allowlist/preserving restore
+adapter; full backups, durable snapshots, Practice and full REC-04/XFER-09/release
+conformance remain unimplemented.
 
 - No bundled lyrics. Explicit validated full preparation gates lyrics, not
   Settings/recovery/list preview. Preserve destinations without automatic saving.
@@ -292,9 +353,10 @@ coercion, real-content linguistic proof or release acceptance.
 
 ### Personal schema, transactions and recovery
 
-`personal.db` is the only personal database. Room schema6 has one required
+`personal.db` is the only personal database. Room schema7 has one required
 `preferences` singleton (`id=1`, `language`, `theme`, nonnegative `revision`,
-`recentHistoryEnabled`, `lyricFontSizeSp`, `readingDensity`) and
+`recentHistoryEnabled`, `lyricFontSizeSp`, `readingDensity`, nullable
+`recitationListId`/`recitationEntryId`) and
 `favorites` keyed by `(kind,value)` with explicit positions, ordered `lists` and
 ordered `occurrences`, plus ordered typed `recents` and `learning` keyed by
 `(kind,value)` with `label` and contiguous `position`. Lyric references require canonical lowercase UUIDv4;
@@ -315,15 +377,19 @@ and revision, and creates empty history with the pinned Shared initial preferenc
 No prior opens are reconstructed. The v4→5 migration adds configured native font
 and Shared density defaults without changing prior values or revision.
 The v5→6 migration adds an empty learning collection, never inferring assignments
-from preferences, history, favorites or list occurrences. Every old schema and
-its frozen accounting envelope, plus the prospective complete schema6 envelope,
+from preferences, history, favorites or list occurrences. The v6→7 migration adds
+only a null recitation pair without changing existing preferences, IDs, raw text,
+repetitions, history, labels or revision. Both pointer columns must be null or
+valid lowercase UUIDv4; referential removal is not structural corruption.
+Every old schema and
+its frozen accounting envelope, plus the prospective complete schema7 envelope,
 must validate before mutation.
 Supported v1/v2 inputs chain through these
 same migrations. Each reopened store has a fresh process-local epoch; history
 transactions participate in the existing revision/epoch fences, including pending
 imports and duplicate-name confirmations.
 The actual old schema and records (strict11-character IDs only for v1/v2;
-exact typed IDs for v3/v4/v5/v6) are validated before opening
+exact typed IDs for v3/v4/v5/v6/v7) are validated before opening
 Room and rechecked within the migration transaction. Both old accounting and the
 projected new envelope must fit before migration. These are
 synthetic migration fixtures, not a claim that an earlier production personal schema
@@ -340,13 +406,14 @@ inside one Room transaction. A stale writer must reload before retrying. The cou
 and deterministic UTF8 logical-envelope bounds come from pinned
 `shared/settings/personal-transfer.yml`, including preference/revision/header
 overhead. The compact UTF8 accounting envelope is exactly
-`{formatVersion:6,revision,preferences:{language,theme,lyricFontSizeSp,readingDensity},favorites:[typed-reference],
-lists:[{id,name,entries:[typed-entry-with-id]}],recentHistory:{enabled,entries:[typed-reference]},learning:{entries:[typed-reference-with-label]}}`
+`{formatVersion:7,revision,preferences:{language,theme,lyricFontSizeSp,readingDensity},favorites:[typed-reference],
+lists:[{id,name,entries:[typed-entry-with-id]}],recentHistory:{enabled,entries:[typed-reference]},learning:{entries:[typed-reference-with-label]},recitation:{position:null|{listId,entryId}}}`
 in that field order, using
 `kotlinx.serialization` JSON string quoting and no spaces/BOM. Entries emit
 `kind`, present `videoId`/`lyricId`, present `fallback`/`text`, then `id`.
 Learning entries emit `kind`, the exact `lyricId`/`videoId`, then `label`.
-Empty learning-envelope overhead is counted; v3/v4/v5 accounting remains frozen.
+Empty learning and nullable recitation-envelope overhead is counted;
+v3/v4/v5/v6 accounting remains frozen.
 The epoch is not persisted/accounted and changes when the store closes/reopens.
 Accounting counts UTF8 incrementally without constructing a whole backup string.
 This envelope is storage accounting, not an implemented backup format.
@@ -357,7 +424,9 @@ Room reads group occurrences once by list rather than scanning all occurrences
 per list. Reading changes validate/account the complete snapshot but update only
 the reading preference columns/revision. Learning changes update only the learning
 collection and revision after full validation; unrelated tables are not rewritten.
-Other writes retain whole-snapshot
+Position changes update only the pointer columns/revision after complete
+validation and cancellation fencing; no list-table invalidation is emitted solely
+for an authorized position receipt. Other writes retain whole-snapshot
 replacement. Validation/accounting and replacement are linear in
 favorites + lists + occurrences + recents + learning + bounded JSON/text bytes, apart from SQLite
 ordering/index maintenance and the separately described Unicode name-key work.
@@ -586,7 +655,7 @@ six upstream source identities against Shared settings. Runtime loading verifies
 the packaged profile and data hash; missing/corrupt/unsupported resources fail
 explicitly, with no platform fallback.
 
-Room schema6 stores raw list names, not persisted name keys. Create, rename,
+Room schema7 stores raw list names, not persisted name keys. Create, rename,
 duplicate and import use this profile and explicit independent-reuse confirmation.
 No list is automatically renamed/merged; no cached keys require migration.
 A future persisted-key/profile change still needs a preserving migration.
@@ -637,6 +706,29 @@ git --no-pager diff --cached --check
 
 Set JAVA_HOME to JDK21 and ANDROID_HOME to the SDK with platform/build-tools36.
 Use the existing actionlint/ShellCheck binaries on PATH for workflow checking.
+The Favorites literal-filter/history, actual system-chooser and Library
+invalid-query regression blocks log timing and synthetic state under
+`UiFailureDiagnostics`. The Library block includes the current accepted query,
+error flags and visible-result count.
+Failures inside these instrumented mounted blocks trigger test-only capture of
+state, a bounded accessibility hierarchy, screenshot, main queue/stack, ART stats,
+recent logcat and app graphics stats before scenario cleanup. Outputs are under
+the runner's `additionalTestOutputDir/rec04-isolated-diagnostics/`, collected by
+Gradle under `app/build/outputs/connected_android_test_additional_output/`;
+preserve them in the owning session, not source. The runner output argument is
+required because standard APK cleanup removes app-private external files.
+Capture runs only after failure and never
+extends a readiness wait or substitutes launch acknowledgment for visible UI.
+`AcceptedQueryInputTest` and the browsing regressions cover rejected-input echoes,
+latest explicit edits, restored/fresh input owners and selection changes without
+query, error or paging reset. Existing reader/Settings/Back context cases remain
+required alongside these input regressions.
+An isolated diagnostic selector is not complete validation or publication approval.
+The actual chooser test requires a visible platform `android:id/resolver_list`
+in the active external accessibility window before Back. An external package or
+system starting window alone is not readiness. View-ID reporting is enabled
+inside its unchanged10s observation budget and restored afterward; slow chooser
+presentation still fails rather than gaining a pre-wait or retry.
 Connected tests require an intended API36 emulator selected with ANDROID_SERIAL and
 the Website demo at the endpoint in settings/android.yml. Configuration is generated
 from owned settings and pinned Shared policy. Never target another user's device.
@@ -667,7 +759,15 @@ history disabled/enabled/no-op/clear behavior, functional font/density controls,
 one awake owner across traversal, prior-owner preservation, background/Settings/
 route/recreation cleanup and explicit stale-list/deletion refusal. These are
 current-platform adapter proofs, not physical-device power-policy, real-content,
-full accessibility, durable offline readiness or REC-04 proof.
+full accessibility, durable offline readiness or complete REC-04 proof.
+
+Latest-position synthetic core/Room/Compose cases additionally use all pinned
+structural/resolution vectors and cover sole-pair exact repeated occurrences,
+restart/explicit preparation/Continue, reorder/manual replacement, missing list
+versus occurrence without fallback, empty/no-op behavior, placeholder/unresolved
+choices, typed history isolation, awake-off/context returns, stale peer/error/
+retry/cancellation/SQL failure, frozen v6 migration, exact aggregate UTF8 ceiling
+and one-byte refusal, future/malformed preservation and v1/v2 transfer exclusion.
 
 Reading preference core/Room/Compose cases cover configured default/bounds/step,
 all three density states, no-op revisions, persistence/restart, exact old/current

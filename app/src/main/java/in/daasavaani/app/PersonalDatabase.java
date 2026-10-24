@@ -15,7 +15,7 @@ import java.util.List;
 @Database(entities = {PersonalDatabase.Preference.class, PersonalDatabase.Favorite.class,
         PersonalDatabase.SavedList.class, PersonalDatabase.Entry.class, PersonalDatabase.Recent.class,
         PersonalDatabase.Learning.class},
-        version = 6, exportSchema = true)
+        version = 7, exportSchema = true)
 public abstract class PersonalDatabase extends RoomDatabase {
     public abstract Records records();
 
@@ -28,6 +28,8 @@ public abstract class PersonalDatabase extends RoomDatabase {
         public boolean recentHistoryEnabled;
         public int lyricFontSizeSp;
         @NonNull public String readingDensity = "";
+        @Nullable public String recitationListId;
+        @Nullable public String recitationEntryId;
     }
 
     @Entity(tableName = "favorites", primaryKeys = {"kind", "value"})
@@ -87,6 +89,8 @@ public abstract class PersonalDatabase extends RoomDatabase {
         void updatePreference(String language, String theme, long revision, boolean enabled);
         @Query("UPDATE preferences SET lyricFontSizeSp = :fontSize, readingDensity = :density, revision = :revision WHERE id = 1")
         void updateReading(int fontSize, String density, long revision);
+        @Query("UPDATE preferences SET recitationListId = :listId, recitationEntryId = :entryId, revision = :revision WHERE id = 1")
+        void updateRecitation(String listId, String entryId, long revision);
         @Insert void insertRecent(Recent recent);
         @Query("DELETE FROM recents") void clearRecents();
         @Insert void insertFavorite(Favorite favorite);

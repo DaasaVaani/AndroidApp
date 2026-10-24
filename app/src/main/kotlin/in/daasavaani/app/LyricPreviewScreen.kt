@@ -44,7 +44,8 @@ fun LyricPreviewScreen(model: LyricPreviewViewModel = viewModel(), personal: Per
     }, { summary -> if (summary == null && backToList != null) backToList() else model.select(summary) },
         exposed = { token -> model.exposed(token)?.let(opened) }, reading = personal?.reading ?: ReadingPreferences(),
         more = model::more, browseScroll = browseScroll, another = model::showAnother,
-        catalogBack = backToList == null, recite = recite) { summary ->
+        catalogBack = backToList == null, recite = recite,
+        queryValue = { model.state.value.query }, queryOwner = model) { summary ->
         val reference = PersonalReference.lyric(summary.lyricId)
         Row(horizontalArrangement = Arrangement.spacedBy(integerResource(R.integer.spacing_dp).dp)) {
             OutlinedButton(enabled = canSave, onClick = { favorite(reference) }, modifier = Modifier.weight(1f)) {
@@ -68,6 +69,8 @@ fun LyricPreviewContent(
     another: () -> Unit = {},
     catalogBack: Boolean = true,
     recite: ReciteState = remember(state.selected, state.item) { ReciteState() },
+    queryValue: () -> String = { state.query },
+    queryOwner: Any? = null,
     personalActions: @Composable (LyricSummary) -> Unit = {},
 ) {
     val space = integerResource(R.integer.spacing_dp).dp
@@ -138,8 +141,8 @@ fun LyricPreviewContent(
             }
         } else if (state.prepared != null) {
             item {
-                OutlinedTextField(value = state.query, onValueChange = query, singleLine = true,
-                    label = { Text(stringResource(R.string.lyric_title_filter)) },
+                AcceptedQueryField(queryOwner, queryValue, query,
+                    stringResource(R.string.lyric_title_filter),
                     modifier = Modifier.fillMaxWidth().testTag("lyric-filter"))
                 if (state.visible.isEmpty() && !state.failed && !state.queryFailed) Text(stringResource(R.string.no_results))
                 Text(stringResource(R.string.result_count).replace("{shown}", shown.toString()).replace("{total}", state.visible.size.toString()),

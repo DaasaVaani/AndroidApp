@@ -14,8 +14,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import `in`.daasavaani.core.*
 import java.util.UUID
+import kotlinx.coroutines.launch
 
 private data class ListDraft(val base: PersonalSnapshot, val list: RecitationList, val newOnly: Boolean)
 
@@ -33,6 +37,18 @@ fun ListsScreen(model: LibraryViewModel, lyrics: LyricPreviewState, open: (Perso
     var editing by remember { mutableStateOf<Pair<PersonalSnapshot, Pair<RecitationList, Occurrence?>>?>(null) }
     var session by remember { mutableStateOf<OrderedRecitation?>(null) }
     var stale by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(recite, lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            // Backgrounding cancels pending entry, not an already active session.
+            if (event == Lifecycle.Event.ON_STOP) recite.departure++
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer); recite.exit() }
+    }
+    val resume = personal?.recitation?.resolve(personal.lists)
+    val prepared = state.prepared != null || lyrics.prepared != null
     val currentSession = session
     val validSession = currentSession?.valid(selected) == true && state.personalError == null
     fun verify(active: OrderedRecitation, accept: () -> Unit) {
@@ -42,6 +58,26 @@ fun ListsScreen(model: LibraryViewModel, lyrics: LyricPreviewState, open: (Perso
                     recite.exit()
                     session = null
                     stale = true
+                }
+            }
+        }
+    }
+    fun choose(target: OrderedRecitation, starting: Boolean = false) {
+        val departure = recite.departure
+        val origin = selectedId
+        scope.launch {
+            if (model.rememberRecitation(target.list, requireNotNull(target.current).id) {
+                    recite.departure == departure && model.state.value.section == "lists" &&
+                        model.state.value.selectedListId == origin
+                } &&
+                recite.departure == departure && model.state.value.section == "lists" &&
+                model.state.value.selectedListId == origin && (starting || recite.active)) {
+                model.selectList(target.list.id)
+                session = target
+                stale = false
+                if (starting) {
+                    recite.controls = false
+                    recite.active = true
                 }
             }
         }
@@ -56,15 +92,21 @@ fun ListsScreen(model: LibraryViewModel, lyrics: LyricPreviewState, open: (Perso
     val space = integerResource(R.integer.spacing_dp).dp
     if (recite.active && currentSession != null && validSession) {
         ListReciteScreen(currentSession, recite, state, lyrics, model,
-            previous = { verify(currentSession) { session = currentSession.previous() } },
-            next = { verify(currentSession) { session = currentSession.next() } },
+            previous = { choose(currentSession.previous()) },
+            next = { choose(currentSession.next()) },
             validate = { verify(currentSession) {} })
     } else LazyColumn(Modifier.fillMaxSize().testTag("saved-lists"), state = scrollState, verticalArrangement = Arrangement.spacedBy(space)) {
         item {
             Text(stringResource(R.string.lists), style = MaterialTheme.typography.titleLarge)
+            if (state.rememberingRecitation) Text(stringResource(R.string.recitation_position_saving),
+                Modifier.testTag("position-saving"))
             if (stale) Text(stringResource(R.string.personal_stale), Modifier.testTag("list-recite-stale"),
                 color = MaterialTheme.colorScheme.error)
             state.mutationError?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+            if (state.mutationError != null && state.mutationError != R.string.personal_stale) OutlinedButton(enabled = !state.saving, onClick = {
+                model.clearMutationError()
+                model.retryPersonal()
+            }, modifier = Modifier.testTag("position-retry")) { Text(stringResource(R.string.retry)) }
             if (selected == null) {
                 OutlinedButton(enabled = enabled, onClick = {
                     model.clearMutationError()
@@ -74,14 +116,20 @@ fun ListsScreen(model: LibraryViewModel, lyrics: LyricPreviewState, open: (Perso
             } else {
                 TextButton(onClick = { model.selectList(null) }) { Text(stringResource(R.string.back)) }
                 Text(selected.name, style = MaterialTheme.typography.titleMedium)
-                OutlinedButton(enabled = enabled && (state.prepared != null || lyrics.prepared != null), onClick = {
-                    model.checkRecitationList(selected) { valid ->
-                        if (valid) {
-                            session = OrderedRecitation(selected)
-                            stale = false
-                            recite.controls = false
-                            recite.active = true
-                        } else stale = true
+                OutlinedButton(enabled = enabled && prepared, onClick = {
+                    if (selected.entries.isNotEmpty()) choose(OrderedRecitation(selected), starting = true)
+                    else {
+                        val departure = recite.departure
+                        model.checkRecitationList(selected) { valid ->
+                            if (recite.departure == departure) {
+                                if (valid) {
+                                    session = OrderedRecitation(selected)
+                                    stale = false
+                                    recite.controls = false
+                                    recite.active = true
+                                } else stale = true
+                            }
+                        }
                     }
                 }, modifier = Modifier.testTag("recite-list")) { Text(stringResource(R.string.recite_list)) }
                 OutlinedButton(enabled = enabled, onClick = {
@@ -107,9 +155,16 @@ fun ListsScreen(model: LibraryViewModel, lyrics: LyricPreviewState, open: (Perso
                 Column(Modifier.padding(space)) {
                     Text("${index + 1} / ${selected.entries.size}", style = MaterialTheme.typography.labelMedium)
                     ReferenceContent(occurrence.entry, lyrics, open)
-                    TextButton(enabled = enabled, onClick = {
-                        model.clearMutationError(); editing = requireNotNull(personal) to (selected to occurrence)
-                    }) { Text(stringResource(R.string.edit_entry)) }
+                    Row {
+                        TextButton(enabled = enabled && prepared, onClick = {
+                            choose(OrderedRecitation(selected, index), starting = true)
+                        }, modifier = Modifier.testTag("recite-occurrence-${occurrence.id}")) {
+                            Text(stringResource(R.string.recite))
+                        }
+                        TextButton(enabled = enabled, onClick = {
+                            model.clearMutationError(); editing = requireNotNull(personal) to (selected to occurrence)
+                        }) { Text(stringResource(R.string.edit_entry)) }
+                    }
                     Row {
                         TextButton(enabled = enabled && index > 0, onClick = {
                             val next = selected.entries.toMutableList()
@@ -127,6 +182,24 @@ fun ListsScreen(model: LibraryViewModel, lyrics: LyricPreviewState, open: (Perso
                     }) { Text(stringResource(R.string.remove_entry)) }
                 }
             }
+        }
+        item(key = "recitation-position") {
+            Text(stringResource(R.string.saved_recitation_position))
+            Text(stringResource(R.string.recitation_position_notice))
+            when (resume?.kind) {
+                "available" -> {
+                    val rememberedList = requireNotNull(resume.list)
+                    Text(rememberedList.name, Modifier.testTag("remembered-list"))
+                    Text(stringResource(R.string.entry_number).replace("{position}", (requireNotNull(resume.index) + 1).toString())
+                        .replace("{total}", rememberedList.entries.size.toString()), Modifier.testTag("remembered-entry"))
+                }
+                "listMissing" -> Text(stringResource(R.string.recitation_list_missing), Modifier.testTag("resume-list-missing"))
+                "entryMissing" -> Text(stringResource(R.string.recitation_entry_missing), Modifier.testTag("resume-entry-missing"))
+                else -> Text(stringResource(R.string.no_recitation_position), Modifier.testTag("resume-none"))
+            }
+            OutlinedButton(enabled = enabled && prepared && resume?.kind == "available", onClick = {
+                choose(OrderedRecitation(requireNotNull(resume?.list), requireNotNull(resume?.index)), starting = true)
+            }, modifier = Modifier.testTag("continue-recitation")) { Text(stringResource(R.string.continue_recitation)) }
         }
     }
     draft?.let { value ->

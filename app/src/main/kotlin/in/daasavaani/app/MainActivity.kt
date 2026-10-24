@@ -265,8 +265,8 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                 if (personal?.favorites?.isEmpty() == true) Text(stringResource(R.string.empty_favorites))
                 val references = lyricModel.favoriteReferences(personal?.favorites.orEmpty(), lyrics)
                 val shown = expandedResultCount(references.size, integerResource(R.integer.trusted_max_page_size), lyrics.favoritesPages)
-                OutlinedTextField(value = lyrics.favoritesQuery, onValueChange = lyricModel::favoritesQuery,
-                    singleLine = true, label = { Text(stringResource(R.string.lyric_title_filter)) },
+                AcceptedQueryField(lyricModel, { lyricModel.state.value.favoritesQuery }, lyricModel::favoritesQuery,
+                    stringResource(R.string.lyric_title_filter),
                     modifier = Modifier.fillMaxWidth().testTag("favorites-filter"))
                 if (lyrics.favoritesFailed) Text(stringResource(R.string.lyrics_unavailable), color = MaterialTheme.colorScheme.error)
                 else if (references.isEmpty() && personal?.favorites?.isNotEmpty() == true) Text(stringResource(R.string.no_results))

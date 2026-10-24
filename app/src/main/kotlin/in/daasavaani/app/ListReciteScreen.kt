@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -39,6 +40,12 @@ internal fun ListReciteScreen(session: OrderedRecitation, recite: ReciteState, s
     }
     Column(Modifier.fillMaxSize().testTag("list-recite")) {
         ReciteControls(recite, true, notice = R.string.list_recite_notice)
+        if (state.rememberingRecitation) Text(stringResource(R.string.recitation_position_saving), Modifier.testTag("position-saving"))
+        state.mutationError?.let { Text(stringResource(it), Modifier.testTag("position-error"), color = MaterialTheme.colorScheme.error) }
+        if (state.mutationError != null && state.mutationError != R.string.personal_stale) OutlinedButton(enabled = !state.saving, onClick = {
+            model.clearMutationError()
+            model.retryPersonal()
+        }, modifier = Modifier.testTag("position-retry")) { Text(stringResource(R.string.retry)) }
         Text(session.list.name)
         if (occurrence == null) Text(stringResource(R.string.empty_recitation), Modifier.testTag("list-recite-empty"))
         else {

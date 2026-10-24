@@ -108,6 +108,21 @@ class ListReciteUiTest {
     }
     private fun next() { compose.onNodeWithTag("next-entry").performClick(); compose.waitForIdle(); saved() }
     private fun previous() { compose.onNodeWithTag("previous-entry").performClick(); compose.waitForIdle(); saved() }
+    private fun continueRecitation() {
+        compose.onNodeWithTag("saved-lists").performScrollToNode(hasTestTag("continue-recitation"))
+        compose.onNodeWithTag("continue-recitation").performClick()
+        compose.waitUntil(10000) {
+            compose.onAllNodesWithTag("list-recite").fetchSemanticsNodes().isNotEmpty() && !model.state.value.saving
+        }
+    }
+    private fun occurrence(list: RecitationList, index: Int) {
+        val tag = "recite-occurrence-${list.entries[index].id}"
+        compose.onNodeWithTag("saved-lists").performScrollToNode(hasTestTag(tag))
+        compose.onNodeWithTag(tag).performClick()
+        compose.waitUntil(10000) {
+            compose.onAllNodesWithTag("list-recite").fetchSemanticsNodes().isNotEmpty() && !model.state.value.saving
+        }
+    }
     private fun expose() {
         compose.onNodeWithTag("list-recite-content").performScrollToNode(hasTestTag("lyric-text"))
         compose.onNodeWithTag("lyric-text").assertTextEquals(literal)
@@ -119,6 +134,10 @@ class ListReciteUiTest {
         scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }; compose.waitForIdle()
     }
     private fun snapshot() = PersonalStore(context).use { it.load() }
+    private fun sameExceptPosition(before: PersonalSnapshot) {
+        val after = snapshot()
+        assertEquals(before.copy(revision = after.revision, recitation = after.recitation), after)
+    }
     private fun layout(): TextLayoutResult {
         val result = mutableListOf<TextLayoutResult>()
         compose.onNodeWithTag("lyric-text").performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(result) }
@@ -167,7 +186,7 @@ class ListReciteUiTest {
         }
     }
 
-    @Test fun orderedConsecutiveCanonicalPlaceholderAndUuidLegacyNeverDeduplicateSkipOrChangePersonalState() {
+    @Test fun orderedConsecutiveCanonicalPlaceholderAndUuidLegacyNeverDeduplicateSkipOrChangeUnrelatedPersonalState() {
         val entries = listOf(reference.entry("  fallback  "), reference.entry("  fallback  "),
             ListEntry("placeholder", text = placeholder), ListEntry("placeholder", text = placeholder),
             PersonalReference.legacy(id).entry("  legacy fallback  "), PersonalReference.lyric(missingId).entry("  missing fallback  "),
@@ -204,12 +223,12 @@ class ListReciteUiTest {
             back(scenario)
             assertEquals(list.id, model.state.value.selectedListId)
             compose.onNodeWithTag("saved-lists").assertExists()
-            assertEquals(before, snapshot())
+            sameExceptPosition(before)
             assertEquals(3, source.requests)
             assertEquals(source.lines, real.state.value.prepared?.items?.get(id)?.lines)
             enter(); position(1, entries.size)
             compose.onNodeWithTag("exit-recite").performClick()
-            assertEquals(before, snapshot())
+            sameExceptPosition(before)
         }
     }
 
@@ -220,9 +239,9 @@ class ListReciteUiTest {
             prepare(scenario); enter(); expose()
             compose.waitUntil(10000) { model.state.value.personal?.recentHistory?.entries == listOf(reference) && !model.state.value.saving }
             val first = snapshot()
-            next(); expose(); assertEquals(first, snapshot())
-            next(); assertEquals(first, snapshot())
-            next(); assertEquals(first, snapshot())
+            next(); expose(); sameExceptPosition(first)
+            next(); sameExceptPosition(first)
+            next(); sameExceptPosition(first)
             next(); expose()
             val second = PersonalReference.lyric(secondId)
             compose.waitUntil(10000) { model.state.value.personal?.recentHistory?.entries == listOf(second, reference) && !model.state.value.saving }
@@ -292,7 +311,7 @@ class ListReciteUiTest {
             enter()
             scenario.recreate()
             compose.onNodeWithTag("exit-recite").assertDoesNotExist()
-            assertEquals(before, snapshot())
+            sameExceptPosition(before)
         }
     }
 
@@ -374,14 +393,202 @@ class ListReciteUiTest {
             compose.onNodeWithTag("list-recite-content").performScrollToNode(hasTestTag(tag))
             compose.onNodeWithTag(tag).assertTextEquals(fixture.lines.first().text)
             compose.waitForIdle(); saved()
-            assertEquals(firstFixture, snapshot())
-            next(); assertEquals(firstFixture, snapshot())
+            sameExceptPosition(firstFixture)
+            next(); sameExceptPosition(firstFixture)
             next(); expose()
             compose.waitUntil(10000) { model.state.value.personal?.recentHistory?.entries == listOf(reference, legacy) && !model.state.value.saving }
             assertEquals(mixed, snapshot().lists.single())
             assertEquals(fixture.lines, model.state.value.prepared?.items?.first()?.lines)
             assertEquals(source.lines, real.state.value.prepared?.items?.get(id)?.lines)
             assertEquals(3, source.requests)
+        }
+    }
+
+    @Test fun exactRepeatedOccurrenceRestartRequiresExplicitPreparedContinueAwakeOffAndPreservesContext() {
+        val list = seed(listOf(reference.entry(), reference.entry(), ListEntry("placeholder", text = placeholder)), history = true)
+        var remembered: PersonalSnapshot
+        launch(list).use { scenario ->
+            prepare(scenario)
+            occurrence(list, 1); expose(); position(2, 3)
+            remembered = snapshot()
+            assertEquals(ExactRecitationPosition(list.id, list.entries[1].id), remembered.recitation.position)
+            assertEquals(listOf(reference), remembered.recentHistory.entries)
+            compose.onNodeWithTag("screen-awake").performClick()
+            back(scenario)
+            assertEquals(list.id, model.state.value.selectedListId)
+            scenario.onActivity { assertFalse(nativeView.keepScreenOn) }
+            assertEquals(remembered, snapshot())
+        }
+        launch(list).use { scenario ->
+            compose.onNodeWithTag("list-recite").assertDoesNotExist()
+            compose.onNodeWithTag("saved-lists").performScrollToNode(hasTestTag("continue-recitation"))
+            compose.onNodeWithTag("continue-recitation").assertIsNotEnabled()
+            assertEquals(0, source.requests)
+            assertEquals(remembered, snapshot())
+            scenario.moveToState(Lifecycle.State.CREATED); scenario.moveToState(Lifecycle.State.RESUMED)
+            compose.onNodeWithTag("list-recite").assertDoesNotExist()
+            prepare(scenario); source.offline = true
+            continueRecitation(); position(2, 3)
+            compose.onNodeWithTag("screen-awake").assertIsOff()
+            scenario.onActivity { assertFalse(nativeView.keepScreenOn) }
+            expose()
+            assertEquals(remembered, snapshot())
+            back(scenario)
+            assertEquals(list.id, model.state.value.selectedListId)
+            compose.onNodeWithTag("saved-lists").assertExists()
+            assertEquals(3, source.requests)
+        }
+    }
+
+    @Test fun continueFollowsReorderedReplacedIdentityAndMissingRecoveryNeverFallsBack() {
+        val list = seed(listOf(reference.entry(), reference.entry(), ListEntry("placeholder", text = placeholder)))
+        launch(list).use { scenario ->
+            prepare(scenario); occurrence(list, 1); back(scenario)
+            val pointer = snapshot().recitation
+            val reordered = list.copy(name = "Renamed", entries = list.entries.reversed().map {
+                if (it.id == list.entries[1].id) it.copy(entry = ListEntry("placeholder", text = " replacement raw ")) else it
+            })
+            PersonalStore(context).use { store ->
+                val s = store.load(); store.saveList(s.revision, s.epoch, reordered)
+            }
+            scenario.onActivity { model.retryPersonal() }; saved()
+            continueRecitation(); position(2, 3)
+            compose.onNodeWithTag("list-recite-placeholder").assertTextEquals(" replacement raw ")
+            assertEquals(pointer, snapshot().recitation)
+            back(scenario)
+            val removed = reordered.copy(entries = reordered.entries.filterNot { it.id == list.entries[1].id })
+            PersonalStore(context).use { store ->
+                val s = store.load(); store.saveList(s.revision, s.epoch, removed)
+            }
+            scenario.onActivity { model.retryPersonal() }; saved()
+            compose.onNodeWithTag("saved-lists").performScrollToNode(hasTestTag("resume-entry-missing"))
+            compose.onNodeWithTag("resume-entry-missing").assertTextEquals(context.getString(R.string.recitation_entry_missing))
+            compose.onNodeWithTag("continue-recitation").assertIsNotEnabled()
+            assertEquals(pointer, snapshot().recitation)
+            occurrence(removed, 1); position(2, 2)
+            assertEquals(ExactRecitationPosition(list.id, removed.entries[1].id), snapshot().recitation.position)
+            back(scenario)
+            val latest = snapshot().recitation
+            PersonalStore(context).use { store ->
+                val s = store.load(); store.deleteList(s.revision, s.epoch, list.id)
+            }
+            scenario.onActivity { model.retryPersonal() }; saved()
+            compose.onNodeWithTag("saved-lists").performScrollToNode(hasTestTag("resume-list-missing"))
+            compose.onNodeWithTag("resume-list-missing").assertTextEquals(context.getString(R.string.recitation_list_missing))
+            compose.onNodeWithTag("continue-recitation").assertIsNotEnabled()
+            assertEquals(latest, snapshot().recitation)
+            assertEquals(3, source.requests)
+        }
+    }
+
+    @Test fun explicitAnotherListReplacesSolePairWhileEmptyAndNormalPreviewDoNot() {
+        val list = seed(listOf(reference.entry(), ListEntry("placeholder", text = placeholder)))
+        launch(list).use { scenario ->
+            prepare(scenario); occurrence(list, 1); back(scenario)
+            val first = snapshot()
+            val empty = RecitationList.create("Empty")
+            scenario.onActivity { model.saveList(requireNotNull(model.state.value.personal), empty) { model.selectList(empty.id) } }
+            saved(); enter(); back(scenario)
+            assertEquals(first.recitation, snapshot().recitation)
+            val other = RecitationList.create("Other", listOf(PersonalReference.lyric(missingId).entry(" unresolved ")))
+            scenario.onActivity { model.saveList(requireNotNull(model.state.value.personal), other) { model.selectList(other.id) } }
+            saved(); enter()
+            compose.onNodeWithTag("list-recite-unavailable").assertExists()
+            assertEquals(ExactRecitationPosition(other.id, other.entries.single().id), snapshot().recitation.position)
+            assertTrue(snapshot().recentHistory.entries.isEmpty())
+            back(scenario)
+            val before = snapshot()
+            scenario.onActivity { model.selectList(list.id) }
+            compose.onNodeWithTag("saved-lists").performScrollToNode(hasText(context.getString(R.string.open)) and hasClickAction())
+            click(R.string.open)
+            compose.waitUntil(10000) { model.state.value.section == "lyrics" }
+            assertEquals(before, snapshot())
+            back(scenario)
+            assertEquals(list.id, model.state.value.selectedListId)
+            assertEquals(before, snapshot())
+        }
+    }
+
+    @Test fun failedPeerStaleOrSqlWriteDoesNotAdvanceOrReopenAndExplicitRetryKeepsUnrelatedData() {
+        val list = seed(listOf(ListEntry("placeholder", text = placeholder), reference.entry()))
+        PersonalStore(context).use { it.rememberRecitation(it.load(), list, list.entries[0].id) }
+        launch(list).use { scenario ->
+            prepare(scenario)
+            val before = snapshot()
+            PersonalStore(context).use { it.change(it.load(), theme = "dark") }
+            compose.onNodeWithTag("saved-lists").performScrollToNode(hasTestTag("recite-list"))
+            compose.onNodeWithTag("recite-list").performClick()
+            compose.waitUntil(10000) { model.state.value.mutationError == R.string.personal_stale && !model.state.value.saving }
+            compose.onNodeWithTag("list-recite").assertDoesNotExist()
+            assertEquals(before.recitation, snapshot().recitation)
+            scenario.onActivity { model.retryPersonal() }; saved()
+            enter(); position(1, 2)
+            val peer = snapshot()
+            context.openOrCreateDatabase("personal.db", android.content.Context.MODE_PRIVATE, null).use {
+                it.execSQL("CREATE TRIGGER reject_position BEFORE UPDATE ON preferences BEGIN SELECT RAISE(ABORT, 'synthetic'); END")
+            }
+            next(); position(1, 2)
+            compose.onNodeWithTag("position-error").assertTextEquals(context.getString(R.string.personal_failed))
+            context.openOrCreateDatabase("personal.db", android.content.Context.MODE_PRIVATE, null).use {
+                it.execSQL("DROP TRIGGER reject_position")
+            }
+            assertEquals(peer, snapshot())
+            back(scenario)
+            compose.onNodeWithTag("list-recite").assertDoesNotExist()
+            scenario.onActivity { model.clearMutationError(); model.retryPersonal() }; saved()
+            occurrence(list, 1); position(2, 2)
+            assertEquals("dark", snapshot().theme)
+            assertEquals(ExactRecitationPosition(list.id, list.entries[1].id), snapshot().recitation.position)
+            back(scenario)
+            compose.onNodeWithTag("list-recite").assertDoesNotExist()
+            val committed = snapshot()
+            for (background in listOf(true, false)) {
+                context.openOrCreateDatabase("personal.db", android.content.Context.MODE_PRIVATE, null).use { writer ->
+                    writer.beginTransaction()
+                    try {
+                        compose.onNodeWithTag("saved-lists").performScrollToNode(hasTestTag("recite-list"))
+                        compose.onNodeWithTag("recite-list").performClick()
+                        compose.waitUntil(10000) { model.state.value.rememberingRecitation }
+                        assertEquals(committed.recitation, model.state.value.personal?.recitation)
+                        if (background) scenario.moveToState(Lifecycle.State.CREATED)
+                        else {
+                            scenario.onActivity { model.section("favorites") }
+                            compose.waitForIdle()
+                        }
+                        writer.setTransactionSuccessful()
+                    } finally { writer.endTransaction() }
+                }
+                saved()
+                if (background) scenario.moveToState(Lifecycle.State.RESUMED)
+                assertEquals(committed, snapshot())
+                compose.onNodeWithTag("list-recite").assertDoesNotExist()
+                scenario.onActivity { model.section("lists") }
+                compose.onNodeWithTag("list-recite").assertDoesNotExist()
+            }
+            continueRecitation(); position(2, 2)
+            compose.onNodeWithTag("screen-awake").assertIsOff()
+            assertEquals(committed, snapshot())
+        }
+    }
+
+    @Test fun actualRevisionHeaderCapacityRefusesEntryBeforeModeAndPreservesEveryPersonalRecord() {
+        val list = seed(listOf(reference.entry(), ListEntry("placeholder", text = placeholder)), history = true)
+        PersonalStore(context).use { it.rememberRecitation(it.load(), list, list.entries[1].id) }
+        context.openOrCreateDatabase("personal.db", android.content.Context.MODE_PRIVATE, null).use {
+            it.execSQL("UPDATE preferences SET revision = ?", arrayOf(Long.MAX_VALUE))
+        }
+        val full = snapshot()
+        launch(list).use { scenario ->
+            prepare(scenario)
+            compose.onNodeWithTag("saved-lists").performScrollToNode(hasTestTag("recite-list"))
+            compose.onNodeWithTag("recite-list").performClick()
+            compose.waitUntil(10000) { model.state.value.mutationError == R.string.personal_capacity && !model.state.value.saving }
+            compose.onNodeWithTag("list-recite").assertDoesNotExist()
+            assertEquals(full, snapshot())
+            compose.onNodeWithTag("position-retry").assertExists()
+            assertEquals(ExactRecitationPosition(list.id, list.entries[1].id), snapshot().recitation.position)
+            continueRecitation(); position(2, 2)
+            assertEquals(full, snapshot())
         }
     }
 }

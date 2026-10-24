@@ -1,6 +1,7 @@
 package `in`.daasavaani.app
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.ActivityNotFoundException
@@ -243,30 +244,62 @@ class ListLinkShareTest {
                 model = ViewModelProvider(it)[TransferViewModel::class.java]
                 library = ViewModelProvider(it)[LibraryViewModel::class.java]
             }
-            compose.waitUntil(10000) { library.state.value.personal != null }
-            scenario.onActivity { model.showSnapshot(typed); library.section("transfer") }
-            transferClick(R.string.transfer_create_link)
-            compose.waitUntil(10000) { model.state.value.link != null && !model.state.value.working }
-            val link = requireNotNull(model.state.value.link)
-            transferClick(R.string.share_list_link)
-            compose.waitUntil(10000) {
-                instrumentation.uiAutomation.rootInActiveWindow?.packageName?.toString()?.let {
-                    it != context.packageName
-                } == true
+            var activePackage: String? = null
+            var chooserPresented = false
+            val diagnosticState = {
+                "section=${library.state.value.section} personal=${library.state.value.personal != null} " +
+                    "working=${model.state.value.working} link=${model.state.value.link != null} " +
+                    "snapshot=${model.state.value.snapshot != null} message=${model.state.value.message} " +
+                    "activePackage=$activePackage chooserPresented=$chooserPresented"
             }
-            assertEquals(R.string.list_shared, model.state.value.message)
-            assertTrue(instrumentation.uiAutomation.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK))
-            compose.waitUntil(10000) {
-                instrumentation.uiAutomation.rootInActiveWindow?.packageName?.toString() == context.packageName
+            diagnosticUiCase("ListLinkShare-actualSystemChooser", diagnosticState) {
+                compose.waitUntil(10000) { library.state.value.personal != null }
+                scenario.onActivity { model.showSnapshot(typed); library.section("transfer") }
+                transferClick(R.string.transfer_create_link)
+                compose.waitUntil(10000) { model.state.value.link != null && !model.state.value.working }
+                val link = requireNotNull(model.state.value.link)
+                transferClick(R.string.share_list_link)
+                var originalAccessibilityFlags: Int? = null
+                try {
+                    diagnosticUiWait("Chooser-external-window", diagnosticState) {
+                        compose.waitUntil(10000) {
+                            val automation = instrumentation.uiAutomation
+                            if (originalAccessibilityFlags == null) {
+                                val info = automation.serviceInfo
+                                originalAccessibilityFlags = info.flags
+                                info.flags = info.flags or AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+                                automation.serviceInfo = info
+                            }
+                            val root = automation.rootInActiveWindow
+                            activePackage = root?.packageName?.toString()
+                            chooserPresented = root?.findAccessibilityNodeInfosByViewId("android:id/resolver_list")
+                                ?.any { it.isVisibleToUser } == true
+                            activePackage?.let { it != context.packageName } == true && chooserPresented
+                        }
+                    }
+                } finally {
+                    originalAccessibilityFlags?.let { flags ->
+                        val automation = instrumentation.uiAutomation
+                        automation.serviceInfo = automation.serviceInfo.apply { this.flags = flags }
+                    }
+                }
+                assertEquals(R.string.list_shared, model.state.value.message)
+                assertTrue(instrumentation.uiAutomation.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK))
+                diagnosticUiWait("Chooser-return-window", diagnosticState) {
+                    compose.waitUntil(10000) {
+                        activePackage = instrumentation.uiAutomation.rootInActiveWindow?.packageName?.toString()
+                        activePackage == context.packageName
+                    }
+                }
+                compose.onNodeWithTag("transfer-screen").assertIsDisplayed()
+                assertEquals(link, model.state.value.link)
+                assertEquals(typed, model.state.value.snapshot)
+                compose.onNodeWithTag("transfer-output-link").assertTextEquals(link)
+                compose.onNodeWithText(context.getString(R.string.copy_list_link)).assertExists()
+                compose.onNodeWithText(context.getString(R.string.transfer_download)).assertExists()
+                assertNull(library.state.value.prepared)
+                assertEquals(before, library.state.value.personal)
             }
-            compose.onNodeWithTag("transfer-screen").assertIsDisplayed()
-            assertEquals(link, model.state.value.link)
-            assertEquals(typed, model.state.value.snapshot)
-            compose.onNodeWithTag("transfer-output-link").assertTextEquals(link)
-            compose.onNodeWithText(context.getString(R.string.copy_list_link)).assertExists()
-            compose.onNodeWithText(context.getString(R.string.transfer_download)).assertExists()
-            assertNull(library.state.value.prepared)
-            assertEquals(before, library.state.value.personal)
         }
         PersonalStore(context).use { assertEquals(before, it.load()) }
     }
