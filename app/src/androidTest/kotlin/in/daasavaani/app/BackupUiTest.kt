@@ -1,6 +1,7 @@
 package `in`.daasavaani.app
 
 import android.app.LocaleManager
+import android.content.pm.ApplicationInfo
 import android.os.LocaleList
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -72,6 +73,55 @@ class BackupUiTest {
     private fun preview(scenario: ActivityScenario<MainActivity>, model: BackupViewModel, bytes: ByteArray) {
         scenario.onActivity { model.previewStream { bytes.inputStream() } }
         awaitIdle(model)
+    }
+
+    @Test fun systemBackupDisclosureRequiresManifestOptInAndOurRegisteredAgent() {
+        val info = ApplicationInfo(context.applicationInfo).apply {
+            flags = flags or ApplicationInfo.FLAG_ALLOW_BACKUP
+            backupAgentName = PersonalBackupAgent::class.java.name
+        }
+        assertTrue(systemBackupRegistered(info))
+        info.flags = info.flags and ApplicationInfo.FLAG_ALLOW_BACKUP.inv()
+        assertFalse(systemBackupRegistered(info))
+        info.flags = info.flags or ApplicationInfo.FLAG_ALLOW_BACKUP
+        info.backupAgentName = null
+        assertFalse(systemBackupRegistered(info))
+        info.backupAgentName = "other.BackupAgent"
+        assertFalse(systemBackupRegistered(info))
+    }
+
+    @Test fun disabledSystemBackupIsNotAdvertisedInEitherLanguageOrPersonalBackupSurface() {
+        assertEquals(0, context.applicationInfo.flags and ApplicationInfo.FLAG_ALLOW_BACKUP)
+        assertNull(context.applicationInfo.backupAgentName)
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            lateinit var library: LibraryViewModel
+            scenario.onActivity { library = ViewModelProvider(it)[LibraryViewModel::class.java] }
+            compose.waitUntil(10000) { library.state.value.personal != null && !library.state.value.saving }
+            compose.onNodeWithText(context.getString(R.string.settings)).performClick()
+            compose.onNodeWithTag("settings-system-privacy").assertDoesNotExist()
+            compose.onNodeWithTag("settings-system-manual").assertDoesNotExist()
+            compose.onNodeWithTag("settings-backup").performScrollTo().performClick()
+            compose.onNodeWithTag("backup-screen").performScrollToNode(hasTestTag("backup-choose"))
+            compose.onNodeWithTag("backup-screen").performTouchInput { swipeUp() }
+            compose.onNodeWithTag("backup-system-privacy").assertDoesNotExist()
+            compose.onNodeWithTag("backup-system-manual").assertDoesNotExist()
+            scenario.onActivity { library.section("settings") }
+            compose.onNodeWithTag("language-kn").performScrollTo().performClick()
+            compose.waitUntil(10000) { library.state.value.personal?.language == "kn" && !library.state.value.saving }
+            val configuration = android.content.res.Configuration(context.resources.configuration).apply {
+                setLocale(java.util.Locale.forLanguageTag("kn"))
+            }
+            val kannada = context.createConfigurationContext(configuration)
+            compose.onNodeWithTag("settings-system-privacy").assertDoesNotExist()
+            compose.onNodeWithTag("settings-system-manual").assertDoesNotExist()
+            compose.onNodeWithTag("settings-backup").performScrollTo().performClick()
+            compose.onNodeWithTag("backup-screen").performScrollToNode(hasTestTag("backup-choose"))
+            compose.onNodeWithTag("backup-choose").assertTextEquals(kannada.getString(R.string.backup_choose))
+            compose.onNodeWithTag("backup-screen").performTouchInput { swipeUp() }
+            compose.onNodeWithTag("backup-system-privacy").assertDoesNotExist()
+            compose.onNodeWithTag("backup-system-manual").assertDoesNotExist()
+            assertNull(library.state.value.prepared)
+        }
     }
 
     @Test fun completeReadOnlyPrivacyPreviewExplicitWholeReplacementAndFreshWriters() {

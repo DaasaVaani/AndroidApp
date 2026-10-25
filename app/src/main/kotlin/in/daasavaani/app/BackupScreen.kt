@@ -1,5 +1,6 @@
 package `in`.daasavaani.app
 
+import android.content.pm.ApplicationInfo
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -9,15 +10,21 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import `in`.daasavaani.core.PersonalReference
 
+internal fun systemBackupRegistered(info: ApplicationInfo): Boolean =
+    info.flags and ApplicationInfo.FLAG_ALLOW_BACKUP != 0 &&
+        info.backupAgentName == PersonalBackupAgent::class.java.name
+
 @Composable
 fun BackupScreen(model: BackupViewModel, library: LibraryViewModel, back: () -> Unit) {
     val state by model.state.collectAsState()
+    val systemBackupEnabled = systemBackupRegistered(LocalContext.current.applicationInfo)
     var confirming by remember { mutableStateOf(false) }
     val fileName = stringResource(R.string.backup_file_name)
     val choose = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let(model::previewFile) }
@@ -58,6 +65,10 @@ fun BackupScreen(model: BackupViewModel, library: LibraryViewModel, back: () -> 
                 onClick = model::retryLanguage, modifier = Modifier.testTag("backup-retry-language")) {
                 Text(stringResource(if (state.languageRetry != null) R.string.backup_retry_language else R.string.retry))
             }
+        }
+        if (systemBackupEnabled) item {
+            Text(stringResource(R.string.system_backup_notice), Modifier.testTag("backup-system-privacy"))
+            Text(stringResource(R.string.system_backup_manual_notice), Modifier.testTag("backup-system-manual"))
         }
         state.preview?.backup?.let { backup ->
             val data = backup.data

@@ -1,5 +1,263 @@
 # Documentation history
 
+## 2026-10-25: truthful disclosures for the inactive system-backup adapter
+
+- Archived superseded behavior: Settings and Personal backup unconditionally
+  displayed system-backup/Google-account notices even with `allowBackup=false`
+  and no registered agent. Both surfaces now require actual manifest opt-in and
+  registration of this personal-only agent, through one shared capability
+  predicate. Bilingual resources are retained for activation; manual backup and
+  its own privacy/export/restore controls remain independent.
+- Replaced the regression expecting those inactive-feature notices with actual
+  English/Kannada Settings and Personal backup absence checks. Added explicit
+  opt-in/registration truth-table coverage, including an unrelated agent, and
+  assertions retaining the disabled/unregistered manifest. Maps to XFER-09/10;
+  no system-backup activation or platform-transport acceptance is claimed.
+- Archived superseded README wording that treated the entire platform-failure
+  preservation boundary as an unambiguous selected requirement. Current guidance
+  distinguishes the explicit manual replacement guarantee from separately
+  best-effort Android system backup and requests an owning decision about the
+  framework boundary. The concern is source-inspected, not an observed local
+  wipe; activation remains gated without reinterpreting or waiving either scope.
+- `npm run config` and the complete
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease
+  :app:connectedDebugAndroidTest --no-daemon --max-workers=1` passed on the fresh
+  external API36 AVD in17m44s,135 tasks,32 executed/103 up-to-date. Actual device
+  XML confirms155 cases, zero failures/errors/skips, including both new manifest
+  and inactive bilingual-UI regression methods. Core remains unchanged and
+  `UP-TO-DATE` with66 retained passing cases; app JVM suites are `NO-SOURCE`.
+  Logs: `native-inactive-backup-ui-config.log` and
+  `native-inactive-backup-ui-full-validation.log` in the session workspace.
+- Repository hygiene128, strict `.github`/`settings` YAML6, installed
+  actionlint1.7.12 plus explicit ShellCheck0.11.0, both whitespace checks and
+  optional checker AST/fresh exact-device assertions passed. Reinstalled the
+  built debug APK after the connected runner removed it; MainActivity launched
+  successfully and the preserved Website fixture endpoint returned HTTP200.
+  System backup remains disabled/unregistered; optional transport checks were
+  not rerun or claimed as covered by this155-case baseline.
+- After presenting the source-inspected framework-failure risk and the two
+  alternatives, the owner selected "Keep system backup disabled; manual backup
+  remains available." Current guidance records intentional activation deferral.
+  This does not waive the manual replacement guarantee, remove the future
+  XFER-09 system-backup requirement or authorize cloud activation/main publication.
+
+## 2026-10-25: owner-authorized fresh persistent test AVD
+
+- After the read-only cleanup-impact investigation, the owner clarified that
+  old test data was not needed and requested a new AVD for continued work.
+  No guest export, disk recovery, old-data copy, image wipe or deletion of the
+  retired AVD was performed.
+- Created `daasavaani_fixture_api36_fresh` using the installed
+  `avdmanager.bat create avd --name daasavaani_fixture_api36_fresh --package
+  system-images;android-36;google_apis;x86_64 --device medium_phone --path
+  C:\Users\pots\AppData\Local\DaasaVaani\avd\daasavaani_fixture_api36_fresh.avd`,
+  with `ANDROID_AVD_HOME=C:\Users\pots\AppData\Local\DaasaVaani\avd` and no
+  overwrite flag. Registry/config existence was verified outside every
+  repository build directory. Existing SDK/JDK/image packages were reused.
+- Reverified old AVD name, serial5556, qemu19920 command line and matching SDK,
+  then used `adb -s emulator-5556 emu kill`. Emulator22544/qemu19920 exited
+  gracefully, both5556/5557 listeners disappeared, and available RAM rose to
+  5.98GiB. No force termination or cleanup of the retired files was used.
+- Started the fresh AVD through managed detached handle `fresh-api36-emulator`
+  with `-port 5556 -memory 2560 -cores 4 -no-snapshot -no-boot-anim -no-audio
+  -gpu swiftshader_indirect`. Verified its exact AVD name, API36, completed boot,
+  visible focused NexusLauncher and no events-buffer ANR. New process identity:
+  emulator6488/qemu9732. These are observations, not reusable process IDs.
+- Archived replaced current wording: README treated the old fixture under
+  `app\build\owned-avd` as the active device. Current launch guidance uses the
+  persistent external AVD home, retains the warning protecting retired files,
+  and both optional backup checkers require the fresh exact fixture name rather
+  than the retired device. Serial ownership checks remain unchanged.
+- The system-backup activation/preservation decision and inactive-UI wording
+  remain separate unfinished work. This device replacement does not activate
+  Auto Backup, approve cloud/D2D/OEM behavior or claim old guest-data recovery.
+- On the initial APK installation, the events buffer recorded one
+  `com.google.android.gms.persistent` broadcast ANR for
+  `android.intent.action.DOMAINS_NEED_VERIFICATION`. The app itself launched and
+  rendered its actual controls. A subsequent60s settling observation reported no
+  additional event and4.01GiB available host RAM; no restart, timeout relaxation
+  or service disabling was used. Later absence from the events buffer does not
+  erase this initial observation or prove lifetime absence of background ANRs.
+- `npm run config` passed, followed by the complete
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease
+  :app:connectedDebugAndroidTest --no-daemon --max-workers=1`.
+  Build succeeded in14m56s,135 actionable tasks,4 executed/131 up-to-date.
+  The new AVD's actual XML report contains154 device cases with zero failures,
+  errors or skips. Unchanged core tests were `UP-TO-DATE`; their existing13
+  suite/66-case passing reports were retained, not claimed as freshly executed.
+  App JVM suites remain `NO-SOURCE`. Logs: `fresh-avd-config.log` and
+  `fresh-avd-full-validation.log` in the session workspace.
+- `python tools\check_repository.py` passed128 tracked files. Strict Node/YAML
+  parsing of `.github` and `settings` passed6 files. Installed actionlint1.7.12
+  with explicit ShellCheck0.11.0, both Git whitespace checks and both optional
+  checker AST/exact-name assertions passed. The optional system-backup commands
+  were not executed or treated as passing platform-transport evidence.
+- After the connected runner removed its APKs, reinstalled the built debug APK
+  and opened the real MainActivity on the fresh AVD. The preserved Website
+  fixture endpoint returned HTTP200. No native system-backup commit/push or
+  activation accompanied this replacement.
+
+## 2026-10-25: personal-only best-effort system-backup adapter
+
+- Archived superseded current guidance: system backup was disabled rather than
+  backing up false content readiness; personal-only allowlists/system epoch
+  recovery were remaining slices. The Recently opened guide also said system
+  backup remained disabled, and the manual-backup guide said no automatic upload
+  occurred without distinguishing the independent OS transport. Current guidance
+  now describes that distinction and retains explicit non-release limitations.
+- Native alone adopted parent-authorized Shared
+  `115f6197612fcd14ecaa99fd6b12900f09df9510`, after confirming the child clean and
+  fetching that exact review commit, for the two bilingual system-backup notices.
+  No other consumer pin, Shared source, wire domain, schema or product policy
+  changed. Parent provided exact successful Shared CI40146311092; this is parent
+  prerequisite evidence, not native/system transport acceptance.
+- Chose a custom full-data BackupAgent with one disposable strict logical-v1
+  projection for legacy/cloud/device-transfer allowlists. Raw personal.db/WAL
+  copying was rejected because colocated operational revisions/receipt metadata
+  must not travel. Existing stable export and atomic fresh restore/fence plus
+  Room8 pending-language recovery remain the only authoritative personal store.
+- Verified niche lifecycle behavior against official Android BackupAgent docs
+  and AOSP BackupAgent.java, FullRestoreEngine.java and
+  UserBackupManagerService.java: exact-file restore callbacks, descriptor ownership,
+  custom-agent ordinary pre-clear bypass, and the important opt-out side effect
+  that disabling Backup Manager can wipe all registered transports.
+- Reverified retained emulator5556/AVD daasavaani_fixture_api36, boot complete,
+  system_server701, emulator22544/qemu19920, no ANR since boot, and the existing
+  Website fixture endpoint HTTP200/userPID3840 without rebuilding its dist.
+  Backup Manager was disabled, framework scheduling enabled and Google transport
+  selected. Did not toggle it: returning it to disabled via the supported API
+  risks a prohibited global transport wipe. The guarded optional local-transport
+  checker requires an already-enabled/scheduling-disabled fixture and never
+  performs that toggle. Real transport/cloud/D2D/API26+ physical evidence remains
+  explicitly unverified rather than fabricated.
+- Found a supported safe alternative for actual agent evidence without toggling
+  OS backup settings: package-only ADB full backup and restore with the platform
+  confirmation UI. Initial helper attempts exposed Gradle's normal APK removal,
+  non-PTY UI-dump capture, actual AOSP confirmation IDs and unsafe/truncated
+  shell/exec-in restore stream lifetimes. The malformed shell-fed restore was
+  correctly refused with no commit; the target/control values stayed intact.
+  Switched to the official host `adb restore` implementation, which opens binary
+  input, supplies end padding and waits for remote completion. Did not relax
+  configured suite assertions/timeouts or reset the emulator.
+- `python tools\check_system_backup_adb.py` then passed
+  (`build/system-backup-adb8.log`): actual archive exactly this package's manifest
+  plus `f/system-personal-v1.json.gz`, no DB/WAL/content/control; all original
+  logical personal values/order/IDs restored under a fresh revision and durable
+  pending-language receipt, with the existing local control sentinel preserved.
+  Four standalone instrumentation phases each passed1/1. Backup Manager remained
+  disabled, framework scheduling enabled, selected Google transport unchanged,
+  no backups running/ANR. This is ADB framework/archive evidence, not cloud or
+  transport scheduling/receiver delivery evidence.
+- Incremental Kotlin compilation initially lost resolution of unchanged existing
+  top-level `diagnosticUiCase` helpers. A full
+  `.\gradlew.bat :app:compileDebugAndroidTestKotlin --rerun-tasks --no-daemon`
+  succeeded without source workarounds. Focused connected backup/receipt/privacy/
+  fixture checks subsequently passed25/25, zero failures/errors/skips
+  (`build/system-backup-focused2.log`,2m47s).
+- The first full attempt failed release incremental compilation on the unchanged
+  existing `transferCodec` top-level helper. A repair attempt incorrectly chose
+  `:app:clean` before recognizing the retained AVD was under `app/build/owned-avd`.
+  The task removed unlocked build/derived AVD files but failed on the live locked
+  backing images. The chained command was stopped before its full-validation
+  stage; a subsequent clean attempt also failed and was not a validation pass.
+  No emulator stop/restart, guest wipe, transport change or user-server action
+  was performed. This was an agent repair mistake, not an approved clean policy.
+- Recovered the exact original AVD-manager creation command and prior recorded
+  metadata SHA256 identities from this task's persisted session evidence.
+  Regenerated only an isolated metadata candidate under ignored root `build/`,
+  then restored registry/config bytes **only after** both candidate hashes matched
+  the originals: config
+  `E2312215031885704D0BB680A013DDDC73EB47DF4A0ABD4439AB93148A3DED23`,
+  registry `448F3EE28C10D503A10A88158336E75241D28F80846E973F9C7AF509494A0F93`.
+  The locked userdata/cache/encryption backing images and overlays remained.
+  Registry/config restoration evidence is in
+  `build/system-backup-avd-metadata-restoration.json`; unlocked derived runtime
+  files removed by clean were not claimed byte-preserved.
+  Reverified same live emulator22544/qemu19920/system_server701, boot complete,
+  expected AVD/serial, Launcher UI, no ANR, backup disabled, original selected
+  transport and userPID3840; host had3680MiB available with zero page input at
+  that check. Current operating guidance now prohibits cleaning this live-AVD
+  build directory. Remaining validation regenerates owned build settings and
+  does not perform further clean/AVD operations.
+- Further official-source tracing found a stronger stock-platform blocker than
+  ordinary pre-restore clearing: `PerformUnifiedRestoreTask` invokes
+  `clearApplicationDataAfterRestoreFailure` on stream/transport errors and failed
+  agent finalization. Public `allowClearUserData` is documented system-image-only;
+  SDK36 exposes no public `allowClearUserDataOnFailedRestore`, whose private
+  API29+ handling defaults to allowing failure clear and does not address26–28.
+  The earlier ADB success/refusal evidence is not transport-failure preservation.
+  Kept the final manifest `allowBackup=false` and removed agent registration
+  rather than inventing privilege/private flags or accepting data loss on the
+  owner's behalf. The strict adapter/rules/privacy/tests remain a gated
+  prerequisite, not activated system-backup/XFER-09 acceptance. Standalone helper
+  manifest preflights now refuse gated builds before fixture seeding/cleanup.
+- The full-run discovery count exposed two newly added agent tests accidentally
+  nested inside another method. Their private/static JUnit annotations invalidated
+  that test class, reducing discovery to147 instead of the source154; it was not
+  accepted as a passing/narrowed suite. Moved both tests to real public class
+  methods. Final validation must discover all154 cases, including these corrupt-
+  database and WAL-peer assertions, without changing any existing assertion or
+  timeout.
+- The16m22s full attempt (`build/system-backup-full4.log`) ended147 cases with
+  two failures, zero errors/skips: the diagnosed JUnit class-initialization error
+  and the existing `PersonalUiTest` Warm-selection10s wait. The new long privacy
+  paragraphs had displaced the previously visible Settings controls. Moved those
+  paragraphs after the existing controls, retaining preparation-free access and
+  the new bilingual scroll assertions, without changing the existing regression
+  test or its timeout. Host available memory had dropped to834MiB with page input
+  during this attempt and recovered to4818MiB/zero page input afterward; no
+  emulator restart or user-workload shutdown was performed.
+- Final safe compiler repair
+  `.\gradlew.bat :app:compileReleaseKotlin :app:compileDebugAndroidTestKotlin --rerun-tasks --no-daemon`
+  passed in1m16s without cleaning. Serial prewarming
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease --no-daemon`
+  passed in1m27s. The final focused command
+  `.\gradlew.bat :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.PersonalBackupAgentTest,in.daasavaani.app.PersonalUiTest,in.daasavaani.app.BackupUiTest#bilingualSystemBackupPrivacyAndManualRecommendationAreAccessibleBeforeContentPreparation,in.daasavaani.app.BackupLanguageRecoveryTest,in.daasavaani.app.SystemBackupTransportTest' --no-daemon`
+  passed20/20 in3m7s, including the unchanged original Settings regression and
+  both corrected corrupt-database/WAL tests. Logs:
+  `build/system-backup-final-recompile.log`,
+  `build/system-backup-final-prewarm.log`,
+  `build/system-backup-final-focused.log`.
+- Final unfiltered `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon`
+  passed; Gradle completed in15m1s. Actual XML totals: core13 suites/66 tests and
+  connected154 tests, both zero failures/errors/skips. App JVM tests remain
+  `NO-SOURCE`, not a passing app JVM suite. Logs:
+  `build/system-backup-final-config.log` and
+  `build/system-backup-final-full.log`.
+- Final retained-runtime evidence in `build/system-backup-final-runtime.json`
+  and the actual `build/system-backup-final-ui.xml` confirms emulator5556/
+  daasavaani_fixture_api36, emulator22544/qemu19920/system_server701, boot complete,
+  responsive Launcher and no ANR since boot. Backup Manager remains disabled,
+  original Google transport selected, framework scheduling/auto-restore enabled,
+  no backups running or pending initialization. Both restored AVD registry/config
+  hashes still match the exact originals recorded above; this does not claim
+  byte-preservation of the deleted derived runtime files. UserPID3840 and
+  Website5173 fixture HTTP200 remain intact; host had3061MiB available/zero page
+  input at the recorded check. No own app/crash-probe processes remain.
+- Final documentation/bootstrap checks passed: repository hygiene128 tracked
+  files, strict unique-key YAML5 files, actionlint with explicit installed
+  ShellCheck, both host-checker ASTs and both Git whitespace checks. Shared is
+  clean at the authorized115f619 commit. Exact commands below; output is in
+  `build/system-backup-final-hygiene.log`:
+
+  ```powershell
+  python tools\check_repository.py
+  node -e "const fs=require('node:fs'),path=require('node:path'),yaml=require('yaml');for(const p of fs.readdirSync('.github',{recursive:true}).filter(p=>p.endsWith('.yml')||p.endsWith('.yaml'))){const d=yaml.parseDocument(fs.readFileSync(path.join('.github',p),'utf8'),{uniqueKeys:true});if(d.errors.length)throw d.errors[0];console.log(p)}"
+  & 'C:\Users\pots\AppData\Local\DaasaVaani\toolchains\actionlint-1.7.12\actionlint.exe' -shellcheck 'C:\Users\pots\AppData\Local\DaasaVaani\toolchains\shellcheck-0.11.0\shellcheck.exe' .github\workflows\hygiene.yml
+  python -c "import ast,pathlib;[ast.parse(pathlib.Path(p).read_text(encoding='utf-8')) for p in [r'tools\check_system_backup_adb.py',r'tools\check_system_backup_transport.py']];print('Both checker ASTs PASS')"
+  git --no-pager diff --check
+  git --no-pager diff --cached --check
+  git -C shared status --porcelain
+  git -C shared rev-parse HEAD
+  ```
+
+- These final local results validate the inactive logical adapter, rules,
+  privacy, manual compatibility and recovery only. They do not activate system
+  backup, resolve transport failure-clearing, establish actual Google-cloud/
+  D2D/local-transport scheduling, or verify the API26+ physical/OEM matrix.
+  XFER-09/10 and release acceptance remain open at the documented owning gate.
+
 ## 2026-10-25: closing manual-restore postcommit language crash recovery
 
 - Parent correctly identified an owning XFER-09/Shared protocol step6 gap in the

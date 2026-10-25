@@ -262,6 +262,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                         }
                     }
                     RecentHistoryControls(personal, canSave, { model.changeHistory(enabled = it) }, { model.changeHistory(clear = true) })
+                    if (systemBackupRegistered(LocalContext.current.applicationInfo)) {
+                        Text(stringResource(R.string.system_backup_notice), Modifier.testTag("settings-system-privacy"))
+                        Text(stringResource(R.string.system_backup_manual_notice), Modifier.testTag("settings-system-manual"))
+                    }
                 }
             } else if (selected != null) {
                 LaunchedEffect(state.readerOpen) { state.readerOpen?.let(model::fixtureExposed) }

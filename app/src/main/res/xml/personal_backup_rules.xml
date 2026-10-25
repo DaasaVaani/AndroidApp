@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <include domain="file" path="system-personal-v1.json.gz" />
+</full-backup-content>

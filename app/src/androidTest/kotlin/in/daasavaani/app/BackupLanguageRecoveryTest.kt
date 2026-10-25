@@ -53,7 +53,7 @@ class BackupLanguageRecoveryTest {
         emptyList(), RecentHistory(false, listOf(PersonalReference.legacy("synthetic-retained-history"))),
         emptyList(), RecitationPositionV1()))
 
-    private fun crash(beforeCommit: Boolean) {
+    private fun crash(beforeCommit: Boolean, systemRestore: Boolean = false) {
         val started = CountDownLatch(1)
         val pid = AtomicInteger(-1)
         val failed = AtomicBoolean(false)
@@ -72,13 +72,44 @@ class BackupLanguageRecoveryTest {
         val manager = context.getSystemService(ActivityManager::class.java)
         try {
             context.startService(Intent(context, BackupCrashProbeService::class.java)
-                .putExtra("backup", codec.encode(backup())).putExtra("beforeCommit", beforeCommit).putExtra("callback", remote))
+                .putExtra("backup", codec.encode(backup())).putExtra("beforeCommit", beforeCommit)
+                .putExtra("systemRestore", systemRestore).putExtra("callback", remote))
             assertTrue("Owned crash probe started", started.await(10, TimeUnit.SECONDS))
             compose.waitUntil(10000) { manager.runningAppProcesses.none { it.pid == pid.get() } }
             assertFalse("Crash probe completed its selected transaction boundary", failed.get())
         } finally {
             manager.runningAppProcesses.find { (pid.get() == -1 || it.pid == pid.get()) &&
                 it.processName == "${context.packageName}:backup_crash_probe" }?.let { android.os.Process.killProcess(it.pid) }
+        }
+    }
+
+    @Test fun systemRestoreProcessDeathBeforeFinishedCannotActivateStagedDataOrLanguage() {
+        ActivityScenario.launch(BackupRecoveryProbeActivity::class.java).use {
+            val before = PersonalStore(context).use { it.load() }
+            crash(true, systemRestore = true)
+            PersonalStore(context).use { store ->
+                assertEquals(before, store.load())
+                assertNull(store.pendingBackupLanguage())
+            }
+        }
+    }
+
+    @Test fun systemRestoreProcessDeathAfterFinishedRecoversCommittedLanguageOnActualStartup() {
+        ActivityScenario.launch(BackupRecoveryProbeActivity::class.java).use { crash(false, systemRestore = true) }
+        val committed = PersonalStore(context).use { store ->
+            assertNotNull(store.pendingBackupLanguage())
+            store.load()
+        }
+        assertEquals(backup().data.favorites.toSet(), committed.favorites)
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            lateinit var model: BackupViewModel
+            scenario.onActivity { model = ViewModelProvider(it)[BackupViewModel::class.java] }
+            compose.waitUntil(10000) { model.state.value.committed && !model.state.value.working }
+            assertEquals("en", context.getSystemService(LocaleManager::class.java).applicationLocales.toLanguageTags())
+            PersonalStore(context).use { store ->
+                assertEquals(committed, store.load())
+                assertNull(store.pendingBackupLanguage())
+            }
         }
     }
 

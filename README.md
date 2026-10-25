@@ -11,6 +11,10 @@ v1/v2 minimal-list preview, confirmed new-list-only import and complete file/lin
 export, plus same-platform current-state manual personal backup v1 with complete
 read-only preview and explicitly confirmed atomic replacement. Manual backup files
 are private **unencrypted** personal data, not lyric/offline-content snapshots.
+A personal-only Android system-backup/device-transfer adapter and rules are
+implemented but **not activated**: `allowBackup=false` and no agent registration
+remain until the framework failed-restore data-clear gate below is resolved.
+Explicit personal backup files remain the available backup path.
 None of these operations prepares/downloads lyrics. Durable offline
 activation, audio/verse playback and complete feature parity remain unimplemented.
 Explicit Continue recitation remembers only the latest exact saved-list occurrence,
@@ -524,7 +528,8 @@ implicitly prepares content nor claims offline readiness. UUID-looking legacy
 IDs never resolve to real lyric UUIDs. Fixture references remain visibly synthetic.
 The current real and fixture readers remain canonical Kannada only; this slice
 adds no script switching. History is device-only, absent from all minimal-list
-transfers and service requests; Android system backup remains disabled.
+transfers and application service requests. It is covered by manual personal
+backup and the inactive personal-only system-backup adapter described below.
 Partial LIB-06/SET-04/QUAL-05 coverage does not close full personal, offline,
 privacy/release or supported-device acceptance.
 
@@ -715,7 +720,8 @@ inside that stable-state fence. Success means a file was written, **not** receiv
 delivery. Failure/cancellation attempts to remove only the newly chosen destination;
 the provider may retain an incomplete file, disclosed by the export feedback.
 The privacy notice explicitly says that gzip is **not encryption** and recipients
-can read settings, lists and activity. No automatic upload or synchronization occurs.
+can read settings, lists and activity. Manual export initiates no upload or
+synchronization; the independently controlled Android system backup is described below.
 
 Import retains a complete detached read-only candidate and observed local
 revision/fence. The preview shows platform/date/counts, every preference and ordered
@@ -752,8 +758,8 @@ setter, after a setter failure, or after setter success/before acknowledgement
 therefore cannot lose the work or turn it into a failed restore. Reapplication is
 idempotent. Ordinary language changes transactionally clear superseded recovery;
 unrelated writers preserve it. Operational receipt recovery is not cancellable as
-an uncommitted restore, and never reopens a departed workflow. System-backup epoch
-recovery and broader provider/OS/device release acceptance remain separate.
+an uncommitted restore, and never reopens a departed workflow. Broader
+provider/OS/device release acceptance remains separate.
 If only the receipt acknowledgement encounters a storage fault after the native
 setter succeeded, the actual restored-data/language success remains true; the
 failure is logged and the durable receipt remains for idempotent startup recovery.
@@ -762,15 +768,106 @@ the already applied language a failure; its receipt remains for fresh recovery.
 A recovery read failure instead shows the existing storage-error/retry, without
 inventing a restored or failed-restore outcome before the receipt can be read.
 
+### Best-effort Android system backup and device transfer: activation gated
+
+For XFER-09/10, the inactive `PersonalBackupAgent` uses full-data backup only. API26–30 legacy
+`fullBackupContent` and API31+ `dataExtractionRules` have the same exact allowlist:
+one credential-protected internal `file/system-personal-v1.json.gz`, separately
+included for cloud backup and device transfer. No root/database/preferences/
+external/device-protected domain or directory is included. There is no native
+backup toggle, new authoritative database or additional transport/encryption policy.
+The device OS settings and transport retain authority once activation is safe.
+The current manifest keeps `allowBackup=false` and does not register the agent.
+System-backup activation is intentionally deferred under the owner's selected
+policy; manual export/restore remains available. This is a staged limitation,
+not completed XFER-09 system-backup coverage.
+Settings and Personal backup show the bilingual system-backup disclosures only
+when that manifest opts in and registers this personal-only agent. They do not
+advertise the currently inactive capability. Manual export/restore and its
+privacy information remain available independently; manifest registration is
+not evidence of an enabled OS setting, account, transport or completed backup.
+
+**Unresolved safety gate:** AOSP source inspection shows transport restore uses
+`PerformUnifiedRestoreTask` to call `clearApplicationDataAfterRestoreFailure`
+after transport/agent failure or failed finalization, even if this logical agent
+left its database untouched. Custom-agent ordinary pre-clear avoidance does not
+prevent that failure cleanup. Public `allowClearUserData` is system-image-only;
+the separate API29+ `allowClearUserDataOnFailedRestore` flag is private, absent
+from the public SDK36 attributes, and does not solve the API26–28 public-app case.
+This is a source-inspected platform concern, not a locally observed data wipe.
+No private manifest/API workaround or system-app privilege is authorized.
+The manual replacement preservation guarantee remains unchanged. XFER-09
+separately describes Android system backup as best effort; whether that scope
+accepts framework-level post-failure clearing needs an owning decision, not an
+assumption that the manual guarantee extends to it or can silently be waived.
+Activation requires a supported preservation mechanism across the selected API
+range or an explicit owning requirement decision about this unavoidable
+platform behavior. Passing the adapter/ADB tests does not close this gate.
+
+The allowlisted file is only a disposable projection of the current committed
+Room state through the existing strict Android logical backup-v1 adapter.
+`onFullBackup` captures/encodes off-main, rechecks the revision/fence and writes/
+hands the projection to `fullBackupFile` within the adapter's stable transaction,
+then retires it before that transaction releases, even on quota/I/O failure.
+Concurrent captures therefore cannot delete each other's fixed-name projection.
+It never walks app directories or
+copies the live DB/WAL/SHM. The source revision, writer epochs and operational
+language receipt are excluded along with lyric/media/content caches, transfer/
+control journals and offline readiness. Manual backup bytes, domains, limits and
+preview/explicit-confirmation semantics are unchanged.
+
+`onRestoreFile` accepts only the single exact regular-file destination and bounded
+declared size, using a duplicate of the framework-owned descriptor and an
+exact-length stream. It validates all bytes, strict schema, Android platform,
+version and personal capacities before retaining a detached in-memory candidate.
+Unknown paths/types, duplicate files, corruption, future/foreign formats and
+truncation refuse the operation; no file is extracted over application storage.
+`onRestoreFinished` uses a fresh current-state preview and the same whole-state
+Room transaction/fencing as manual restore. It preserves original IDs, order,
+settings, labels, retained history and exact position, allocates a fresh local
+revision/epoch and atomically arms the existing Room8 language receipt. Startup
+applies only committed language and durably retries failure through the existing
+Settings-independent recovery surface. It creates no pending manual preview or
+manual UI completion. Death before the finished callback cannot activate the
+candidate; death after commit cannot lose the language receipt.
+
+Invalid/future local databases are refused intact, never erased, downgraded or
+recreated as defaults by the adapter. Its validation, quota and transaction
+failures preserve current usable personal data, but the framework can subsequently
+clear it as described above; this is why the adapter remains inactive. The
+custom agent avoids AOSP's ordinary raw-file restore pre-clear path, not
+post-failure clearing, OS uninstall/reset, OEM policy or device loss.
+See the official [Auto Backup guide](https://developer.android.com/identity/data/autobackup),
+[BackupAgent callbacks](https://developer.android.com/reference/android/app/backup/BackupAgent)
+and AOSP's [full-restore lifecycle](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/services/backup/java/com/android/server/backup/restore/FullRestoreEngine.java),
+[unified transport failure cleanup](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/services/backup/java/com/android/server/backup/restore/PerformUnifiedRestoreTask.java)
+and [clear-data flag handling](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/services/backup/java/com/android/server/backup/UserBackupManagerService.java).
+No restored content/readiness flags are accepted and content is never activated
+by this agent; normal explicit complete validation/preparation remains required.
+
+Cloud backup has a25MB quota and is best effort: an accepted64MiB manual logical
+snapshot is not automatically cloud-eligible. The agent checks the current
+transport byte quota; transport/archive overhead can still cause rejection.
+Quota and I/O/validation/commit failures have explicit sanitized Android logs,
+without payloads, personal values or credentials. No in-app success is inferred
+from a manual export, rule file, callback invocation or scheduled request.
+Android may copy personal data to the user's Google account when device backup
+is enabled. Both Settings and Personal backup expose the pinned Shared bilingual
+account/privacy and quota/settings/scheduling notices before content preparation,
+including the recommendation to retain an explicit personal backup file.
+
 ### Remaining approved slices
 
 This implementation includes ordered list Recite/exact Continue and current-state
-same-platform manual personal backup v1. It does **not** implement system backup,
+same-platform manual personal backup v1 and an inactive personal-only system-backup
+adapter/rules/privacy prerequisite.
+It does **not** implement
 bookmarks, verse-based Practice/resume, persistent offline
-snapshots, production migrations or full Android parity. Android system backup is
-still disabled rather than backing up false content readiness. Remaining selected
-directions include personal-only system-backup allowlists, best-effort restore/epoch
-recovery evidence and broader provider/device lifecycle acceptance. Ordinary Settings
+snapshots, production migrations or full Android parity. System backup remains
+disabled pending the explicit failed-restore-clear gate above. Further acceptance
+includes real Google-cloud/D2D receivers, legacy/API31+ physical/OEM devices and
+broader provider/device lifecycle evidence.
+Ordinary Settings
 language changes retain the existing app-local Compose behavior; the manual restore
 workflow separately applies truthful postcommit framework per-app locale on API33+.
 
@@ -782,8 +879,8 @@ verify/sign → protected verification/GitHub Releases; exact handoff is open an
 signing key belongs in CI/repository/logs.
 
 Partial requirement coverage: LIB-01/02/03/04/05/08/09/10/11,
-XFER-01/02/03/04/05/06/08/09 (current-state manual backup only),
-XFER-10 (manual-export privacy only), I18N-01/02/03,
+XFER-01/02/03/04/05/06/08/09 (manual v1 and inactive system-adapter prerequisite only),
+XFER-10 (manual-export and system-backup privacy), I18N-01/02/03,
 LEARN-04 (optional self-assigned local labels only),
 REC-01/02/03/04 (focused individual/ordered saved-list reading, latest exact position
 and optional scoped native awake request only),
@@ -807,6 +904,26 @@ git --no-pager diff --cached --check
 
 Set JAVA_HOME to JDK21 and ANDROID_HOME to the SDK with platform/build-tools36.
 Use the existing actionlint/ShellCheck binaries on PATH for workflow checking.
+The current API36 fixture is `daasavaani_fixture_api36_fresh`, selected with
+`ANDROID_SERIAL=emulator-5556`. Its registry and mutable data live under
+`%LOCALAPPDATA%\DaasaVaani\avd`, outside the repository and every Gradle build
+directory. Never create a live AVD beneath disposable build output. To launch
+this existing fixture with the installed SDK:
+
+```powershell
+$env:ANDROID_AVD_HOME = Join-Path $env:LOCALAPPDATA 'DaasaVaani\avd'
+$env:ANDROID_SERIAL = 'emulator-5556'
+& "$env:ANDROID_HOME\emulator\emulator.exe" -avd daasavaani_fixture_api36_fresh -port 5556 -memory 2560 -cores 4 -no-snapshot -no-boot-anim -no-audio -gpu swiftshader_indirect
+```
+
+Do not start a second emulator on an occupied port or silently stop another
+device. The retired fixture's files remain under `app\build\owned-avd`; they are
+not a verified backup and are not removed by this workflow. Do not run Gradle
+`clean`/`:app:clean` against those retained files. For stale Kotlin metadata use
+the affected compile tasks with `--rerun-tasks`, without deleting or moving AVD
+data. Regenerate owned settings if their generated output is ever removed.
+On a constrained host, append `--max-workers=1` to the complete Gradle validation
+command to serialize workers, without filtering suites or changing time limits.
 The Favorites literal-filter/history, actual system-chooser and Library
 invalid-query regression blocks log timing and synthetic state under
 `UiFailureDiagnostics`. The Library block includes the current accepted query,
@@ -838,7 +955,60 @@ durable failed-language retry, actual OS reapplication and unchanged personal
 values/revision. The Room8 upgrade/fresh receipt and superseded-ack cases also run.
 These probes/components are absent from release variants.
 They do not establish every provider, low-storage/crash window, OS version,
-system-backup or production-device acceptance.
+transport or production-device acceptance.
+System-backup connected cases separately parse both rule resources and each
+legacy/cloud/device-transfer allowlist, exercise real framework file descriptors/
+BackupAgent callbacks and the original logical snapshot adapter, quota/delivery
+failure cleanup, strict refusal, original personal identity/order preservation,
+fresh fencing and future-DB preservation. Debug separate-process probes also
+kill before the system finished callback and after its commit, with actual
+startup language recovery. These are not cloud/D2D transport delivery evidence.
+
+The additional own-package ADB framework-lifecycle checker requires an explicitly
+authorized, registered/backup-enabled review candidate; its manifest preflight
+refuses the current activation-gated build before seeding or changing personal
+data. After that owning gate is resolved, the installed-APK commands are:
+
+```powershell
+adb -s $env:ANDROID_SERIAL install -r -t app\build\outputs\apk\debug\app-debug.apk
+adb -s $env:ANDROID_SERIAL install -r -t app\build\outputs\apk\androidTest\debug\app-debug-androidTest.apk
+python tools\check_system_backup_adb.py
+```
+
+Gradle's connected runner normally uninstalls its APKs on completion; install the
+built APKs explicitly before either standalone checker. The ADB checker uses the
+API36 platform confirmation UI with no passwords and the supported, deprecated
+host `adb restore` command. It validates the real generated archive contains
+**only this package's** framework manifest and exact one personal snapshot before
+feeding it back. Separate instrumentation phases then verify every logical value,
+fresh revision/receipt and a preserved current local control sentinel after the
+real framework `onFullBackup`/`onRestoreFile`/`onRestoreFinished` lifecycle. No
+global archive, other package, transport selection, account or OS backup-setting
+change occurs. Its synthetic archive/logs stay under ignored `build/`; platform
+confirmation failure is a test failure, not a success flag. ADB framework/archive
+proof still does not establish Google-cloud, local transport scheduling, D2D
+receiver or OEM interoperability.
+
+The optional own-package platform transport check, after installing the debug
+and androidTest APKs on the intended emulator, is:
+
+```powershell
+python tools\check_system_backup_transport.py
+```
+
+It also requires an explicitly authorized registered/backup-enabled review
+candidate, the already-enabled/scheduling-disabled fixture environment and
+explicit `ANDROID_SERIAL=emulator-5556`/matching AVD identity. It refuses to toggle
+Backup Manager: AOSP's supported disable operation can initialize/wipe **all**
+registered transports, so restoring a previously-disabled setting is not a safe
+test cleanup. It selects only the local transport, requests only this package's
+backup/restore, verifies original logical values plus preservation of a current
+local control sentinel, wipes only this package's synthetic local archive and
+restores/verifies the exact original transport in `finally`. Recovery state is
+journaled under ignored `build/` before selection. No accounts, cloud credentials,
+global restore/init/cancel, device wipe or unrelated package data are used.
+Unavailable preconditions are a reported transport-evidence limitation, not a
+passing OS backup test or grounds to narrow the mandatory configured suites.
 The actual chooser test requires a visible platform `android:id/resolver_list`
 in the active external accessibility window before Back. An external package or
 system starting window alone is not readiness. View-ID reporting is enabled
