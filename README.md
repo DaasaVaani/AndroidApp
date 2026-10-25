@@ -8,7 +8,10 @@ records before canonical Kannada reading and indexed search. Prepared data is
 memory-only. Typed lyric/legacy favorites, recitation lists/independent occurrences
 and UI language/theme/lyric reading preferences use one durable Room database. Settings offers process-local
 v1/v2 minimal-list preview, confirmed new-list-only import and complete file/link
-export. None of these operations prepares/downloads lyrics. Durable offline
+export, plus same-platform current-state manual personal backup v1 with complete
+read-only preview and explicitly confirmed atomic replacement. Manual backup files
+are private **unencrypted** personal data, not lyric/offline-content snapshots.
+None of these operations prepares/downloads lyrics. Durable offline
 activation, audio/verse playback and complete feature parity remain unimplemented.
 Explicit Continue recitation remembers only the latest exact saved-list occurrence,
 not mode, scroll, screen-awake state or content readiness.
@@ -323,10 +326,10 @@ visible text, never occurrence metadata or preference/wake/position replay.
 Resolution is O(lists + selected-list entries). Complete selection validation/
 accounting is O(personal records + bounded text bytes); only a pair, not copied
 lyric content, is persisted. Both minimal-list projections exclude the pair and
-all local identities. Future same-platform full backups must explicitly include
-this record through their versioned personal allowlist/preserving restore
-adapter; full backups, durable snapshots, Practice and full REC-04/XFER-09/release
-conformance remain unimplemented.
+all local identities. The separate current-state manual personal backup v1
+includes the exact nullable pair, even when its list or occurrence is unavailable.
+Durable snapshots, reviewed verse-based Practice, future personal features and
+complete REC-04/release conformance remain outside this slice.
 
 - No bundled lyrics. Explicit validated full preparation gates lyrics, not
   Settings/recovery/list preview. Preserve destinations without automatic saving.
@@ -353,10 +356,10 @@ conformance remain unimplemented.
 
 ### Personal schema, transactions and recovery
 
-`personal.db` is the only personal database. Room schema7 has one required
+`personal.db` is the only personal database. Room schema8 has one required
 `preferences` singleton (`id=1`, `language`, `theme`, nonnegative `revision`,
 `recentHistoryEnabled`, `lyricFontSizeSp`, `readingDensity`, nullable
-`recitationListId`/`recitationEntryId`) and
+`recitationListId`/`recitationEntryId`, and operational `backupLanguagePending`) and
 `favorites` keyed by `(kind,value)` with explicit positions, ordered `lists` and
 ordered `occurrences`, plus ordered typed `recents` and `learning` keyed by
 `(kind,value)` with `label` and contiguous `position`. Lyric references require canonical lowercase UUIDv4;
@@ -381,15 +384,19 @@ from preferences, history, favorites or list occurrences. The v6→7 migration a
 only a null recitation pair without changing existing preferences, IDs, raw text,
 repetitions, history, labels or revision. Both pointer columns must be null or
 valid lowercase UUIDv4; referential removal is not structural corruption.
+The v7→8 migration adds a false operational language-recovery bit without changing
+personal values or revision. Only a committed manual replacement arms it; it is
+not a new personal preference, backup field or part of the frozen v7 logical byte
+accounting envelope.
 Every old schema and
-its frozen accounting envelope, plus the prospective complete schema7 envelope,
+its frozen accounting envelope, plus the prospective complete v7 logical envelope,
 must validate before mutation.
 Supported v1/v2 inputs chain through these
 same migrations. Each reopened store has a fresh process-local epoch; history
 transactions participate in the existing revision/epoch fences, including pending
 imports and duplicate-name confirmations.
 The actual old schema and records (strict11-character IDs only for v1/v2;
-exact typed IDs for v3/v4/v5/v6/v7) are validated before opening
+exact typed IDs for v3/v4/v5/v6/v7/v8) are validated before opening
 Room and rechecked within the migration transaction. Both old accounting and the
 projected new envelope must fit before migration. These are
 synthetic migration fixtures, not a claim that an earlier production personal schema
@@ -415,8 +422,11 @@ Learning entries emit `kind`, the exact `lyricId`/`videoId`, then `label`.
 Empty learning and nullable recitation-envelope overhead is counted;
 v3/v4/v5/v6 accounting remains frozen.
 The epoch is not persisted/accounted and changes when the store closes/reopens.
+Its process-local fence also incorporates a per-database replacement generation
+shared by all live store instances; a committed manual replacement invalidates
+their outstanding snapshots without transplanting a source fence.
 Accounting counts UTF8 incrementally without constructing a whole backup string.
-This envelope is storage accounting, not an implemented backup format.
+This envelope is storage accounting, not the separate manual backup wire format.
 No optimistic success is shown before commit. No preferences are duplicated in
 SharedPreferences or a separate database.
 
@@ -475,8 +485,8 @@ bilingual caption explaining that reviewed verse-based Practice is not
 implemented; there is no fake Practice action or guessed verse boundary.
 
 Assignments remain device-local, outside every v1/v2 minimal-list file/link transfer.
-Full backup/restore inclusion remains gated by its unimplemented independent protocol;
-this logical storage accounting is not a backup format.
+Current-state manual personal backup v1 separately includes every ordered
+assignment. This logical storage accounting is not its wire format.
 
 ### Device-only Recently opened
 
@@ -655,7 +665,7 @@ six upstream source identities against Shared settings. Runtime loading verifies
 the packaged profile and data hash; missing/corrupt/unsupported resources fail
 explicitly, with no platform fallback.
 
-Room schema7 stores raw list names, not persisted name keys. Create, rename,
+Room schema8 stores raw list names, not persisted name keys. Create, rename,
 duplicate and import use this profile and explicit independent-reuse confirmation.
 No list is automatically renamed/merged; no cached keys require migration.
 A future persisted-key/profile change still needs a preserving migration.
@@ -664,16 +674,105 @@ existing policies; raw real lyric UUIDs and legacy IDs are never normalized.
 Partial mapping: LIB-01/02/03/04/05/08/09/10/11, XFER-01/03/04/05/06/08
 and SET-01; not full requirement acceptance.
 
+### Same-platform manual personal backup v1
+
+Settings → Personal backup provides explicit native document creation/export and
+bounded document selection/import. The configured `backupFileName` in
+`settings/android.yml` suggests `.dvbackup.json.gz`; names and MIME are hints,
+not trust. Generated `BackupPolicy.kt` consumes the independently pinned
+[Shared profile](shared/settings/full-backup.yml) and
+[portable limits](shared/settings/personal-transfer.yml); native config generation
+refuses a frozen backup font domain incompatible with native reading settings.
+No Node codec, database dump, content fetch, preparation, media/cache readiness,
+Recite entry or awake request participates in this workflow.
+
+The authoritative [logical allowlist and protocol](shared/docs/full-personal-backup.md)
+is Android-to-Android only. It covers all currently implemented Room7 preferences
+(including `device` sentinels and native sp), ordered typed favorites, original
+list/occurrence IDs and raw text/fallback absence, disabled-but-retained history,
+ordered learning labels and the nullable latest exact recitation pair. Missing
+references and unavailable pairs are preserved, not matched, trimmed or cleared.
+No local revisions, fences, row wrappers, journals, lyrics, media or readiness are
+exported. New personal features require an explicitly preserving versioned adapter;
+bookmarks, reviewed Practice and other future state have no reserved wire fields.
+
+The core codec reuses bounded list-file gzip/fatal-UTF8 primitives, list validation
+and the pinned Unicode16 name comparison. Streaming fatal-UTF8/strict JSON parsing
+does not materialize the decoded archive or its whitespace as a giant String.
+It refuses decoded duplicate keys (including escape-equivalent keys), malformed
+UTF8/surrogates, unknown fields/platforms/versions, invalid exact UTC milliseconds,
+typed semantic duplicates, repeated global occurrence IDs and all collection,
+code-point, aggregate and byte limits. One optional leading BOM is accepted within
+the decoded cap. Exactly one gzip member must pass optional-header checks, CRC32
+and ISIZE; concatenation, trailing bytes and truncation are refused. The inclusive
+encoded/decoded ceilings are65MiB/64MiB, with no compression-ratio rule.
+Fixed-size bounded chunks prevent geometric backing buffers exceeding those caps.
+Export serializes incrementally into gzip, rather than allocating a full JSON body.
+
+Export captures committed state, encodes off-main, then rechecks its revision/fence
+inside a Room transaction before delivering the file. The provider stream remains
+inside that stable-state fence. Success means a file was written, **not** receiver
+delivery. Failure/cancellation attempts to remove only the newly chosen destination;
+the provider may retain an incomplete file, disclosed by the export feedback.
+The privacy notice explicitly says that gzip is **not encryption** and recipients
+can read settings, lists and activity. No automatic upload or synchronization occurs.
+
+Import retains a complete detached read-only candidate and observed local
+revision/fence. The preview shows platform/date/counts, every preference and ordered
+record, original IDs, raw text/fallbacks and exact position; equivalent names produce
+a read-only Unicode16 warning, never merge/re-identification. It offers current-data
+export and separately requires explicit confirmation of **whole-state replacement**.
+One Room transaction rechecks the preview, validates the exact prospective Room7 logical
+envelope including the fresh revision/header overhead, and replaces all allowlisted
+tables/preferences or none. Stale preview requires choosing/reviewing a fresh
+candidate. Validation, quota, storage failure and precommit cancellation preserve
+the complete previous database. The committed outcome is not changed into a false
+rollback by departure/cancellation afterward.
+
+Successful replacement allocates a fresh local process fence across live stores,
+retains existing list observers and refreshes the personal UI without opening a
+reader. Old writers, queued history/reading operations, read completions, list
+callbacks and reader receipts cannot write/reopen the replaced workflow. Fresh
+current writers continue normally. OS per-app locale is applied **only after
+commit** on API33+ using `LocaleManager`, with an empty locale list for `device`;
+API26–32 continue the existing app-local Compose resource behavior because those
+OS versions have no framework per-app locale API. A locale exception means restored
+data plus a specific language retry, not a failed restore. Retry does not rewrite
+personal records. Retry rereads committed preferences and refuses to reapply a
+superseded language.
+Follow-device rendering reads device locales independently of any old app-locale
+override; neither export nor read-only preview changes OS locale.
+The same Room transaction durably arms `backupLanguagePending`. Fresh startup
+automatically reapplies the committed restored language; a setter failure retains
+the receipt and shows the existing **data restored + language retry** notice and
+action even outside the backup route. Successful application acknowledges only
+this operational bit under fresh revision/epoch checks: it does not rewrite any
+personal value or increment revision. Process death after commit/before the
+setter, after a setter failure, or after setter success/before acknowledgement
+therefore cannot lose the work or turn it into a failed restore. Reapplication is
+idempotent. Ordinary language changes transactionally clear superseded recovery;
+unrelated writers preserve it. Operational receipt recovery is not cancellable as
+an uncommitted restore, and never reopens a departed workflow. System-backup epoch
+recovery and broader provider/OS/device release acceptance remain separate.
+If only the receipt acknowledgement encounters a storage fault after the native
+setter succeeded, the actual restored-data/language success remains true; the
+failure is logged and the durable receipt remains for idempotent startup recovery.
+A newer same-language writer can also stale the acknowledgement without making
+the already applied language a failure; its receipt remains for fresh recovery.
+A recovery read failure instead shows the existing storage-error/retry, without
+inventing a restored or failed-restore outcome before the receipt can be read.
+
 ### Remaining approved slices
 
-This implementation does **not** implement list recitation/Continue, full personal
-backup/restore, system backup, bookmarks, verse-based Practice/resume, persistent offline
+This implementation includes ordered list Recite/exact Continue and current-state
+same-platform manual personal backup v1. It does **not** implement system backup,
+bookmarks, verse-based Practice/resume, persistent offline
 snapshots, production migrations or full Android parity. Android system backup is
 still disabled rather than backing up false content readiness. Remaining selected
-directions include personal-only backup allowlists, same-platform recoverable full
-replacement with revision/epoch/locale recovery, and truthful postcommit OS locale
-effects. The current locale change affects this app's Compose resources, not Android
-per-app locale settings or a backup-restore protocol.
+directions include personal-only system-backup allowlists, best-effort restore/epoch
+recovery evidence and broader provider/device lifecycle acceptance. Ordinary Settings
+language changes retain the existing app-local Compose behavior; the manual restore
+workflow separately applies truthful postcommit framework per-app locale on API33+.
 
 Persistent content still needs active-version preservation, explicit validated
 refresh, UIDT34+/FGS26-33 progress/cancel/restriction handling and verified-artifact
@@ -683,9 +782,11 @@ verify/sign → protected verification/GitHub Releases; exact handoff is open an
 signing key belongs in CI/repository/logs.
 
 Partial requirement coverage: LIB-01/02/03/04/05/08/09/10/11,
-XFER-01/02/03/04/05/06/08, I18N-01/02/03,
+XFER-01/02/03/04/05/06/08/09 (current-state manual backup only),
+XFER-10 (manual-export privacy only), I18N-01/02/03,
 LEARN-04 (optional self-assigned local labels only),
-REC-01/02/03 (focused individual/ordered saved-list reading and optional scoped native awake request only),
+REC-01/02/03/04 (focused individual/ordered saved-list reading, latest exact position
+and optional scoped native awake request only),
 SET-04 (UI language/theme/lyric typography/labels only), UX-02/03/14 (bounded lyric
 typography/layout only), QUAL-05/06 (local-only state and explicit errors).
 Canonical Kannada and required preparation remain unchanged. This is neither
@@ -724,6 +825,20 @@ latest explicit edits, restored/fresh input owners and selection changes without
 query, error or paging reset. Existing reader/Settings/Back context cases remain
 required alongside these input regressions.
 An isolated diagnostic selector is not complete validation or publication approval.
+Backup Room/Compose/native-document cases use the same failure-only diagnostic
+harness. Pinned Shared native vectors are accepted and web vectors refused;
+device tests exercise actual Settings preview/replacement, encoded65MiB and
+decoded64MiB inclusive/+1 bounds, corruption, stale preview, cancellation,
+transaction faults, prospective overhead, old/fresh fences, postcommit departure
+and language-specific failure/retry. Actual API36 framework locale and native
+DocumentsUI create/choose round trips use only unique synthetic backup files.
+Debug-only non-exported separate-process crash probes verify abrupt death before
+and after the replacement commit; fresh ViewModel/Compose lifetimes verify
+durable failed-language retry, actual OS reapplication and unchanged personal
+values/revision. The Room8 upgrade/fresh receipt and superseded-ack cases also run.
+These probes/components are absent from release variants.
+They do not establish every provider, low-storage/crash window, OS version,
+system-backup or production-device acceptance.
 The actual chooser test requires a visible platform `android:id/resolver_list`
 in the active external accessibility window before Back. An external package or
 system starting window alone is not readiness. View-ID reporting is enabled

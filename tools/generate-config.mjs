@@ -5,6 +5,12 @@ const config = strictYaml(await readFile(new URL("settings/android.yml", root), 
 const bounds = strictYaml(await readFile(new URL("shared/settings/publication-policy.yml", root), "utf8"));
 const search = strictYaml(await readFile(new URL("shared/settings/search.yml", root), "utf8"));
 const personal = strictYaml(await readFile(new URL("shared/settings/personal-transfer.yml", root), "utf8"));
+const backup = strictYaml(await readFile(new URL("shared/settings/full-backup.yml", root), "utf8"));
+if (backup.formatVersion !== 1 || backup.android.sourceModel !== "nativeRoom7" ||
+    backup.android.fontUnit !== "sp" || backup.android.fontMin !== config.ui.readerFontMinSp ||
+    backup.android.fontMax !== config.ui.readerFontMaxSp || backup.android.fontStep !== config.ui.readerFontStepSp ||
+    !["maxBackupEncodedBytes", "maxBackupDecodedBytes"].every(key => Number.isSafeInteger(personal[key]) && personal[key] > 0))
+  throw new Error("Unsupported full backup profile");
 const defaults = strictYaml(await readFile(new URL("shared/settings/defaults.yml", root), "utf8"));
 if (typeof defaults.recentHistoryEnabled !== "boolean") throw new Error("Invalid recent history default");
 if (defaults.readingDensity !== "normal" ||
@@ -62,6 +68,7 @@ const canonical = new URL(config.canonicalBaseUrl);
 if (canonical.protocol !== "https:" || canonical.username || canonical.password || canonical.search || canonical.hash ||
     canonical.pathname !== "/" || typeof config.listLinkPath !== "string" || !/^[A-Za-z0-9_-]+\/$/.test(config.listLinkPath) ||
     typeof config.listFileName !== "string" || !/^[A-Za-z0-9._-]+\.dvlist\.json\.gz$/.test(config.listFileName) ||
+    typeof config.backupFileName !== "string" || !/^[A-Za-z0-9._-]+\.dvbackup\.json\.gz$/.test(config.backupFileName) ||
     !Number.isInteger(config.listCompressionLevel) || config.listCompressionLevel < 0 || config.listCompressionLevel > 9)
   throw new Error("Invalid list transport settings");
 await mkdir(new URL("build/generated", root), { recursive: true });
@@ -78,6 +85,13 @@ await writeFile(new URL("build/generated/kotlin/ReadingPolicy.kt", root),
     .map(([key, value]) => `    const val ${key} = ${value}\n`).join("") +
   `    const val defaultDensity = "${defaults.readingDensity}"\n` +
   `    val supportedDensities = listOf(${defaults.supportedReadingDensities.map(value => JSON.stringify(value)).join(", ")})\n}\n`);
+await writeFile(new URL("build/generated/kotlin/BackupPolicy.kt", root),
+  `package \`in\`.daasavaani.core\n\n// Generated from pinned Shared backup domains and limits.\nobject BackupPolicy {\n` +
+  ["maxBackupEncodedBytes", "maxBackupDecodedBytes", "maxPersonalStoredBytes", "maxLists", "maxTotalEntries",
+    "maxFavorites", "maxLearningLabels", "maxRecents", "maxEntriesPerList", "maxListNameCodePoints", "maxEntryTextCodePoints"]
+    .map(key => `    const val ${key} = ${personal[key]}\n`).join("") +
+  `    const val fontMin = ${backup.android.fontMin}\n    const val fontMax = ${backup.android.fontMax}\n` +
+  `    const val fontStep = ${backup.android.fontStep}\n}\n`);
 await writeFile(new URL("build/generated/config.properties", root),
   Object.entries(config).filter(([, value]) => typeof value !== "object")
     .map(([key, value]) => `${key}=${String(value).replaceAll("\\", "\\\\")}`).join("\n") + "\n");
@@ -90,6 +104,7 @@ await writeFile(new URL("app/build/generated/settings/values/config.xml", root),
   `<string name="canonical_base_url" translatable="false">${xml(config.canonicalBaseUrl)}</string>\n` +
   `<string name="list_link_path" translatable="false">${xml(config.listLinkPath)}</string>\n` +
   `<string name="list_file_name" translatable="false">${xml(config.listFileName)}</string>\n` +
+  `<string name="backup_file_name" translatable="false">${xml(config.backupFileName)}</string>\n` +
   Object.entries({ ...bounds, spacingDp: ui.spacingDp, contentPaddingDp: ui.contentPaddingDp,
     connectTimeoutMs: config.connectTimeoutMs, readTimeoutMs: config.readTimeoutMs,
     trustedMaxQueryCodePoints: search.maxQueryCodePoints, trustedMaxTerms: search.maxTerms, trustedMaxPageSize: search.pageSize,

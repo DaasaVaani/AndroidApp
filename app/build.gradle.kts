@@ -21,6 +21,7 @@ android {
         }
     }
     sourceSets["main"].res.srcDirs("../shared/generated/android", "build/generated/settings")
+    sourceSets["androidTest"].assets.srcDir("../shared/fixtures/personal")
     buildFeatures { compose = true }
     bundle { language { enableSplit = false } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_21; targetCompatibility = JavaVersion.VERSION_21 }

@@ -34,6 +34,7 @@ class LearningStoreTest {
             it.execSQL("DROP TABLE learning")
             it.execSQL("ALTER TABLE preferences DROP COLUMN recitationListId")
             it.execSQL("ALTER TABLE preferences DROP COLUMN recitationEntryId")
+            it.execSQL("ALTER TABLE preferences DROP COLUMN backupLanguagePending")
             it.execSQL("DELETE FROM room_master_table")
             it.version = 5
         }
@@ -60,7 +61,7 @@ class LearningStoreTest {
             assertNotEquals(fence, it.load().epoch)
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use {
-            assertEquals(7, it.version)
+            assertEquals(8, it.version)
         }
     }
 
@@ -199,7 +200,7 @@ class LearningStoreTest {
             PersonalStore(context, name).use { store -> failure(R.string.personal_invalid) { store.load() } }
             assertArrayEquals(bytes, context.getDatabasePath(name).readBytes())
         }
-        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 8 }
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 9 }
         bytes = context.getDatabasePath(name).readBytes()
         PersonalStore(context, name).use { store -> failure(R.string.personal_future) { store.load() } }
         assertArrayEquals(bytes, context.getDatabasePath(name).readBytes())

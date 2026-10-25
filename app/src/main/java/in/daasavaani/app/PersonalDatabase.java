@@ -15,7 +15,7 @@ import java.util.List;
 @Database(entities = {PersonalDatabase.Preference.class, PersonalDatabase.Favorite.class,
         PersonalDatabase.SavedList.class, PersonalDatabase.Entry.class, PersonalDatabase.Recent.class,
         PersonalDatabase.Learning.class},
-        version = 7, exportSchema = true)
+        version = 8, exportSchema = true)
 public abstract class PersonalDatabase extends RoomDatabase {
     public abstract Records records();
 
@@ -30,6 +30,7 @@ public abstract class PersonalDatabase extends RoomDatabase {
         @NonNull public String readingDensity = "";
         @Nullable public String recitationListId;
         @Nullable public String recitationEntryId;
+        @ColumnInfo(defaultValue = "0") public boolean backupLanguagePending;
     }
 
     @Entity(tableName = "favorites", primaryKeys = {"kind", "value"})
@@ -85,8 +86,10 @@ public abstract class PersonalDatabase extends RoomDatabase {
         @Query("DELETE FROM learning") void clearLearning();
         @Query("UPDATE preferences SET revision = :revision WHERE id = 1")
         void updateRevision(long revision);
-        @Query("UPDATE preferences SET language = :language, theme = :theme, revision = :revision, recentHistoryEnabled = :enabled WHERE id = 1")
+        @Query("UPDATE preferences SET backupLanguagePending = CASE WHEN language = :language THEN backupLanguagePending ELSE 0 END, language = :language, theme = :theme, revision = :revision, recentHistoryEnabled = :enabled WHERE id = 1")
         void updatePreference(String language, String theme, long revision, boolean enabled);
+        @Query("UPDATE preferences SET backupLanguagePending = :pending WHERE id = 1")
+        void updateBackupLanguagePending(boolean pending);
         @Query("UPDATE preferences SET lyricFontSizeSp = :fontSize, readingDensity = :density, revision = :revision WHERE id = 1")
         void updateReading(int fontSize, String density, long revision);
         @Query("UPDATE preferences SET recitationListId = :listId, recitationEntryId = :entryId, revision = :revision WHERE id = 1")

@@ -32,6 +32,7 @@ class RecitationPositionStoreTest {
         context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use {
             it.execSQL("ALTER TABLE preferences DROP COLUMN recitationListId")
             it.execSQL("ALTER TABLE preferences DROP COLUMN recitationEntryId")
+            it.execSQL("ALTER TABLE preferences DROP COLUMN backupLanguagePending")
             it.execSQL("DELETE FROM room_master_table")
             it.version = 6
         }
@@ -57,7 +58,7 @@ class RecitationPositionStoreTest {
             assertEquals(before.favorites.toList(), after.favorites.toList())
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use {
-            assertEquals(7, it.version)
+            assertEquals(8, it.version)
         }
     }
 
@@ -254,7 +255,7 @@ class RecitationPositionStoreTest {
             PersonalStore(context, name).use { store -> failure(R.string.personal_invalid) { store.load() } }
             assertArrayEquals(original, context.getDatabasePath(name).readBytes())
         }
-        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 8 }
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 9 }
         original = context.getDatabasePath(name).readBytes()
         PersonalStore(context, name).use { store -> failure(R.string.personal_future) { store.load() } }
         assertArrayEquals(original, context.getDatabasePath(name).readBytes())

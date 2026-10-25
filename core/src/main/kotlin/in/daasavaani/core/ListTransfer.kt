@@ -2,8 +2,6 @@ package `in`.daasavaani.core
 
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
-import java.nio.ByteBuffer
-import java.nio.charset.CodingErrorAction
 import java.net.URI
 import java.util.Base64
 import java.util.zip.CRC32
@@ -25,6 +23,7 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
     private val base = URI(canonicalBaseUrl)
     private val openPath = base.path + listLinkPath
     private val linkPrefix = canonicalBaseUrl + listLinkPath + "#/list/"
+    private val transport = TransferTransport(bounds.encoded, bounds.decoded)
     init {
         require(base.scheme == "https" && base.host != null && base.userInfo == null &&
             base.query == null && base.fragment == null && base.path == "/")
@@ -33,18 +32,6 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
     }
     private fun invalid(): Nothing = throw TransferFailure("invalid")
     private fun size(): Nothing = throw TransferFailure("size")
-    private fun bounded(input: InputStream, check: () -> Unit): ByteArray {
-        val out = ByteArrayOutputStream()
-        val buffer = ByteArray(8192)
-        while (true) {
-            check()
-            val count = input.read(buffer, 0, minOf(buffer.size, bounds.encoded - out.size() + 1))
-            if (count < 0) return out.toByteArray()
-            if (count == 0) continue
-            if (count > bounds.encoded - out.size()) size()
-            out.write(buffer, 0, count)
-        }
-    }
     private fun inflate(bytes: ByteArray, offset: Int, gzip: Boolean, check: () -> Unit): ByteArray {
         val inflater = Inflater(true)
         val out = ByteArrayOutputStream()
@@ -75,28 +62,7 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
         (0..3).fold(0L) { value, i -> value or ((bytes[at + i].toLong() and 255) shl (8 * i)) }
 
     fun decodeFile(input: InputStream, check: () -> Unit = {}): ListSnapshot {
-        val bytes = bounded(input, check)
-        if (bytes.size < 18 || bytes[0] != 0x1f.toByte() || bytes[1] != 0x8b.toByte() ||
-            bytes[2] != 8.toByte()) invalid()
-        val flags = bytes[3].toInt() and 255
-        if (flags and 224 != 0) invalid()
-        var at = 10
-        fun byte(): Int {
-            check()
-            if (at >= bytes.size - 8) invalid()
-            return bytes[at++].toInt() and 255
-        }
-        if (flags and 4 != 0) {
-            val length = byte() or (byte() shl 8)
-            repeat(length) { byte() }
-        }
-        if (flags and 8 != 0) while (byte() != 0) { /* bounded optional filename */ }
-        if (flags and 16 != 0) while (byte() != 0) { /* bounded optional comment */ }
-        if (flags and 2 != 0) {
-            val crc = CRC32().apply { update(bytes, 0, at) }.value.toInt() and 65535
-            if (byte() or (byte() shl 8) != crc) invalid()
-        }
-        return decodeJson(inflate(bytes, at, true, check), check)
+        return decodeJson(transport.decode(input, check), check)
     }
 
     fun decodeLink(link: String, check: () -> Unit = {}): ListSnapshot {
@@ -116,13 +82,7 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
     }
 
     fun decodeJson(bytes: ByteArray, check: () -> Unit = {}): ListSnapshot {
-        if (bytes.size > bounds.decoded) size()
-        check()
-        val decoded = try {
-            Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
-                .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString()
-        } catch (_: java.nio.charset.CharacterCodingException) { invalid() }
-        return Parser(decoded.removePrefix("\uFEFF"), check).parse()
+        return Parser(transport.utf8(bytes, check), check).parse()
     }
 
     private inner class Parser(val source: String, val check: () -> Unit) {
@@ -293,16 +253,7 @@ class ListTransfer(private val bounds: TransferBounds, canonicalBaseUrl: String,
         } finally { deflater.end() }
     }
     fun encodeFile(snapshot: ListSnapshot, check: () -> Unit = {}): ByteArray {
-        val bytes = json(snapshot, check)
-        val compressed = compress(bytes, check)
-        if (compressed.size > bounds.encoded - 18) size()
-        val out = ByteArrayOutputStream()
-        out.write(byteArrayOf(31, -117, 8, 0, 0, 0, 0, 0, 0, -1))
-        out.write(compressed)
-        listOf(CRC32().apply { update(bytes) }.value, bytes.size.toLong()).forEach { value ->
-            repeat(4) { out.write((value ushr (it * 8)).toInt() and 255) }
-        }
-        return out.toByteArray()
+        return transport.encode(json(snapshot, check), compressionLevel, check)
     }
     fun encodeLink(snapshot: ListSnapshot, check: () -> Unit = {}): String {
         val bytes = compress(json(snapshot, check), check)

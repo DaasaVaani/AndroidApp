@@ -69,7 +69,7 @@ internal fun ListReciteScreen(session: OrderedRecitation, recite: ReciteState, s
             LaunchedEffect(Unit) {
                 if (canonical != null || fixture != null) {
                     snapshotFlow { scroll.layoutInfo.visibleItemsInfo.any { it.key == "list-lyric" } }.first { it }
-                    model.recordExposed(requireNotNull(reference))
+                    model.recordExposed(requireNotNull(reference), state.personal?.epoch)
                 }
             }
             LazyColumn(Modifier.weight(1f).testTag("list-recite-content"), state = scroll) {

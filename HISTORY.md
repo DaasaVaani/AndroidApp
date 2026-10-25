@@ -1,5 +1,267 @@
 # Documentation history
 
+## 2026-10-25: closing manual-restore postcommit language crash recovery
+
+- Parent correctly identified an owning XFER-09/Shared protocol step6 gap in the
+  preceding handoff. The superseded current warning said the retry notice was
+  ViewModel-only and durable post-process-death OS-locale recovery was separate
+  acceptance work. That exclusion was not valid for manual-restore crash safety.
+  System-backup/platform-wide acceptance remains separate, not this requirement.
+- Room8 adds one fixed operational `backupLanguagePending` bit in the same
+  transaction as replacement. Migration7→8 preserves all logical values and
+  revision and initializes the bit false, without inventing a previous restore.
+  The frozen Shared nativeRoom7 logical projection, wire v1 and v7 logical byte
+  accounting are unchanged; the bit never enters export or personal equality.
+  Only postcommit OS success clears it, with fresh epoch/revision checking and no
+  logical personal writes or revision increment. A normal language change clears
+  superseded work transactionally; unrelated current writes preserve it.
+- Fresh startup reads committed Room state, automatically reapplies only pending
+  restored language and acknowledges it. Setter failure leaves the receipt and
+  shows the existing data-restored/language-specific retry outside Settings too.
+  Retry and startup use committed current preferences, never saved preview text.
+  Crash after the setter but before acknowledgement safely repeats an idempotent
+  setter. No rollback, fabricated restore failure, content request or mode entry.
+- Debug-only non-exported service probes kill their own separate process at the
+  final precommit receipt boundary and immediately after the Room commit, with
+  no graceful close. A blank debug-only activity permits deterministic fresh
+  ViewModel/Compose failure lifetimes. Neither component is packaged in release.
+  New tests cover real abrupt rollback/committed restart, two fresh faulted
+  language-recovery ViewModels with visible retry, actual successful native retry,
+  v7→8 preservation, metadata fencing/supersession and unchanged wire content.
+  Existing migration/future-schema tests now correctly expect8/reject9 rather
+  than incorrectly refusing the supported new schema.
+- The first focused15-case run (`build/native-backup-recovery-focused.log`)
+  passed12 and failed3. The crash-probe callback incorrectly parcelled a test-APK
+  subclass into the app-only subprocess, causing class loading failure; its
+  crash dialog also blocked the later DocumentsUI case. Flattened that callback
+  to a framework ResultReceiver parcel and made timeout cleanup verify/target
+  only the owned probe PID. No emulator reset or user-process action. Actual
+  current window returned to Launcher with no retained subprocess/ANR.
+  The corrected15-case run passed15/15, zero failures/errors/skips
+  (`build/native-backup-recovery-focused2.log`,4m50s).
+- The sixth recovery case additionally injects an acknowledgement-only SQLite
+  fault after a real successful setter. It retains the receipt and reports the
+  real data/language success, rather than fabricating a locale or restore failure;
+  a sanitized error is logged. A fresh recovery reader's storage error is exposed
+  with generic storage retry, not an invented restore result. Removing the fault
+  permits current-receipt recovery without changing personal values/revision.
+- Exact coverage entrypoints: `BackupLanguageRecoveryTest` has real abrupt
+  precommit rollback and postcommit/MainActivity-startup cases; two fresh
+  faulted-VM/Compose lifetimes plus actual native retry; receipt/wire/fence/
+  supersession; acknowledgement/recovery-read storage faults; and v7→8/no-invented-
+  restore preservation. `BackupUiTest.completeReadOnlyPrivacyPreviewExplicitWholeReplacementAndFreshWriters`
+  covers all displayed raw values/identities, disabled retained history, exact
+  unavailable position and pinned Unicode16 duplicate warning without merging.
+  `stableManualStreamExportFailuresAndCancellationHaveTruthfulOutcomes` covers
+  injected provider-stream faults and cancellation/close/discard;
+  `BackupTransportTest` separately exercises actual DocumentsUI create/choose,
+  actual native setter and device-sentinel clearing. The former is fault
+  injection, not a claim of every real provider's failure behavior.
+  `FullPersonalBackupStoreTest.everyOldWriterAndLateReadFenceIsRefusedAcrossOtherLiveStoresAndFreshWritersWork`
+  and `BackupCompletionFenceTest.actualLateWriterCompletionQueuedReadingAndOldHistoryReceiptCannotReopenOrRewriteReplacement`
+  cover stale live stores, late completion publication, queued reading/history
+  refusal and fresh writers. Existing postcommit departure and
+  `committedLocaleFailureIsSpecificRetryNotFailedRestoreAndRetryTouchesNoPersonalRows`
+  remain required alongside the new crash/restart evidence.
+- Final source-set validation uses `npm run config`, then the complete unfiltered
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain --max-workers=1 "-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8" "-Pkotlin.compiler.execution.strategy=in-process" "-Pandroid.testInstrumentationRunnerArguments.additionalTestOutputDir=/sdcard/Android/media/in.daasavaani.app/native-backup-diagnostics"`.
+  Logs use the `build/native-backup-recovery-final-` prefix. All documented
+  ancillary commands recorded below are repeated on this final set.
+- The six-case recovery run passed6/6 (`build/native-backup-recovery-ack-focused.log`,
+  2m47s); the extended acknowledgement/read-storage/visible-retry case passed
+  independently (`build/native-backup-recovery-read-fault.log`,1/1,2m10s).
+  The first recovery full attempt was intentionally stopped, not counted as a
+  pass, while closing a precise acknowledgement race
+  (`build/native-backup-recovery-interrupted.log`): a fresh theme-only writer can
+  stale the receipt acknowledgement after the OS setter succeeded. That must not
+  falsely report unapplied language. The seventh recovery case controls that
+  writer on IO, proves actual success/current personal state and retained receipt,
+  then proves fresh-start acknowledgement without another personal write.
+- The final complete seven-case recovery selector passed7/7, zero
+  failures/errors/skips (`build/native-backup-recovery-complete-focused.log`,
+  2m51s). The interrupted prior Gradle run left a Kotlin daemon-session warning;
+  no toolchain/cache/AVD cleanup or unrelated process action was taken.
+- The unfiltered regression run exposed legacy v5/v6 test-input builders that
+  derived an old schema from the current database but removed only the recitation
+  columns, incorrectly retaining the new Room8 operational column. Strict schema
+  validation correctly refused those non-legacy shapes. Corrected both builders
+  to remove that column too; all preservation, capacity, byte-equality and
+  exception assertions remain unchanged. The full unfiltered suite is repeated
+  after this final test-source correction, not narrowed to the passing new cases.
+- That completed run executed all142 device tests:138 passed and exactly4
+  legacy-builder cases failed (Learning2/RecitationPosition2), zero skips;
+  all7 new recovery cases passed. Core66/all variants/both lints also passed,
+  but the full run was FAILED, not accepted (`16m33s`,
+  `build/native-backup-recovery-full-legacy-fixture-fail.log`). The final repeat
+  recompiles the corrected two legacy fixtures and executes every suite again.
+  Actual APK descriptor checks also confirm both crash/probe components are
+  present only in debug and absent from the release APK.
+- Final corrected frozen-set validation PASSED (`18m33s`,
+  `build/native-backup-recovery-final-config.log`,
+  `build/native-backup-recovery-final-full.log`). Actual fresh XML:66 core tests
+  across13 suites and142 connected tests, zero failures/errors/skips. Every112
+  preceding device case and all30 backup cases executed, including all7 durable
+  recovery/crash cases and the corrected legacy migration/capacity assertions.
+  All app builds and both required lints passed: debug58/release59 warnings,
+  zero errors. Existing SDK XML3/4 warning remains. App JVM tasks were NO-SOURCE,
+  not a passing app unit suite.
+- Final ancillary commands recorded in the preceding entry passed again:
+  repository hygiene121 tracked files, UTF8/Markdown links/action pins, all5
+  strict YAML documents, actionlint1.7.12 with explicit ShellCheck0.11.0, working/
+  staged whitespace and historical whitespace
+  (`build/native-backup-recovery-final-ancillary.log`). The evidence-only HISTORY
+  addition receives these checks again. Python standard-library `zipfile` DEX
+  descriptor assertions on the actual APKs passed and are recorded in
+  `build/native-backup-recovery-probe-packaging.log`: both probes present in debug,
+  both absent in release.
+- Final manual-slice contract compatibility is preserved: Shared wire v1 and
+  nativeRoom7 logical allowlist remain unchanged at authorized pin
+  `9d33230afe164354d46f71d7dc2cde5dfb65c0db`. The Room8 bit is only local operational
+  recovery metadata. No system Auto Backup/platform-wide release claim is made.
+  Retained emulator5556 is healthy with no ANR or live probe process; original
+  managed emulator chain and user HTTP5173/PID3840 are preserved, endpoint HTTP200.
+  No emulator restart/wipe, user-app closure, Website rebuild, new dependency or
+  new persistent helper. The final31 owned paths are staged; no commit/push/PR/merge/
+  deployment by this agent. Parent retains review publication authority.
+- Additional owned paths beyond the preceding22-path inventory:
+
+  ```text
+  app\schemas\in.daasavaani.app.PersonalDatabase\8.json
+  app\src\androidTest\kotlin\in\daasavaani\app\BackupLanguageRecoveryTest.kt
+  app\src\androidTest\kotlin\in\daasavaani\app\LearningStoreTest.kt
+  app\src\androidTest\kotlin\in\daasavaani\app\ReadingStoreTest.kt
+  app\src\androidTest\kotlin\in\daasavaani\app\RecentHistoryStoreTest.kt
+  app\src\androidTest\kotlin\in\daasavaani\app\RecitationPositionStoreTest.kt
+  app\src\debug\AndroidManifest.xml
+  app\src\debug\kotlin\in\daasavaani\app\BackupCrashProbeService.kt
+  app\src\main\java\in\daasavaani\app\PersonalDatabase.java
+  ```
+
+## 2026-10-25: current-state manual native personal backup v1
+
+- Implemented the approved XFER-09 current Room7 logical allowlist and XFER-10
+  manual-export privacy portion, with SET-04/LIB-08..10/REC-04 preservation.
+  Adopted the parent's already published backup contract and explicitly authorized
+  caption prerequisite `9d33230afe164354d46f71d7dc2cde5dfb65c0db`; the submodule
+  was clean before detached adoption. This review-only Shared descendant also
+  includes transfer-planning metadata, which does not activate a native planner
+  or converter. No other repository/consumer pin was edited by this agent.
+- Replaced README's stale Remaining approved slices assertion that list
+  recitation/Continue was absent, although the preceding ordered-Recite/position
+  sections already described it. The replaced paragraph listed list recitation/
+  Continue and full personal backup/restore as unimplemented and described locale
+  as Compose-only. Current guides now distinguish implemented manual backup/
+  postcommit API33+ locale from the still disabled system-backup/future lifecycle
+  work. Superseded position and Learning paragraphs required a future backup
+  adapter; the implemented v1 adapter now includes both records. The Room7 logical
+  envelope remains accounting, not a database-dump backup wire format.
+- Initial targeted Room run (`build/native-backup-focused.log`) failed10/10 in
+  the common synthetic seed: the second deliberately equivalent list name had
+  not explicitly confirmed independent duplicate-name reuse. Corrected that seed
+  through the existing `confirmedDuplicate=true` API, without removing assertions.
+  Subsequent complete core and10-case Room run
+  (`build/native-backup-focused2.log`) passed.
+- The first7-case Compose run (`build/native-backup-ui-focused.log`) exposed two
+  genuine implementation defects: a closed cancelled input could overwrite the
+  cancellation message with a parse error, and materializing a64MiB decoded
+  whitespace envelope exceeded the API36 app's192MiB heap. Failure-only existing
+  diagnostics captured state/hierarchy/screenshot/queue/ART/logcat before cleanup.
+  Fixed error publication with cancellation rechecks and replaced full decoded
+  body/String materialization with bounded streaming inflater/fatal-UTF8/strict
+  JSON parsing. Export now streams serialization into gzip; fixed-size chunks
+  replace geometric backing-buffer growth. No heap/toolchain/dependency/AVD
+  setting change or weaker byte ceiling/compression-ratio rule was introduced.
+- The subsequent9-case UI/transport run passed8; the decoded64MiB whitespace
+  boundary still exceeded its unchanged10s wait. Replaced per-character
+  whitespace cancellation polling with bounded4096-character chunk scanning,
+  retaining cooperative cancellation and all byte ceilings. The inclusive64/65MiB
+  and plus-one device case then passed within the original budget. Actual
+  DocumentsUI transport and API36 OS-locale/device-sentinel cases also passed.
+- Extra Room rollback/export-observer and reader-return cases initially had
+  accidentally nested test declarations; JUnit discovery exposed the placement
+  error, which was corrected rather than hiding those cases. An observer callback
+  also required an explicit Unit function type instead of inferred logging Int.
+  The later23-case focused command (`build/native-backup-focused-final.log`)
+  passed21 and failed2: backup-route BackHandler synchronization and a DocumentsUI Downloads
+  toolbar title mistaken for a clickable root. Followup keeps the original
+  budgets/assertions, explicitly asserts rendered reader/backup routes and requires an
+  enabled clickable ancestor for the Downloads root.
+- Locale retry now rereads committed preferences and refuses a superseded
+  language instead of applying stale retained side effects; the synthetic
+  postcommit-failure test also exercises an intervening normal preference writer.
+  Follow-device rendering reads global device locales independently of an old
+  per-app override. This does not change ordinary Compose-only language Settings
+  into a new OS-locale workflow or activate system backup.
+- Focused followup (`build/native-backup-ui-retry.log`) passed9/10, including
+  actual DocumentsUI transport, native OS locale, inclusive byte caps and
+  current-preference locale retry. The remaining reader test dispatched hardware
+  Back before composition installed the new route's BackHandler. Explicit
+  semantic route assertions and Compose idleness between back events retain all
+  previous-state/history/prepared-content assertions; the isolated case then
+  passed (`build/native-backup-reader-return.log`,1/1, zero failures/errors/skips).
+- The final applicable validation uses `npm run config`, then
+  `.\gradlew.bat :core:clean :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --console=plain --max-workers=1 "-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8" "-Pkotlin.compiler.execution.strategy=in-process" "-Pandroid.testInstrumentationRunnerArguments.additionalTestOutputDir=/sdcard/Android/media/in.daasavaani.app/native-backup-diagnostics"`.
+  The final connected run has no class/method filter; `:core:clean` refreshes
+  core evidence without deleting the retained managed AVD under `app/build`.
+- Final frozen-source configuration/full validation passed
+  (`build/native-backup-final-config.log`,
+  `build/native-backup-final-full.log`, BUILD SUCCESSFUL15m38s). Actual fresh
+  XML:66 core tests/13 suites and135 connected tests, all zero failures, errors
+  and skips. This includes all112 preceding device cases and23 new cases:
+  Room12, Compose8, actual transport/OS-locale2 and delayed-completion fence1.
+  All app variants and both required lint tasks passed: debug58/release59
+  warnings, zero errors. The existing SDK XML3/4 warning remains. App JVM tasks
+  reported NO-SOURCE, not passing app unit tests.
+- Ancillary checks passed on the final tracked118-file set
+  (`build/native-backup-final-ancillary.log`): repository hygiene/UTF8/Markdown
+  links/action pins; all5 strict unique-key YAML documents; actionlint1.7.12
+  explicitly using ShellCheck0.11.0; working/staged whitespace and historical
+  whitespace. Exact commands:
+
+  ```powershell
+  python tools\check_repository.py
+  node -e "const fs=require('node:fs'),path=require('node:path'),yaml=require('yaml');let count=0;for(const p of fs.readdirSync('.github',{recursive:true}).filter(p=>p.endsWith('.yml')||p.endsWith('.yaml'))){const d=yaml.parseDocument(fs.readFileSync(path.join('.github',p),'utf8'),{uniqueKeys:true});if(d.errors.length)throw d.errors[0];console.log(p);count++}console.log('YAML files:',count)"
+  & 'C:\Users\pots\AppData\Local\DaasaVaani\toolchains\actionlint-1.7.12\actionlint.exe' -shellcheck 'C:\Users\pots\AppData\Local\DaasaVaani\toolchains\shellcheck-0.11.0\shellcheck.exe' .github\workflows\hygiene.yml
+  git --no-pager diff --check
+  git --no-pager diff --cached --check
+  git --no-pager log --all --format= --check
+  ```
+
+- The evidence-only HISTORY addition receives those same ancillary checks.
+  Preserved managed launcher51716 → emulator22544 → QEMU19920, AVD
+  daasavaani_fixture_api36/serialemulator-5556, boot complete and no ANR before
+  and after the final run. No restart/wipe/AVD configuration change, dependency
+  installation, helper server or Website rebuild. User HTTP5173/PID3840 remains
+  intact, with `/demo/latest.json` HTTP200. Only the existing healthy detached
+  emulator remains; bounded Gradle/validation shells completed. No commit, push,
+  PR, merge or deployment by this agent. Parent owns review-branch publication.
+- Owned staged paths for the coherent native manual slice:
+
+  ```text
+  HISTORY.md
+  README.md
+  app\build.gradle.kts
+  app\src\androidTest\kotlin\in\daasavaani\app\BackupCompletionFenceTest.kt
+  app\src\androidTest\kotlin\in\daasavaani\app\BackupTransportTest.kt
+  app\src\androidTest\kotlin\in\daasavaani\app\BackupUiTest.kt
+  app\src\androidTest\kotlin\in\daasavaani\app\FullPersonalBackupStoreTest.kt
+  app\src\main\kotlin\in\daasavaani\app\BackupScreen.kt
+  app\src\main\kotlin\in\daasavaani\app\BackupViewModel.kt
+  app\src\main\kotlin\in\daasavaani\app\LibraryViewModel.kt
+  app\src\main\kotlin\in\daasavaani\app\ListReciteScreen.kt
+  app\src\main\kotlin\in\daasavaani\app\MainActivity.kt
+  app\src\main\kotlin\in\daasavaani\app\PersonalStore.kt
+  core\build.gradle.kts
+  core\src\main\kotlin\in\daasavaani\core\BoundedByteOutput.kt
+  core\src\main\kotlin\in\daasavaani\core\FullPersonalBackup.kt
+  core\src\main\kotlin\in\daasavaani\core\ListTransfer.kt
+  core\src\main\kotlin\in\daasavaani\core\TransferTransport.kt
+  core\src\test\kotlin\in\daasavaani\core\FullPersonalBackupTest.kt
+  settings\android.yml
+  shared
+  tools\generate-config.mjs
+  ```
+
 ## 2026-10-25: approved browsing-input blocker repair; complete native validation passes
 
 - Owner explicitly broadened the bounded repair scope at02:33 to fix the

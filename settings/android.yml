@@ -27,6 +27,7 @@ lyricPreparedDecodedBytes: 33554432
 canonicalBaseUrl: https://daasavaani.github.io/
 listLinkPath: open/
 listFileName: list.dvlist.json.gz
+backupFileName: personal.dvbackup.json.gz
 listCompressionLevel: 6
 ui:
   spacingDp: 8

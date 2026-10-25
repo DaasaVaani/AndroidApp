@@ -46,9 +46,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val model: LibraryViewModel = viewModel()
             val state by model.state.collectAsState()
-            val system = LocalConfiguration.current
+                    val system = LocalConfiguration.current
             val language = state.personal?.language ?: "device"
-            val locale = uiLanguage((0 until system.locales.size()).map { system.locales[it].toLanguageTag() }, language)
+            val deviceLocales = android.content.res.Resources.getSystem().configuration.locales
+            val locale = uiLanguage((0 until deviceLocales.size()).map { deviceLocales[it].toLanguageTag() }, language)
             val configuration = Configuration(system).apply { setLocales(LocaleList(Locale.forLanguageTag(locale))) }
             val localized = createConfigurationContext(configuration)
             val theme = state.personal?.theme ?: "device"
@@ -79,8 +80,12 @@ private enum class CanonicalOrigin(val section: String, val caption: Int, val ta
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPreviewViewModel = viewModel(),
-    transferModel: TransferViewModel = viewModel()) {
+    transferModel: TransferViewModel = viewModel(), backupModel: BackupViewModel = viewModel()) {
     val state by model.state.collectAsState()
+    val backupState by backupModel.state.collectAsState()
+    LaunchedEffect(state.personal != null) {
+        if (state.personal != null) backupModel.recoverPendingLanguage()
+    }
     val lyrics by lyricModel.state.collectAsState()
     val listScroll = rememberLazyListState()
     val favoritesScroll = rememberLazyListState()
@@ -106,10 +111,10 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
         readerOrigin?.let { model.section(it.section) }
     }
     LaunchedEffect(state.section) {
-        if (state.section != "lyrics" && !(state.section == "settings" && fromLyricsSettings)) {
+        if (state.section != "lyrics" && !(state.section in setOf("settings", "backup") && fromLyricsSettings)) {
             readerOrigin = null
         }
-        if (state.section != "lyrics" && state.section != "settings") fromLyricsSettings = false
+        if (state.section !in setOf("lyrics", "settings", "backup")) fromLyricsSettings = false
     }
     fun openReference(reference: PersonalReference) {
         if (reference.kind == "lyric") {
@@ -123,6 +128,13 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     val contentPadding = integerResource(R.integer.content_padding_dp).dp
     val reading = state.personal?.reading ?: ReadingPreferences()
     val recite = remember(state.section, state.selected, lyrics.selected, lyrics.item) { ReciteState() }
+    LaunchedEffect(state.personalRestoreGeneration) {
+        if (state.personalRestoreGeneration > 0) {
+            fixtureSettings = null; fromLyricsSettings = false; readerOrigin = null; adding = null
+            lyricModel.select(null)
+            recite.exit()
+        }
+    }
     LaunchedEffect(state.readerOpen, lyrics.readerOpen) {
         if (state.readerOpen != null || lyrics.readerOpen != null) recite.exit()
     }
@@ -130,6 +142,14 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
     BackHandler(enabled = state.selected != null || state.fixtureReturnSection != null) { model.fixtureBack() }
     Scaffold(topBar = { if (secondary) TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(contentPadding), verticalArrangement = Arrangement.spacedBy(space * 2)) {
+            if (state.section != "backup" && ((backupState.languageRetry != null &&
+                backupState.message == R.string.backup_language_retry) || backupState.message == R.string.personal_failed)) {
+                Text(stringResource(requireNotNull(backupState.message)), modifier = Modifier.testTag("backup-language-recovery"))
+                OutlinedButton(enabled = !backupState.working, onClick = backupModel::retryLanguage,
+                    modifier = Modifier.testTag("backup-language-recovery-retry")) {
+                    Text(stringResource(if (backupState.languageRetry != null) R.string.backup_retry_language else R.string.retry))
+                }
+            }
             if (state.section == "library" || state.selected != null) Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
                 Text(stringResource(R.string.fixture_notice), Modifier.padding(space * 1.5f), style = MaterialTheme.typography.bodySmall)
             }
@@ -190,7 +210,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                     }
                     LyricPreviewScreen(lyricModel, personal, canSave, { model.changePersonal(reference = it) },
                         { model.clearMutationError(); adding = it },
-                        readerOrigin?.let { origin -> ({ model.section(origin.section) }) }, model::recordExposed,
+                        readerOrigin?.let { origin -> ({ model.section(origin.section) }) }, { model.recordExposed(it, personal?.epoch) },
                         { model.changeReading(direction = it) }, { model.changeReading(density = it) }, lyricBrowseScroll,
                         model::changeLearning, recite)
                 }
@@ -215,9 +235,14 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                     TextButton(onClick = { model.section("settings") }) { Text(stringResource(R.string.back)) }
                     TransferScreen(state.prepared, transferModel, model, lyrics, ::openReference)
                 }
+            } else if (state.section == "backup") {
+                Column(Modifier.weight(1f)) { BackupScreen(backupModel, model) { model.section("settings") } }
             } else if (state.section == "settings") {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     OutlinedButton(onClick = { model.section("transfer") }) { Text(stringResource(R.string.transfer_title)) }
+                    OutlinedButton(onClick = { model.section("backup") }, modifier = Modifier.testTag("settings-backup")) {
+                        Text(stringResource(R.string.backup_title))
+                    }
                     ReadingControls(reading, canSave, { model.changeReading(direction = it) }, { model.changeReading(density = it) })
                     Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
                     listOf("device" to stringResource(R.string.follow_device), "en" to "English", "kn" to "ಕನ್ನಡ").forEach { (value, label) ->

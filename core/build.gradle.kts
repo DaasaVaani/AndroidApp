@@ -10,6 +10,9 @@ tasks.processResources {
     from(rootProject.file("shared/generated/unicode")) { into("unicode16") }
     from(rootProject.file("shared/resources/unicode16/LICENSE.txt")) { into("unicode16") }
 }
+tasks.processTestResources {
+    from(rootProject.file("shared/fixtures/personal/full-backup.json"))
+}
 dependencies {
     api(libs.kotlinx.serialization.json)
     testImplementation(kotlin("test-junit"))
