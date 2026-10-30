@@ -58,3 +58,7 @@ approved details; history is never implementation authorization or present evide
 - Passing checks is not push authorization. Respect protections, preserve
   unrelated work/staging and separate Shared pins. Do not reset/amend user work.
   Report real changes, coverage, checks, remaining gates and commit/push state.
+- Until final release, authorized implementation pushes go only to `main` after
+  full validation, using existing owner-approved administrator permission.
+  Follow [the temporary workflow](https://github.com/DaasaVaani/DaasaVaani.github.io/blob/main/docs/maintenance.md#current-operating-policy);
+  do not change protections, force-push, repin Shared or activate gated features.

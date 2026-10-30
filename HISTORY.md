@@ -1,5 +1,56 @@
 # Documentation history
 
+## 2026-10-30: owner-authorized completed-work integration into main
+
+- Fast-forwarded local main from79acdb3 to b1ab45c, including the complete native
+  personal-backup, exact recitation-position and inactive system-backup adapter
+  branches. The existing independently tested Shared pin is unchanged.
+- The owner explicitly authorized main-only implementation pushes until final
+  release, using existing administrator permission only after full validation.
+  The root AI entrypoint links the authoritative temporary workflow.
+  Protections, device suites, source/release gates and system-backup activation
+  remain unchanged; dependency-bot branches are excluded.
+- Superseded README guidance obtained the named hosted job on a validation
+  branch before main publication and allowed deletion of the known merged
+  branch after main passed. The new main-only workflow verifies main's exact
+  remote SHA/hosted job after fully validated publication; no deletion is requested.
+- `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease --no-daemon --max-workers=1`
+  passed (6m55s). Application JVM tests remain NO-SOURCE, not a passed app suite.
+  `python tools\check_repository.py` passed128 tracked files; all5 workflow YAML
+  files parsed strictly. Installed actionlint1.7.12 with ShellCheck0.11.0 and
+  staged/unstaged whitespace checks passed.
+- The complete configured Gradle command including
+  `:app:connectedDebugAndroidTest` failed:151/155 tests passed, four failed and
+  none skipped (16m42s). Failures were the actual backup DocumentsUI round trip,
+  actual list Sharesheet return and two list-preview clipboard assertions.
+  Preserved failure XML/hierarchy/screenshots in the owning session before rerun.
+- Captured DocumentsUI and chooser hierarchies show the platform's
+  `System UI isn't responding` dialog; current window focus independently
+  confirmed an ANR in `com.android.systemui`. A non-wiping guest reboot reached
+  verified launcher focus, but the same four unchanged tests failed again
+  (0/4 passed,2m22s) and both hierarchies again captured that SystemUI dialog.
+  This evidence does not establish an application defect or make either run a
+  pass. No code, assertions, timeouts, Android backup opt-in or suite was weakened.
+- The native HTTP prerequisite was freshly generated with the clean exact
+  Website-pinned fixture publisher c2837ccf and served from Website's public
+  directory at configured localhost5173. Its three synthetic fixtures and
+  manifest10c7e5fb1a095de83e05803e1e511f8bb3715f9261ad3bc3bb073b185ad35c00
+  were verified over actual HTTP. This is not a local Website build/test pass.
+- A complete cold restart of only the owned emulator process, using the same
+  existing AVD/launch flags and no snapshots or data wipe, reached verified
+  launcher focus. Rerunning the same four unchanged tests passed4/4 with no
+  failures/skips (3m25s). The earlier failure records remain valid.
+- The complete unfiltered configured Gradle build/core/lint/connected command
+  follows this result-record update on the final tree. Focused recovery is not
+  a substitute for its required155-test device-suite result before any push.
+- The complete unfiltered
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --max-workers=1`
+  then passed all configured build/core/lint tasks and155/155 connected tests,
+  with no failures/skips (10m24s). `npm run config` also passed. The same complete
+  command follows this final evidence-only update before publication; the
+  inactive backup manifest, code, settings and independent Shared pin are unchanged.
+
 ## 2026-10-25: truthful disclosures for the inactive system-backup adapter
 
 - Archived superseded behavior: Settings and Personal backup unconditionally

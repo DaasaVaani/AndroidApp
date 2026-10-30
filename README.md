@@ -1166,11 +1166,13 @@ server and explicitly discloses synthetic content and unavailable features. The
 separate owner-supplied reader uses the configured live HTTPS publication instead.
 
 CI builds all variants/core/JVM/lint; it does not claim a connected-device run.
-The identical named job runs on `validation/**` pushes before direct-main
-publication and again on main. Wait for the actual **Bootstrap files and YAML
-syntax** job, not just an aggregate workflow conclusion. The existing explicit
-admin PR exception is not permission to weaken checks or force-push. Delete only
-the known merged validation branch after main's actual job passes.
+Until final release, authorized implementation pushes target only `main` after
+the complete local validation under the
+[temporary workflow](https://github.com/DaasaVaani/DaasaVaani.github.io/blob/main/docs/maintenance.md#current-operating-policy).
+After pushing, verify the exact remote SHA and actual **Bootstrap files and YAML
+syntax** job, not just an aggregate workflow conclusion. Existing validation-
+branch CI support is not permission to push new branches. The admin PR exception
+does not waive checks, authorize force pushes or authorize branch deletion.
 Its Ubuntu24.04 host and SDK bootstrap action are pinned; SDK availability is
 provisioned explicitly, not inferred from a runner image or PATH.
 Platform selection comes from Android settings; build-tools come from the native
