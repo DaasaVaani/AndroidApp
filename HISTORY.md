@@ -1,5 +1,97 @@
 # Documentation history
 
+## 2026-11-02: owner-approved Android public canonical lyric links
+
+- The owner explicitly approved this next native-only UX-01/UX-07 slice,
+  bilingual additive Shared labels, independent consumer-pin validation and
+  continuing fully validated main publication. Independently fast-forwarded only
+  this consumer's Shared pin from2860694 to published
+  0b884d8d7c8b4d5b369e0a4f986954dd3bc44e87. The parent supplied Shared's370-test
+  and exact hosted41494512730 successful evidence; this is prerequisite evidence,
+  not a substitute for native checks.
+- Archived prior behavior: real canonical readers had no public lyric-link
+  sharing/copy/manual-selection controls. Existing v1/v2 list sharing was
+  separate and already used a native plain-text chooser without interpreting
+  Android result codes as cancellation/delivery.
+- Added exact configured Website UUID routes, URL-only native share/copy and
+  selectable manual fallback, including loaded canonical saved-list occurrences
+  with secondary controls. Focused Recite, placeholders, pending/unavailable and
+  legacy/synthetic records expose no invented identity. No personal schema,
+  backup, source, attribution or production App Link activation changes.
+- Native validation uses installed JDK21/SDK36/Gradle9.1, the existing
+  daasavaani_fixture_api36_fresh at emulator-5556 and an owned explicit Vite
+  preview on127.0.0.1:5173 serving the parent's frozen verified Website dist.
+  Verified sys.boot_completed=1, host HTTP200 and emulator10.0.2.2 fixture HTTP200
+  using toybox netcat with complete CRLF request and delayed stdin close.
+  Toybox wget is unavailable; initial netcat EOF/line-ending probes returned no
+  response/HTTP400 before the correct HTTP200 probe. No toolchain changes.
+- Incremental `npm run config` and
+  `.\gradlew.bat :core:test :app:compileDebugKotlin --no-daemon --max-workers=1`
+  passed; core XML totals69 tests,0 failures/errors/skips.
+- Initial focused
+  `.\gradlew.bat :core:test :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.LyricLinkTest,in.daasavaani.app.ListReciteUiTest#canonicalSharingOnlyWithSecondaryControlsNeverMutatesExactPositionOrLegacyIdentity' --no-daemon --max-workers=1`
+  failed:6 device tests,2 failures,0 skipped. The clipboard URL was exact but
+  emulator host mirroring replaced its description label with `host clipboard`;
+  the manual-selection test timed out looking for English accessibility `Copy`
+  after long-pressing the multiline node center. Production already used the
+  localized public-link label and a native SelectionContainer.
+- Corrected observation boundaries without relaxing product claims/timeouts:
+  the production clipboard-construction helper is now checked for exact localized
+  nonpersonal label, single exact plain-text URL, MIME type and absence of HTML/
+  intent/URI; actual native clipboard still requires exact single URL and no
+  private title/list label. Manual selection targets an actual URL glyph.
+  No assertion/timeout changes to
+  existing suites, toolchain changes or emulator-data reset.
+- The same six-test focused rerun passed5 and failed1: clipboard checks passed,
+  but the legacy Compose LocalTextToolbar status did not observe the current
+  native floating toolbar. A one-test diagnostic rerun using the same Gradle
+  command with class selector
+  `in.daasavaani.app.LyricLinkTest#actualSystemChooserBackAndManualSelectionKeepAvailableLinkWithoutDeliveryClaims`
+  failed1/1 and captured a screenshot proving the complete URL selected with
+  visible native Copy/Read aloud actions, while the active-app accessibility root
+  excluded that separate toolbar window. Replaced that observation with
+  interactive-window retrieval, localized exact native Copy action and actual
+  full-URL clipboard verification; retained the10000ms wait and failure capture.
+- The next identical six-case focused run passed5/failed1 with no skips: native
+  Copy was found in the separate interactive window, but its text leaf returned
+  false for accessibility ACTION_CLICK. The test now injects an actual native
+  touchscreen tap at that visible action's bounds and requires a distinct
+  synthetic sentinel clipboard to be replaced with the exact complete URL.
+  This verifies the actual manual fallback rather than inferring it from a
+  toolbar caption/status or accepting an already-matching clipboard.
+- The final identical focused command passed6/6 device tests; actual XML reports
+  0 failures/errors/skips. Core XML remains69/69 with0 failures/errors/skips.
+- Staged all11 native-owned files/pin (including4 new files). Repeated
+  `python tools\check_repository.py` passed136 tracked files.
+  `node -e "const fs=require('node:fs'),path=require('node:path'),yaml=require('yaml');for(const root of ['.github','settings'])for(const p of fs.readdirSync(root,{recursive:true}).filter(p=>p.endsWith('.yml')||p.endsWith('.yaml'))){const file=path.join(root,p),d=yaml.parseDocument(fs.readFileSync(file,'utf8'),{uniqueKeys:true});if(d.errors.length)throw d.errors[0];console.log(file)}"`
+  passed all5 `.github` YAML files and native `settings\android.yml` with
+  duplicate-key/error rejection.
+  `C:\Users\pots\AppData\Local\DaasaVaani\toolchains\actionlint-1.7.12\actionlint.exe .github\workflows\hygiene.yml`
+  passed with sibling shellcheck-0.11.0 on PATH. `git --no-pager diff --check`
+  and `git --no-pager diff --cached --check` passed.
+- Fresh `git fetch origin main --quiet`, `git rev-parse HEAD origin/main` and
+  `git merge-base --is-ancestor origin/main HEAD` confirmed the unchanged
+  e3ea0c8ff6cb1946d9c7405f28a5560694733f89 base/remote ancestry. Live
+  `gh repo view --json viewerPermission` returned ADMIN; `gh api
+  repos/DaasaVaani/AndroidApp/rulesets/25526642` and25526638 confirmed role5
+  always-bypass only on PR/check rules, with deletion/non-fast-forward still
+  prohibited and no bypass there. No protection changes.
+- Full final implementation validation passed:
+  `npm run config`, then
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --max-workers=1`.
+  Actual XML totals:69 core JVM tests and171 connected API36 device tests,
+  all passed with0 failures/errors/skips. All app variants/core builds and both
+  required lint tasks passed; lint XML has0 errors,62 debug/64 release warnings.
+  App JVM suites remain NO-SOURCE, not passed tests. SDK XML-version metadata
+  advisory remains nonfatal; no tooling/dependency changes were made.
+- Stopped only owned attached sessions `native-lyric-http` and
+  `native-lyric-emulator` immediately after complete connected validation.
+  Verified no listeners on5173/5556 and no adb devices; fixture slot FREE.
+  Notified the parent in the live transcript that Website dist may be rebuilt.
+  Agent-owner-ID messaging was unavailable, so no successful directed message
+  receipt is inferred. Remaining production/offline/App Link/delivery gates are
+  unchanged. Final evidence-only documentation is checked again before commit.
+
 ## 2026-11-02: owner-approved Android bounded first-use setup
 
 - The owner approved Android parity after Website setup was committed as22718e0,

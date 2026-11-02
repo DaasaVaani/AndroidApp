@@ -101,6 +101,11 @@ internal fun ListReciteScreen(session: OrderedRecitation, recite: ReciteState, s
                             Text(stringResource(R.string.lyrics_unavailable), Modifier.testTag("list-recite-unavailable"))
                         }
                     }
+                    if (recite.controls && canonical != null && canonical.lyricId == reference?.id &&
+                        PersonalReference.validLyricId(canonical.lyricId) &&
+                        lyrics.prepared?.catalog?.catalog?.any { it.lyricId == canonical.lyricId } == true) {
+                        item(key = "lyric-link") { LyricLinkControls(canonical.lyricId) }
+                    }
                 }
             }
         }

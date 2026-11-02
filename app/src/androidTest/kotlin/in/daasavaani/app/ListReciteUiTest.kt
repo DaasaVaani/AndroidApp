@@ -144,6 +144,47 @@ class ListReciteUiTest {
         return result.single()
     }
 
+    @Test fun canonicalSharingOnlyWithSecondaryControlsNeverMutatesExactPositionOrLegacyIdentity() {
+        val list = seed(listOf(reference.entry(), reference.entry(), PersonalReference.legacy(id).entry(),
+            ListEntry("placeholder", text = placeholder), PersonalReference.lyric(missingId).entry()))
+        launch(list).use { scenario ->
+            compose.onNodeWithTag("lyric-link-controls").assertDoesNotExist()
+            prepare(scenario)
+            enter()
+            expose()
+            compose.onNodeWithTag("lyric-link-controls").assertDoesNotExist()
+            compose.onNodeWithTag("toggle-reading-controls").performClick()
+            val before = snapshot()
+            val expected = context.getString(R.string.canonical_base_url) + "#/lyrics/" + id
+            compose.onNodeWithTag("list-recite-content").performScrollToNode(hasTestTag("copy-lyric-link"))
+            compose.onNodeWithTag("lyric-link").assertTextEquals(expected)
+            compose.onNodeWithTag("copy-lyric-link").performClick()
+            compose.onNodeWithTag("list-recite-content").performScrollToNode(hasTestTag("lyric-link-feedback"))
+            compose.onNodeWithTag("lyric-link-feedback").assertTextEquals(context.getString(R.string.lyric_link_copied))
+            assertEquals(before, snapshot())
+            compose.onNodeWithTag("toggle-reading-controls").performClick()
+            compose.onNodeWithTag("lyric-link-controls").assertDoesNotExist()
+            next()
+            expose()
+            position(2, 5)
+            compose.onNodeWithTag("toggle-reading-controls").performClick()
+            compose.onNodeWithTag("list-recite-content").performScrollToNode(hasTestTag("lyric-link"))
+            compose.onNodeWithTag("lyric-link").assertTextEquals(expected)
+            compose.onNodeWithTag("lyric-link-feedback").assertDoesNotExist()
+            for (index in 3..5) {
+                next()
+                position(index, 5)
+                compose.onNodeWithTag("lyric-link-controls").assertDoesNotExist()
+                compose.onNodeWithTag("copy-lyric-link").assertDoesNotExist()
+            }
+            assertEquals(3, source.requests)
+            assertEquals(list, snapshot().lists.single())
+            back(scenario)
+            compose.onNodeWithTag("saved-lists").assertIsDisplayed()
+            assertEquals(list.id, model.state.value.selectedListId)
+        }
+    }
+
     @Test fun preparationGatePreservesManagementPendingPreviewAndExplicitEmptyAndSingleBounds() {
         val list = seed(listOf(reference.entry(), ListEntry("placeholder", text = placeholder)))
         launch(list).use { scenario ->

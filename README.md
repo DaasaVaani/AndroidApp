@@ -158,10 +158,44 @@ here are not claims of those features. Publication availability and actual real-
 native reading are separate gates; a missing feed is a blocker, never a fixture
 fallback or evidence of successful owner-text review.
 
+### Public canonical lyric links
+
+The completely prepared canonical reader offers **Share lyric link** and **Copy
+lyric link**, with the complete URL always selectable manually. Both use only
+`canonicalBaseUrl` from [native settings](settings/android.yml) followed by
+`#/lyrics/<canonical-UUIDv4>`: no lyric copies, title, list, preferences, history
+or other personal data enter the payload. This is the configured public Website
+route, not an artifact/descriptor URL or a claim of verified Android App Links.
+Opening still depends on a connection or actually prepared content.
+The portable URL helper preserves a trailing-slash Website subpath; the current
+native configuration remains root-hosted because the existing list transport
+requires it. No list URL or incoming intent contract changes.
+
+Sharing is an explicit native Android `text/plain` ACTION_SEND through the system
+chooser, containing only the exact URL. Feedback means **handed to the system,
+not delivered**. Android chooser result codes do not prove delivery or cancellation
+and are deliberately not interpreted as either. A failed launch/copy shows a
+localized error while retaining manual selection. Copy writes only the public
+URL to the native clipboard. English/Kannada labels come from the independently
+pinned published Shared catalog.
+
+Controls require the current canonical item and matching summary in the fully
+prepared library. Catalog previews, unresolved/pending destinations, unavailable
+items, legacy videos and synthetic fixture readers have no such controls. Focused
+individual Recite hides them; its explicit secondary-controls view restores them.
+Ordered saved-list Recite likewise offers sharing only for its loaded canonical
+occurrence with secondary controls visible, never placeholders or legacy entries.
+Feedback is process-local and resets when changing lyric/occurrence or leaving the
+reader. Sharing does not fetch artifacts, write personal state or change literal
+text/layout, typography, preparation, exact recitation position or origin/Back
+behavior. Ordinary successful reader exposure still follows the separate history
+policy; sharing itself does not create another exposure.
+
 Partial requirement mapping: UX-01 (bounded canonical reader only), UX-03 (explicit
 line/layout preservation without inferring verses), LANG-01 (no translation),
 OFF-01/OFF-10 (explicit complete canonical preparation gate only),
 I18N-01/02/03, UX-13 (bounded canonical catalog/session return only),
+UX-07 (public canonical Website link sharing only),
 EXP-02 (bounded verified-catalog session selection only)
 and current theme preferences. This does not close their complete
 acceptance criteria. Typed personal references and lists have the separate bounded
@@ -941,7 +975,7 @@ npm ci
 npm run config
 .\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon
 python tools\check_repository.py
-node -e "const fs=require('node:fs'),path=require('node:path'),yaml=require('yaml');for(const p of fs.readdirSync('.github',{recursive:true}).filter(p=>p.endsWith('.yml')||p.endsWith('.yaml'))){const d=yaml.parseDocument(fs.readFileSync(path.join('.github',p),'utf8'),{uniqueKeys:true});if(d.errors.length)throw d.errors[0];console.log(p)}"
+node -e "const fs=require('node:fs'),path=require('node:path'),yaml=require('yaml');for(const root of ['.github','settings'])for(const p of fs.readdirSync(root,{recursive:true}).filter(p=>p.endsWith('.yml')||p.endsWith('.yaml'))){const file=path.join(root,p),d=yaml.parseDocument(fs.readFileSync(file,'utf8'),{uniqueKeys:true});if(d.errors.length)throw d.errors[0];console.log(file)}"
 actionlint .github\workflows\hygiene.yml
 git --no-pager diff --check
 git --no-pager diff --cached --check
@@ -1190,6 +1224,13 @@ ACTION_SEND has no trustworthy receiver/cancellation receipt, no result code is
 interpreted as either one. A separate API36 emulator smoke case opens the actual
 system chooser and returns with Android Back, checking preserved
 snapshot/link/fallbacks and unchanged personal state without selecting a receiver.
+Canonical lyric-link core/device tests separately cover exact configured routes
+and trailing-slash helper subpaths, strict UUID identity and unsafe base refusal,
+URL-only chooser/clipboard payloads, intercepted cancellation without a false
+cancel/delivery claim, launch/copy failures, feedback reset, actual OS chooser/Back
+and manual long-press selection. They exercise explicit complete preparation,
+no extra requests or personal writes, preserved literal reading/list origin,
+focused Recite and ordered duplicate/placeholder/legacy/unavailable occurrences.
 Document picker/provider interoperability across real devices, destination failure
 semantics, signed incoming App Links and actual receiver/device Sharesheet
 interoperability remain required later acceptance gates;

@@ -138,6 +138,12 @@ fun LyricPreviewContent(
                 item(key = "lyric-text") {
                     CanonicalLyricText(lyric, reading)
                 }
+                if (secondary && lyric.lyricId == selected.lyricId &&
+                    PersonalReference.validLyricId(lyric.lyricId) &&
+                    state.prepared?.items?.get(lyric.lyricId) == lyric &&
+                    selected in state.prepared?.catalog?.catalog.orEmpty()) item(key = "lyric-link") {
+                    LyricLinkControls(lyric.lyricId)
+                }
             }
         } else if (state.prepared != null) {
             item {
