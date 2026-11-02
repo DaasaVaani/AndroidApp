@@ -1,5 +1,70 @@
 # Documentation history
 
+## 2026-11-02: owner-approved Android bounded first-use setup
+
+- The owner approved Android parity after Website setup was committed as22718e0,
+  including preserving contract/Room/independent Shared-pin updates and native-only
+  backupv3. Subsequently authorized continuing main publication of fully validated
+  slices. No changes to system-backup activation, library preparation or source
+  attribution were authorized.
+- Archived current protocol: Room8 preferences had no setupStatus; manual new
+  exports used native backupv1 and exact logical byte accounting version7.
+  Room9 adds pending/completed/skipped status, preserving all rows, identities,
+  revision and the operational backupLanguagePending receipt. Current accounting
+  version8 includes exact setup state; older3..7 envelopes remain frozen.
+- Added inline non-blocking setup with independent draft UI language, theme,
+  native font/density, no-write Cancel/Back and Settings reentry. Captured
+  revision/epoch rejects intervening personal edits rather than overwriting them.
+  One Room transaction saves choices/completion or status-only Skip; final-write
+  failure rolls every preference back. Setup never changes the current destination,
+  prepares/fetches lyrics, resolves scripts, invents previews or promises readiness.
+- New native exports use Android-only v3; unchanged v1 imports explicitly become
+  pending, v3 restores exact status, and webv2/future formats remain refused.
+  Complete native logical fields and postcommit language-recovery semantics stay
+  intact. System backup remains unregistered/allowBackup=false.
+- The new Shared prerequisite422f282 passed370/370 contract tests. Initial
+  compilation exposed accidentally local ViewModel setup methods; moved them
+  to the class API. Initial10-case device run passed9 and failed1 because its
+  injected trigger made a separate strict-schema snapshot reader refuse the test
+  database. Moved the assertion after trigger cleanup without weakening the
+  production schema checks, rollback assertion or timeout. Full reruns follow.
+- Validation uses the installed JDK21/SDK36 and existing API36 fixture on
+  emulator-5556, initially absent and started for this slice. No other devices
+  were stopped/modified. Native fixture host uses the frozen validated Website
+  production output on its configured5173 slot. Ordinary npm argument forwarding
+  did not pass the port; replaced only the owned helper with explicit Vite CLI
+  arguments. No toolchain/dependency manifests were changed.
+- Repaired focused command
+  `.\gradlew.bat :core:test :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.FirstUseStoreTest,in.daasavaani.app.FirstUseUiTest --no-daemon --max-workers=1`
+  passed all10 setup storage/Compose cases, zero skipped/failed; all67 core JVM
+  tests passed. The first complete165-case run passed160 and failed5, with zero
+  skipped: the optional entry reduced mounted-reader and ordinary Settings
+  viewport space, and three prospective migration fixtures omitted the new
+  24-byte pending setup field. Kept the entry off mounted readers/Recite and moved
+  Settings reentry after ordinary controls within the existing scroll container.
+  Updated only prospective byte assertions, retaining frozen old envelopes,
+  existing viewport assertions and timeouts. New setup tests scroll explicitly
+  to the Settings entry; production setup avoids nested Settings scrolling.
+- `.\gradlew.bat :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=in.daasavaani.app.FirstUseStoreTest,in.daasavaani.app.FirstUseUiTest,in.daasavaani.app.LaunchTest,in.daasavaani.app.PersonalUiTest,in.daasavaani.app.LearningStoreTest#exactFrozenV5AndProspectiveFullUtf8AccountingRefuseMigrationAtomically,in.daasavaani.app.ReadingStoreTest#exactFullUtf8AccountingFrozenOldEnvelopeAndProspectiveCapacityRefuseAtomically,in.daasavaani.app.RecitationPositionStoreTest#preservingV6UpgradeGainsOnlyNullAndValidatesFrozenAndProspectiveCompleteBytes --no-daemon --max-workers=1`
+  passed all15 cases in2m33s, zero skipped/failed, covering all new setup cases and
+  all five failures from the complete run. The complete unfiltered build/lint/
+  core/device rerun follows; focused results do not authorize publication.
+- Final `npm run config` and
+  `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease :app:connectedDebugAndroidTest --no-daemon --max-workers=1`
+  passed in14m24s. Actual XML totals confirm67 core JVM and165 device cases,
+  zero failures/errors/skips. Application JVM tasks remain NO-SOURCE, not a passed
+  application unit suite. Device evidence covers only the configured API36 AVD,
+  not the full supported-device/OS or release matrix.
+- `python tools\check_repository.py` passed132 tracked files including the new
+  Room9 schema and setup sources/tests. Strict locked Node YAML parsing passed
+  all6 configuration/workflow files; actionlint1.7.12 with ShellCheck0.11.0 and
+  staged/unstaged whitespace checks passed. Stopped only this slice's owned
+  emulator and fixture HTTP sessions after complete device validation.
+- Shared final2860694 was published first and exact hosted hygiene41481351655
+  passed. Website22718e0 exact hosted41479336245 passed140 units,477 browser
+  cases, workflow lint and deployment; live root/entry HTTPS200 confirmed setup.
+  Native adopts2860694 independently; Website remains pinned toc1c3086.
+
 ## 2026-10-30: owner-authorized completed-work integration into main
 
 - Fast-forwarded local main from79acdb3 to b1ab45c, including the complete native

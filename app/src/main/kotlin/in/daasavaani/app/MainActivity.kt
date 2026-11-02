@@ -201,6 +201,8 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                     }
                 }
             }
+            val showingReader = selected != null || (state.section == "lyrics" && lyrics.selected != null)
+            if (secondary && !recite.active && !showingReader && state.section != "settings") FirstUseSetup(model, state)
             if (state.section == "lyrics") {
                 Column(Modifier.weight(1f)) {
                     if (secondary) readerOrigin?.let { origin ->
@@ -266,6 +268,7 @@ fun LibraryScreen(model: LibraryViewModel = viewModel(), lyricModel: LyricPrevie
                         Text(stringResource(R.string.system_backup_notice), Modifier.testTag("settings-system-privacy"))
                         Text(stringResource(R.string.system_backup_manual_notice), Modifier.testTag("settings-system-manual"))
                     }
+                    FirstUseSetup(model, state)
                 }
             } else if (selected != null) {
                 LaunchedEffect(state.readerOpen) { state.readerOpen?.let(model::fixtureExposed) }

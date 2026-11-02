@@ -39,6 +39,7 @@ data class LibraryState(
     val selectedListId: String? = null,
     val readerOpen: String? = null, val historyError: Int? = null,
     val learningError: Int? = null,
+    val setupError: Int? = null,
     val rememberingRecitation: Boolean = false,
     val pendingFixture: String? = null, val fixtureReturnSection: String? = null,
     val personalRestoreGeneration: Long = 0,
@@ -191,7 +192,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 val value = withContext(Dispatchers.IO) { personalStore.load() }
-                if (acceptPersonal(value)) mutable.update { it.copy(personalError = null, mutationError = null, historyError = null, learningError = null) }
+                if (acceptPersonal(value)) mutable.update { it.copy(personalError = null, mutationError = null, historyError = null, learningError = null, setupError = null) }
             } catch (error: PersonalFailure) { if (generation == mutable.value.personalRestoreGeneration) mutable.update { it.copy(personalError = error.label) } }
             finally { if (generation == mutable.value.personalRestoreGeneration) mutable.update { it.copy(saving = false) } }
         }
@@ -226,6 +227,30 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                     acceptPersonal(next)
                 } catch (error: PersonalFailure) { if (personalStore.isCurrent(before)) mutable.update { it.copy(personalError = error.label) } }
                 finally { if (personalStore.isCurrent(before)) mutable.update { it.copy(saving = false) } }
+            }
+        }
+    }
+    fun clearSetupError() { mutable.update { it.copy(setupError = null) } }
+    fun finishFirstUse(expected: PersonalSnapshot, skipped: Boolean,
+        preferences: `in`.daasavaani.core.BackupPreferences? = null, done: () -> Unit = {}) {
+        if (mutable.value.saving || mutable.value.personalError != null) {
+            mutable.update { it.copy(setupError = R.string.first_use_failed) }
+            return
+        }
+        val generation = mutable.value.personalRestoreGeneration
+        mutable.update { it.copy(saving = true, setupError = null) }
+        viewModelScope.launch {
+            try {
+                val value = withContext(NonCancellable + Dispatchers.IO) {
+                    personalStore.finishFirstUse(expected, skipped, preferences)
+                }
+                if (acceptPersonal(value) && generation == mutable.value.personalRestoreGeneration) done()
+            } catch (error: PersonalFailure) {
+                if (generation == mutable.value.personalRestoreGeneration) {
+                    mutable.update { it.copy(setupError = R.string.first_use_failed) }
+                }
+            } finally {
+                if (generation == mutable.value.personalRestoreGeneration) mutable.update { it.copy(saving = false) }
             }
         }
     }
@@ -277,7 +302,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         acceptPersonal(value)
         mutable.update { it.copy(selected = null, selectedListId = null, readerOpen = null,
             pendingFixture = null, fixtureReturnSection = null, personalError = null, mutationError = null,
-            historyError = null, learningError = null, saving = false, rememberingRecitation = false,
+            historyError = null, learningError = null, setupError = null, saving = false, rememberingRecitation = false,
             personalRestoreGeneration = it.personalRestoreGeneration + 1) }
     }
     override fun onCleared() { opens.close(); personalStore.close(); super.onCleared() }

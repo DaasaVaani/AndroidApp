@@ -33,6 +33,7 @@ class RecitationPositionStoreTest {
             it.execSQL("ALTER TABLE preferences DROP COLUMN recitationListId")
             it.execSQL("ALTER TABLE preferences DROP COLUMN recitationEntryId")
             it.execSQL("ALTER TABLE preferences DROP COLUMN backupLanguagePending")
+            it.execSQL("ALTER TABLE preferences DROP COLUMN setupStatus")
             it.execSQL("DELETE FROM room_master_table")
             it.version = 6
         }
@@ -43,7 +44,7 @@ class RecitationPositionStoreTest {
         val before = v6()
         val old = PersonalStore.storedBytes(before, 6)
         val current = PersonalStore.storedBytes(before)
-        assertEquals(old + ""","recitation":{"position":null}""".toByteArray(Charsets.UTF_8).size, current)
+        assertEquals(old + ""","recitation":{"position":null},"setupStatus":"pending"""".toByteArray(Charsets.UTF_8).size, current)
         val original = context.getDatabasePath(name).readBytes()
         listOf(old - 1, old, current - 1).forEach { limit ->
             PersonalStore(context, name, maxBytes = limit).use { store ->
@@ -58,7 +59,7 @@ class RecitationPositionStoreTest {
             assertEquals(before.favorites.toList(), after.favorites.toList())
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use {
-            assertEquals(8, it.version)
+            assertEquals(9, it.version)
         }
     }
 
@@ -200,8 +201,11 @@ class RecitationPositionStoreTest {
         val empty = PersonalSnapshot()
         val frozen = """{"formatVersion":6,"revision":0,"preferences":{"language":"device","theme":"device","lyricFontSizeSp":${ReadingPolicy.readerFontSizeSp},"readingDensity":"${ReadingPolicy.defaultDensity}"},"favorites":[],"lists":[],"recentHistory":{"enabled":${PersonalPolicy.recentHistoryEnabled},"entries":[]},"learning":{"entries":[]}}"""
         assertEquals(frozen.toByteArray(Charsets.UTF_8).size, PersonalStore.storedBytes(empty, 6))
-        val current = frozen.replace("\"formatVersion\":6", "\"formatVersion\":7").dropLast(1) +
+        val version7 = frozen.replace("\"formatVersion\":6", "\"formatVersion\":7").dropLast(1) +
             ""","recitation":{"position":null}}"""
+        assertEquals(version7.toByteArray(Charsets.UTF_8).size, PersonalStore.storedBytes(empty, 7))
+        val current = version7.replace("\"formatVersion\":7", "\"formatVersion\":8").dropLast(1) +
+            ""","setupStatus":"pending"}"""
         assertEquals(current.toByteArray(Charsets.UTF_8).size, PersonalStore.storedBytes(empty))
         val listId = "00000000-0000-4000-8000-000000000001"
         val entryId = "00000000-0000-4000-8000-000000000003"
@@ -255,7 +259,7 @@ class RecitationPositionStoreTest {
             PersonalStore(context, name).use { store -> failure(R.string.personal_invalid) { store.load() } }
             assertArrayEquals(original, context.getDatabasePath(name).readBytes())
         }
-        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 9 }
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 10 }
         original = context.getDatabasePath(name).readBytes()
         PersonalStore(context, name).use { store -> failure(R.string.personal_future) { store.load() } }
         assertArrayEquals(original, context.getDatabasePath(name).readBytes())

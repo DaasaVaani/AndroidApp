@@ -58,6 +58,31 @@ class FullPersonalBackupTest {
         assertEquals(missing.data.recitation, codec.decode(codec.encode(missing).inputStream()).data.recitation)
     }
 
+    @Test fun nativeVersion3PreservesEverySetupStateAndFrozenVersion1RemainsPending() {
+        val original = base()
+        assertEquals("pending", original.data.setupStatus)
+        assertEquals(1, original.formatVersion)
+        for (status in listOf("pending", "completed", "skipped")) {
+            val value = original.copy(data = original.data.copy(setupStatus = status), formatVersion = 3)
+            assertEquals(value, codec.decode(codec.encode(value).inputStream()))
+            val json = codec.json(value).toString(Charsets.UTF_8)
+            assertTrue(json.contains("\"setupStatus\":\"$status\""))
+            refused(json.replace(",\"setupStatus\":\"$status\"", ""))
+            refused(json.replace("\"setupStatus\":\"$status\"", "\"setupStatus\":\"ready\""))
+            refused(json.replace("\"platform\":\"android\"", "\"platform\":\"web\""))
+            refused(json.replace("\"formatVersion\":3", "\"formatVersion\":2"))
+            refused(json.replace("\"formatVersion\":3", "\"formatVersion\":4"))
+            if (status != "pending") assertFailsWith<TransferFailure> {
+                codec.encode(value.copy(formatVersion = 1))
+            }
+        }
+        assertEquals(original, codec.decode(codec.encode(original).inputStream()))
+        assertFalse(codec.json(original).toString(Charsets.UTF_8).contains("setupStatus"))
+        for (invalid in listOf("ready", "", "complete")) assertFailsWith<TransferFailure> {
+            codec.encode(original.copy(data = original.data.copy(setupStatus = invalid), formatVersion = 3))
+        }
+    }
+
     @Test fun strictJsonDuplicateKeysEscapedEquivalentsUnknownKeysAndScalars() {
         val text = codec.json(base()).toString(Charsets.UTF_8)
         refused(text.replace("\"platform\":\"android\"", "\"platform\":\"android\",\"plat\\u0066orm\":\"android\""))

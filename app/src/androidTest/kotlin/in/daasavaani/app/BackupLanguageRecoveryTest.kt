@@ -332,12 +332,13 @@ class BackupLanguageRecoveryTest {
         val before = PersonalStore(context).use { it.load() }
         context.openOrCreateDatabase("personal.db", Context.MODE_PRIVATE, null).use {
             it.execSQL("ALTER TABLE preferences DROP COLUMN backupLanguagePending")
+            it.execSQL("ALTER TABLE preferences DROP COLUMN setupStatus")
             it.version = 7
         }
         PersonalStore(context).use {
             assertEquals(before, it.load())
             assertNull(it.pendingBackupLanguage())
         }
-        context.openOrCreateDatabase("personal.db", Context.MODE_PRIVATE, null).use { assertEquals(8, it.version) }
+        context.openOrCreateDatabase("personal.db", Context.MODE_PRIVATE, null).use { assertEquals(9, it.version) }
     }
 }

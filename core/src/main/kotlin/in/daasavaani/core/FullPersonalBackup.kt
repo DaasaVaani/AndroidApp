@@ -17,13 +17,14 @@ data class BackupPersonalData(
     val recentHistory: RecentHistory,
     val learning: List<LearningAssignment>,
     val recitation: RecitationPositionV1,
+    val setupStatus: String = "pending",
 )
-data class FullPersonalBackup(val exportedAt: String, val data: BackupPersonalData) {
+data class FullPersonalBackup(val exportedAt: String, val data: BackupPersonalData, val formatVersion: Int = 1) {
     fun duplicateNameGroups(): List<List<String>> = data.lists.groupBy { PersonalNames.key(it.name) }
         .values.filter { it.size > 1 }.map { group -> group.map { it.id } }
 }
 
-/** Android-only logical v1 codec. It never opens storage, resolves references or mutates content. */
+/** Android-only logical v1/v3 codec. It never opens storage, resolves references or mutates content. */
 class FullPersonalBackupCodec(private val listCodec: ListTransfer, private val compressionLevel: Int) {
     private val transport = TransferTransport(BackupPolicy.maxBackupEncodedBytes, BackupPolicy.maxBackupDecodedBytes)
     private fun invalid(): Nothing = throw TransferFailure("invalid")
@@ -38,10 +39,13 @@ class FullPersonalBackupCodec(private val listCodec: ListTransfer, private val c
 
     private fun decodeRoot(root: JsonElement, check: () -> Unit): FullPersonalBackup {
         val envelope = fields(root, setOf("format", "formatVersion", "platform", "exportedAt", "data"))
+        val version = integer(envelope["formatVersion"])
         if (string(envelope["format"]) != "daasavaani-personal-backup" ||
-            integer(envelope["formatVersion"]) != 1 || string(envelope["platform"]) != "android") invalid()
+            version !in setOf(1, 3) || string(envelope["platform"]) != "android") invalid()
         val date = string(envelope["exportedAt"])
-        val data = fields(envelope["data"], setOf("preferences", "favorites", "lists", "recentHistory", "learning", "recitation"))
+        val data = fields(envelope["data"], setOf("preferences", "favorites", "lists", "recentHistory", "learning", "recitation") +
+            if (version == 3) setOf("setupStatus") else emptySet())
+        val setupStatus = if (version == 3) string(data["setupStatus"]) else "pending"
         val prefs = fields(data["preferences"], setOf("language", "theme", "lyricFontSizeSp", "readingDensity"))
         val preferences = BackupPreferences(string(prefs["language"]), string(prefs["theme"]),
             integer(prefs["lyricFontSizeSp"]), string(prefs["readingDensity"]))
@@ -72,7 +76,7 @@ class FullPersonalBackupCodec(private val listCodec: ListTransfer, private val c
         }
         return FullPersonalBackup(date, BackupPersonalData(preferences, favorites, lists,
             RecentHistory(enabled.boolean, array(history["entries"], BackupPolicy.maxRecents).map { reference(it) }),
-            assignments, RecitationPositionV1(position))).also { verify(it, check) }
+            assignments, RecitationPositionV1(position), setupStatus), version).also { verify(it, check) }
     }
 
     private fun fields(value: JsonElement?, keys: Set<String>): JsonObject =
@@ -130,7 +134,7 @@ class FullPersonalBackupCodec(private val listCodec: ListTransfer, private val c
             id?.let { append(",\"id\":${quote(it)}") }
             append("}")
         }
-        append("{\"format\":\"daasavaani-personal-backup\",\"formatVersion\":1,\"platform\":\"android\",\"exportedAt\":${quote(value.exportedAt)},\"data\":")
+        append("{\"format\":\"daasavaani-personal-backup\",\"formatVersion\":${value.formatVersion},\"platform\":\"android\",\"exportedAt\":${quote(value.exportedAt)},\"data\":")
         val start = written
         val data = value.data
         val p = data.preferences
@@ -154,7 +158,9 @@ class FullPersonalBackupCodec(private val listCodec: ListTransfer, private val c
         append("]},\"recitation\":{\"position\":")
         val pair = data.recitation.position
         append(if (pair == null) "null" else "{\"listId\":${quote(pair.listId)},\"entryId\":${quote(pair.entryId)}}")
-        append("}}")
+        append("}")
+        if (value.formatVersion == 3) append(",\"setupStatus\":${quote(data.setupStatus)}")
+        append("}")
         if (written - start > BackupPolicy.maxPersonalStoredBytes) size()
         append("}")
     }
@@ -164,6 +170,9 @@ class FullPersonalBackupCodec(private val listCodec: ListTransfer, private val c
 
     fun validate(value: FullPersonalBackup, check: () -> Unit = {}) {
         check()
+        if (value.formatVersion !in setOf(1, 3) ||
+            value.data.setupStatus !in setOf("pending", "completed", "skipped") ||
+            (value.formatVersion == 1 && value.data.setupStatus != "pending")) invalid()
         if (!Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z").matches(value.exportedAt)) invalid()
         try {
             val instant = Instant.parse(value.exportedAt)

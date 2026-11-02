@@ -8,7 +8,7 @@ records before canonical Kannada reading and indexed search. Prepared data is
 memory-only. Typed lyric/legacy favorites, recitation lists/independent occurrences
 and UI language/theme/lyric reading preferences use one durable Room database. Settings offers process-local
 v1/v2 minimal-list preview, confirmed new-list-only import and complete file/link
-export, plus same-platform current-state manual personal backup v1 with complete
+export, plus same-platform current-state manual personal backup v3 with complete
 read-only preview and explicitly confirmed atomic replacement. Manual backup files
 are private **unencrypted** personal data, not lyric/offline-content snapshots.
 A personal-only Android system-backup/device-transfer adapter and rules are
@@ -23,6 +23,15 @@ Device-only Recently opened records the latest configured distinct successful
 explicit reader opens, independently of favorites/lists and content preparation.
 Optional device-local self-assigned learning labels use the same personal database.
 Staged implementation is authorized; production gates remain.
+
+Optional first-use setup offers interface language (including Follow device),
+theme, native font size and density without replacing the current destination.
+Save commits all choices and completion atomically; Skip keeps saved choices and
+records only skipped status; Cancel writes nothing. Settings can reopen setup.
+The preserving Room9 upgrade adds pending setup without inferring completion.
+New Android backups use v3 with exact setup state; existing v1 imports become
+pending. Website-only v2 and future backup versions remain refused. Setup does not
+prepare content or bypass the complete explicit library-preparation gate.
 
 Start with [AGENTS.md](AGENTS.md),
 [requirements](https://github.com/DaasaVaani/DaasaVaani.github.io/blob/main/docs/requirements.md),
@@ -330,7 +339,7 @@ visible text, never occurrence metadata or preference/wake/position replay.
 Resolution is O(lists + selected-list entries). Complete selection validation/
 accounting is O(personal records + bounded text bytes); only a pair, not copied
 lyric content, is persisted. Both minimal-list projections exclude the pair and
-all local identities. The separate current-state manual personal backup v1
+all local identities. The separate current-state manual personal backup v3
 includes the exact nullable pair, even when its list or occurrence is unavailable.
 Durable snapshots, reviewed verse-based Practice, future personal features and
 complete REC-04/release conformance remain outside this slice.
@@ -358,12 +367,40 @@ complete REC-04/release conformance remain outside this slice.
   Current debug tooling uses JDK21/SDK36/Gradle9.1; the production/release and
   supported-device matrix remains incomplete.
 
+### Non-blocking first-use setup
+
+The bounded UX-12/LANG-05/SET-04 slice exposes only current language/theme/native
+font/density controls. A compact optional entry leaves navigation, preparation,
+reading and unsaved list destinations available; an inline scrollable draft panel
+does not redirect, replace content, issue content requests or claim readiness.
+The entry is kept off mounted readers and focused Recite so it cannot consume
+their reading viewport; Settings remains the explicit setup entry from a reader.
+In Settings the setup entry/draft shares the existing scrollable content, after
+the ordinary controls, rather than reducing their available viewport.
+UI labels within the draft follow its language, independently of saved app labels.
+No native locale API or personal preference changes before Save. Explicit font/
+density controls reuse the existing bounds/spacing, not synthetic lyric samples.
+Script/Latin/helper/preview and durable offline download/size are disclosed as
+unavailable; memory-only preparation remains separately explicit.
+
+Save validates and writes preferences plus completed status in one Room
+transaction. Skip discards the draft and writes only skipped status/revision,
+including on a fresh Follow device profile. Cancel and Android Back discard
+drafts; Cancel explicitly reloads the latest committed choices. Setup drafts
+capture revision/epoch: an intervening personal write or replacement requires
+cancelling/reopening instead of rebasing over peer edits. Storage/capacity/final-
+write failures preserve all previous state and show retry/cancel feedback.
+Setup is available again in Settings after either completion or skip, and works
+without network/preparation. Its state is a personal preference, never download
+consent, activity, a content receipt or offline readiness.
+
 ### Personal schema, transactions and recovery
 
-`personal.db` is the only personal database. Room schema8 has one required
+`personal.db` is the only personal database. Room schema9 has one required
 `preferences` singleton (`id=1`, `language`, `theme`, nonnegative `revision`,
 `recentHistoryEnabled`, `lyricFontSizeSp`, `readingDensity`, nullable
-`recitationListId`/`recitationEntryId`, and operational `backupLanguagePending`) and
+`recitationListId`/`recitationEntryId`, operational `backupLanguagePending` and
+`setupStatus` pending/completed/skipped) and
 `favorites` keyed by `(kind,value)` with explicit positions, ordered `lists` and
 ordered `occurrences`, plus ordered typed `recents` and `learning` keyed by
 `(kind,value)` with `label` and contiguous `position`. Lyric references require canonical lowercase UUIDv4;
@@ -392,15 +429,18 @@ The v7→8 migration adds a false operational language-recovery bit without chan
 personal values or revision. Only a committed manual replacement arms it; it is
 not a new personal preference, backup field or part of the frozen v7 logical byte
 accounting envelope.
+The v8→9 migration preserves every row/value/revision and the operational receipt,
+adding only `setupStatus=pending`. The current logical envelope is independently
+version8; the receipt remains operational and excluded.
 Every old schema and
-its frozen accounting envelope, plus the prospective complete v7 logical envelope,
+its frozen accounting envelope, plus the prospective complete v8 logical envelope,
 must validate before mutation.
 Supported v1/v2 inputs chain through these
 same migrations. Each reopened store has a fresh process-local epoch; history
 transactions participate in the existing revision/epoch fences, including pending
 imports and duplicate-name confirmations.
 The actual old schema and records (strict11-character IDs only for v1/v2;
-exact typed IDs for v3/v4/v5/v6/v7/v8) are validated before opening
+exact typed IDs for v3/v4/v5/v6/v7/v8/v9) are validated before opening
 Room and rechecked within the migration transaction. Both old accounting and the
 projected new envelope must fit before migration. These are
 synthetic migration fixtures, not a claim that an earlier production personal schema
@@ -417,14 +457,15 @@ inside one Room transaction. A stale writer must reload before retrying. The cou
 and deterministic UTF8 logical-envelope bounds come from pinned
 `shared/settings/personal-transfer.yml`, including preference/revision/header
 overhead. The compact UTF8 accounting envelope is exactly
-`{formatVersion:7,revision,preferences:{language,theme,lyricFontSizeSp,readingDensity},favorites:[typed-reference],
-lists:[{id,name,entries:[typed-entry-with-id]}],recentHistory:{enabled,entries:[typed-reference]},learning:{entries:[typed-reference-with-label]},recitation:{position:null|{listId,entryId}}}`
+`{formatVersion:8,revision,preferences:{language,theme,lyricFontSizeSp,readingDensity},favorites:[typed-reference],
+lists:[{id,name,entries:[typed-entry-with-id]}],recentHistory:{enabled,entries:[typed-reference]},learning:{entries:[typed-reference-with-label]},recitation:{position:null|{listId,entryId}},setupStatus}`
 in that field order, using
 `kotlinx.serialization` JSON string quoting and no spaces/BOM. Entries emit
 `kind`, present `videoId`/`lyricId`, present `fallback`/`text`, then `id`.
 Learning entries emit `kind`, the exact `lyricId`/`videoId`, then `label`.
 Empty learning and nullable recitation-envelope overhead is counted;
-v3/v4/v5/v6 accounting remains frozen.
+v3/v4/v5/v6/v7 accounting remains frozen. Setup status is counted exactly, including
+the longer completed state, before any completion/replacement.
 The epoch is not persisted/accounted and changes when the store closes/reopens.
 Its process-local fence also incorporates a per-database replacement generation
 shared by all live store instances; a committed manual replacement invalidates
@@ -489,7 +530,7 @@ bilingual caption explaining that reviewed verse-based Practice is not
 implemented; there is no fake Practice action or guessed verse boundary.
 
 Assignments remain device-local, outside every v1/v2 minimal-list file/link transfer.
-Current-state manual personal backup v1 separately includes every ordered
+Current-state manual personal backup v3 separately includes every ordered
 assignment. This logical storage accounting is not its wire format.
 
 ### Device-only Recently opened
@@ -670,7 +711,7 @@ six upstream source identities against Shared settings. Runtime loading verifies
 the packaged profile and data hash; missing/corrupt/unsupported resources fail
 explicitly, with no platform fallback.
 
-Room schema8 stores raw list names, not persisted name keys. Create, rename,
+Room schema9 stores raw list names, not persisted name keys. Create, rename,
 duplicate and import use this profile and explicit independent-reuse confirmation.
 No list is automatically renamed/merged; no cached keys require migration.
 A future persisted-key/profile change still needs a preserving migration.
@@ -679,7 +720,7 @@ existing policies; raw real lyric UUIDs and legacy IDs are never normalized.
 Partial mapping: LIB-01/02/03/04/05/08/09/10/11, XFER-01/03/04/05/06/08
 and SET-01; not full requirement acceptance.
 
-### Same-platform manual personal backup v1
+### Same-platform manual personal backup v3
 
 Settings → Personal backup provides explicit native document creation/export and
 bounded document selection/import. The configured `backupFileName` in
@@ -692,7 +733,10 @@ No Node codec, database dump, content fetch, preparation, media/cache readiness,
 Recite entry or awake request participates in this workflow.
 
 The authoritative [logical allowlist and protocol](shared/docs/full-personal-backup.md)
-is Android-to-Android only. It covers all currently implemented Room7 preferences
+is Android-to-Android only. V3 exports every implemented Room9 personal preference,
+including setup status; unchanged v1 imports explicitly adapt to pending. The
+codec preserves a decoded v1 envelope as v1 when re-encoding, while new store
+exports always use v3. It retains all original preferences
 (including `device` sentinels and native sp), ordered typed favorites, original
 list/occurrence IDs and raw text/fallback absence, disabled-but-retained history,
 ordered learning labels and the nullable latest exact recitation pair. Missing
@@ -728,7 +772,8 @@ revision/fence. The preview shows platform/date/counts, every preference and ord
 record, original IDs, raw text/fallbacks and exact position; equivalent names produce
 a read-only Unicode16 warning, never merge/re-identification. It offers current-data
 export and separately requires explicit confirmation of **whole-state replacement**.
-One Room transaction rechecks the preview, validates the exact prospective Room7 logical
+The preview includes exact setup status (v1 explicitly pending).
+One Room transaction rechecks the preview, validates the exact prospective v8 logical
 envelope including the fresh revision/header overhead, and replaces all allowlisted
 tables/preferences or none. Stale preview requires choosing/reviewing a fresh
 candidate. Validation, quota, storage failure and precommit cancellation preserve
@@ -825,7 +870,7 @@ truncation refuse the operation; no file is extracted over application storage.
 `onRestoreFinished` uses a fresh current-state preview and the same whole-state
 Room transaction/fencing as manual restore. It preserves original IDs, order,
 settings, labels, retained history and exact position, allocates a fresh local
-revision/epoch and atomically arms the existing Room8 language receipt. Startup
+revision/epoch and atomically arms the existing language receipt. Startup
 applies only committed language and durably retries failure through the existing
 Settings-independent recovery surface. It creates no pending manual preview or
 manual UI completion. Death before the finished callback cannot activate the
@@ -859,7 +904,7 @@ including the recommendation to retain an explicit personal backup file.
 ### Remaining approved slices
 
 This implementation includes ordered list Recite/exact Continue and current-state
-same-platform manual personal backup v1 and an inactive personal-only system-backup
+same-platform manual personal backup v3 and an inactive personal-only system-backup
 adapter/rules/privacy prerequisite.
 It does **not** implement
 bookmarks, verse-based Practice/resume, persistent offline

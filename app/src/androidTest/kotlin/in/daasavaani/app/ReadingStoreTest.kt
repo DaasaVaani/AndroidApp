@@ -58,7 +58,7 @@ class ReadingStoreTest {
             assertNotEquals(epoch, s.epoch)
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use {
-            assertEquals(8, it.version)
+            assertEquals(9, it.version)
         }
     }
 
@@ -105,7 +105,7 @@ class ReadingStoreTest {
         val current = PersonalStore.storedBytes(before)
         val extra = ""","lyricFontSizeSp":${ReadingPolicy.readerFontSizeSp},"readingDensity":"${ReadingPolicy.defaultDensity}"""".toByteArray(Charsets.UTF_8).size
         assertEquals(old + extra, PersonalStore.storedBytes(before, 5))
-        assertEquals(old + extra + ""","learning":{"entries":[]},"recitation":{"position":null}""".toByteArray(Charsets.UTF_8).size, current)
+        assertEquals(old + extra + ""","learning":{"entries":[]},"recitation":{"position":null},"setupStatus":"pending"""".toByteArray(Charsets.UTF_8).size, current)
         val bytes = context.getDatabasePath(name).readBytes()
         listOf(old - 1, old, current - 1).forEach { limit ->
             PersonalStore(context, name, maxBytes = limit).use { store -> failure(R.string.personal_capacity) { store.load() } }
@@ -136,7 +136,7 @@ class ReadingStoreTest {
             PersonalStore(context, name).use { store -> failure(R.string.personal_invalid) { store.load() } }
             assertArrayEquals(original, context.getDatabasePath(name).readBytes())
         }
-        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 9 }
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { it.version = 10 }
         original = context.getDatabasePath(name).readBytes()
         PersonalStore(context, name).use { store -> failure(R.string.personal_future) { store.load() } }
         assertArrayEquals(original, context.getDatabasePath(name).readBytes())

@@ -76,6 +76,14 @@ fun BackupScreen(model: BackupViewModel, library: LibraryViewModel, back: () -> 
                 Text(stringResource(R.string.backup_preview))
                 Text("${stringResource(R.string.backup_platform)}: android")
                 Text("${stringResource(R.string.backup_exported_at)}: ${backup.exportedAt}")
+                val setupCaption = when (data.setupStatus) {
+                    "pending" -> R.string.first_use_pending
+                    "completed" -> R.string.first_use_completed
+                    "skipped" -> R.string.first_use_skipped_status
+                    else -> error("Invalid backup setup status")
+                }
+                Text("${stringResource(R.string.first_use_status)}: ${stringResource(setupCaption)}",
+                    Modifier.testTag("backup-setup-status"))
                 Text(stringResource(R.string.backup_counts).replace("{favorites}", data.favorites.size.toString())
                     .replace("{lists}", data.lists.size.toString()).replace("{occurrences}", data.lists.sumOf { it.entries.size }.toString())
                     .replace("{recents}", data.recentHistory.entries.size.toString()).replace("{learning}", data.learning.size.toString()),

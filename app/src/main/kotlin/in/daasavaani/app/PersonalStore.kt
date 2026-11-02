@@ -27,6 +27,7 @@ data class PersonalSnapshot(
     val reading: ReadingPreferences = ReadingPreferences(),
     val learning: List<LearningAssignment> = emptyList(),
     val recitation: RecitationPositionV1 = RecitationPositionV1(),
+    val setupStatus: String = "pending",
 ) {
     // Process-local write fence; deliberately not part of the durable record or equality.
     var epoch: String = ""
@@ -60,14 +61,14 @@ class PersonalStore(
         else SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY) {
             throw PersonalFailure(R.string.personal_invalid)
         }.use { db ->
-            if (db.version > 8) throw PersonalFailure(R.string.personal_future)
-            if (db.version !in 1..8) throw PersonalFailure(R.string.personal_invalid)
+            if (db.version > 9) throw PersonalFailure(R.string.personal_future)
+            if (db.version !in 1..9) throw PersonalFailure(R.string.personal_invalid)
             checkSchema(db.version) { db.rawQuery(it, null) }
             if (db.version < 3) validateOld(db.version) { db.rawQuery(it, null) }
             else {
                 checkCounts(db.version) { db.rawQuery(it, null) }
                 val snapshot = readRaw(db)
-                if (storedBytes(snapshot, minOf(db.version, 7)) > maxBytes) capacity()
+                if (storedBytes(snapshot, if (db.version >= 9) 8 else minOf(db.version, 7)) > maxBytes) capacity()
                 validate(snapshot)
             }
         }
@@ -134,9 +135,18 @@ class PersonalStore(
                         checkSchema(7, db::query)
                         checkCounts(7, db::query)
                         val snapshot = readRaw(db::query, 7)
-                        if (storedBytes(snapshot) > maxBytes) capacity()
+                        if (storedBytes(snapshot, 7) > maxBytes) capacity()
                         validate(snapshot)
                         db.execSQL("ALTER TABLE preferences ADD COLUMN backupLanguagePending INTEGER NOT NULL DEFAULT 0")
+                    }
+                }, object : Migration(8, 9) {
+                    override fun migrate(db: SupportSQLiteDatabase) {
+                        checkSchema(8, db::query)
+                        checkCounts(8, db::query)
+                        val snapshot = readRaw(db::query, 8)
+                        if (storedBytes(snapshot, 7) > maxBytes) capacity()
+                        validate(snapshot)
+                        db.execSQL("ALTER TABLE preferences ADD COLUMN setupStatus TEXT NOT NULL DEFAULT 'pending'")
                     }
                 })
             .enableMultiInstanceInvalidation()
@@ -215,7 +225,10 @@ class PersonalStore(
             }
             PersonalSnapshot(c.getString(c.getColumnIndexOrThrow("language")), c.getString(c.getColumnIndexOrThrow("theme")),
                 revision = c.getLong(c.getColumnIndexOrThrow("revision")), recentHistory = RecentHistory(enabled),
-                reading = reading, recitation = recitation)
+                reading = reading, recitation = recitation,
+                setupStatus = if (version >= 9) {
+                    string(c, "setupStatus"); c.getString(c.getColumnIndexOrThrow("setupStatus"))
+                } else "pending")
         }
         val favorites = linkedSetOf<PersonalReference>()
         query("SELECT * FROM favorites ORDER BY position").use { c ->
@@ -276,7 +289,7 @@ class PersonalStore(
     private fun read(db: PersonalDatabase): PersonalSnapshot {
         // Raw reads also check SQLite storage classes and positions, not just Room coercions.
         val raw = db.openHelper.readableDatabase
-        checkCounts(8, raw::query)
+        checkCounts(9, raw::query)
         val records = db.records().preferences()
         if (records.size != 1) invalid()
         val p = records.single()
@@ -292,7 +305,8 @@ class PersonalStore(
             RecentHistory(p.recentHistoryEnabled, db.records().recents().map { PersonalReference(it.kind, it.value) }),
             ReadingPreferences(p.lyricFontSizeSp, p.readingDensity),
             db.records().learning().map { LearningAssignment(PersonalReference(it.kind, it.value), it.label) },
-            RecitationPositionV1(p.recitationListId?.let { ExactRecitationPosition(it, p.recitationEntryId ?: invalid()) }))
+            RecitationPositionV1(p.recitationListId?.let { ExactRecitationPosition(it, p.recitationEntryId ?: invalid()) }),
+            p.setupStatus)
             .apply { epoch = this@PersonalStore.epoch }
         if (p.recitationListId == null && p.recitationEntryId != null) invalid()
         if (favorites.map { it.position } != favorites.indices.toList() ||
@@ -325,7 +339,7 @@ class PersonalStore(
     private fun validate(snapshot: PersonalSnapshot) {
         if (snapshot.language !in setOf("device", "en", "kn") || snapshot.theme !in setOf("device", "light", "dark", "warm") ||
             snapshot.revision < 0 || snapshot.favorites.any { !it.valid() } || !snapshot.reading.valid() ||
-            !snapshot.recitation.valid()) invalid()
+            !snapshot.recitation.valid() || snapshot.setupStatus !in setOf("pending", "completed", "skipped")) invalid()
         if (snapshot.recentHistory.entries.size > PersonalPolicy.maxRecents) capacity()
         if (!snapshot.recentHistory.valid()) invalid()
         if (snapshot.learning.size > maxLearningLabels || snapshot.learning.size > PersonalPolicy.maxLearningLabels) capacity()
@@ -398,7 +412,7 @@ class PersonalStore(
     @Synchronized fun exportBackup(exportedAt: String, checkActive: () -> Unit = {}, deliver: (ByteArray) -> Unit) = guarded {
         val snapshot = load()
         val backupCodec = FullPersonalBackupCodec(codec, context.resources.getInteger(R.integer.list_compression_level))
-        val bytes = backupCodec.encode(FullPersonalBackup(exportedAt, snapshot.backupData()), checkActive)
+        val bytes = backupCodec.encode(FullPersonalBackup(exportedAt, snapshot.backupData(), 3), checkActive)
         val db = open()
         db.runInTransaction {
             checkActive()
@@ -423,8 +437,9 @@ class PersonalStore(
             FullPersonalBackupCodec(codec, context.resources.getInteger(R.integer.list_compression_level)).verify(preview.backup, checkActive)
             val after = PersonalSnapshot(data.preferences.language, data.preferences.theme, data.favorites.toCollection(linkedSetOf()),
                 before.revision + 1, data.lists, data.recentHistory,
-                ReadingPreferences(data.preferences.lyricFontSizeSp, data.preferences.readingDensity), data.learning, data.recitation)
-            // This is the exact prospective Room7 envelope, including the fresh local revision.
+                ReadingPreferences(data.preferences.lyricFontSizeSp, data.preferences.readingDensity), data.learning, data.recitation,
+                data.setupStatus)
+            // Account for the exact prospective personal envelope, including the fresh local revision.
             validate(after)
             checkActive()
             val dao = db.records()
@@ -452,6 +467,7 @@ class PersonalStore(
             dao.updatePreference(after.language, after.theme, after.revision, after.recentHistory.enabled)
             dao.updateReading(after.reading.fontSizeSp, after.reading.density, after.revision)
             dao.updateRecitation(after.recitation.position?.listId, after.recitation.position?.entryId, after.revision)
+            dao.updateSetupStatus(after.setupStatus, after.revision)
             dao.updateBackupLanguagePending(true)
             restored = read(db)
             checkActive()
@@ -469,7 +485,18 @@ class PersonalStore(
 
     private fun PersonalSnapshot.backupData() = BackupPersonalData(
         BackupPreferences(language, theme, reading.fontSizeSp, reading.density), favorites.toList(), lists,
-        recentHistory, learning, recitation)
+        recentHistory, learning, recitation, setupStatus)
+
+    @Synchronized fun finishFirstUse(expected: PersonalSnapshot, skipped: Boolean,
+        preferences: BackupPreferences? = null): PersonalSnapshot =
+        transact(expected.revision, expected.epoch, setupOnly = true) { before ->
+            if (skipped) before.copy(setupStatus = "skipped")
+            else {
+                val draft = preferences ?: invalid()
+                before.copy(language = draft.language, theme = draft.theme,
+                    reading = ReadingPreferences(draft.lyricFontSizeSp, draft.readingDensity), setupStatus = "completed")
+            }
+        }
 
     @Synchronized fun observeLists(changed: () -> Unit): AutoCloseable = guarded {
         val tracker = open().invalidationTracker
@@ -562,7 +589,7 @@ class PersonalStore(
         }
 
     private fun transact(revision: Long, expectedEpoch: String, noOp: Boolean = false, readingOnly: Boolean = false,
-        learningOnly: Boolean = false,
+        learningOnly: Boolean = false, setupOnly: Boolean = false,
         positionOnly: Boolean = false, checkActive: () -> Unit = {},
         operation: (PersonalSnapshot) -> PersonalSnapshot): PersonalSnapshot = guarded {
         val db = open()
@@ -583,6 +610,15 @@ class PersonalStore(
             validate(after)
             listsChanged = before.lists != after.lists
             val dao = db.records()
+            if (setupOnly) {
+                if (after.setupStatus == "completed") {
+                    dao.updatePreference(after.language, after.theme, after.revision, after.recentHistory.enabled)
+                    dao.updateReading(after.reading.fontSizeSp, after.reading.density, after.revision)
+                }
+                dao.updateSetupStatus(after.setupStatus, after.revision)
+                result = read(db)
+                return@runInTransaction
+            }
             if (positionOnly) {
                 val pointer = requireNotNull(after.recitation.position)
                 dao.updateRecitation(pointer.listId, pointer.entryId, after.revision)
@@ -661,8 +697,8 @@ class PersonalStore(
         private val listObservers = CopyOnWriteArraySet<Pair<String, () -> Unit>>()
         private val restoreFences = ConcurrentHashMap<String, String>()
 
-        fun storedBytes(snapshot: PersonalSnapshot, formatVersion: Int = 7): Int {
-            require(formatVersion in 3..7)
+        fun storedBytes(snapshot: PersonalSnapshot, formatVersion: Int = 8): Int {
+            require(formatVersion in 3..8)
             var bytes = 0L
             fun append(value: String) { bytes += value.toByteArray(Charsets.UTF_8).size }
             fun quote(value: String) = Json.encodeToString(value)
@@ -708,6 +744,7 @@ class PersonalStore(
                 else append("{\"listId\":${quote(pointer.listId)},\"entryId\":${quote(pointer.entryId)}}")
                 append("}")
             }
+            if (formatVersion >= 8) append(",\"setupStatus\":${quote(snapshot.setupStatus)}")
             append("}")
             return bytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         }
@@ -736,7 +773,8 @@ class PersonalStore(
                     (if (version >= 4) listOf("recentHistoryEnabled:INTEGER:1:0") else emptyList()) +
                     (if (version >= 5) listOf("lyricFontSizeSp:INTEGER:1:0", "readingDensity:TEXT:1:0") else emptyList()) +
                     (if (version >= 7) listOf("recitationListId:TEXT:0:0", "recitationEntryId:TEXT:0:0") else emptyList()) +
-                    (if (version >= 8) listOf("backupLanguagePending:INTEGER:1:0") else emptyList()),
+                    (if (version >= 8) listOf("backupLanguagePending:INTEGER:1:0") else emptyList()) +
+                    (if (version >= 9) listOf("setupStatus:TEXT:1:0") else emptyList()),
                 "lists" to listOf("id:TEXT:1:1", "name:TEXT:1:0", "position:INTEGER:1:0"),
                 "occurrences" to listOf("id:TEXT:1:1", "listId:TEXT:1:0", "position:INTEGER:1:0", "kind:TEXT:1:0",
                     "videoId:TEXT:0:0", "lyricId:TEXT:0:0", "fallback:TEXT:0:0", "text:TEXT:0:0"),
@@ -759,7 +797,8 @@ class PersonalStore(
                     while (c.moveToNext()) {
                         val column = c.getString(c.getColumnIndexOrThrow("name"))
                         val default = if (table == "preferences" && column == "theme" && version >= 2) "'device'"
-                            else if (table == "preferences" && column == "backupLanguagePending" && version >= 8) "0" else null
+                            else if (table == "preferences" && column == "backupLanguagePending" && version >= 8) "0"
+                            else if (table == "preferences" && column == "setupStatus" && version >= 9) "'pending'" else null
                         if (c.getString(c.getColumnIndexOrThrow("dflt_value")) != default) throw PersonalFailure(R.string.personal_invalid)
                         actual.add(listOf("name", "type", "notnull", "pk")
                             .joinToString(":") { c.getString(c.getColumnIndexOrThrow(it)) })

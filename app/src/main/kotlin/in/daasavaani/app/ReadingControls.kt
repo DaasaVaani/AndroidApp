@@ -12,18 +12,19 @@ import `in`.daasavaani.core.ReadingPolicy
 import `in`.daasavaani.core.ReadingPreferences
 
 @Composable
-fun ReadingControls(reading: ReadingPreferences, enabled: Boolean, step: (Int) -> Unit, density: (String) -> Unit) {
+fun ReadingControls(reading: ReadingPreferences, enabled: Boolean, step: (Int) -> Unit, density: (String) -> Unit,
+    tagPrefix: String = "") {
     Text(stringResource(R.string.reading_preferences), style = MaterialTheme.typography.titleMedium)
     Text(stringResource(R.string.lyric_font_size), style = MaterialTheme.typography.labelLarge)
     val decrease = stringResource(R.string.decrease_lyric_font_size)
     val increase = stringResource(R.string.increase_lyric_font_size)
     Row {
         OutlinedButton(onClick = { step(-1) }, enabled = enabled && reading.fontSizeSp > ReadingPolicy.readerFontMinSp,
-            modifier = Modifier.testTag("font-decrease").semantics { contentDescription = decrease }) { Text("A−") }
+            modifier = Modifier.testTag("${tagPrefix}font-decrease").semantics { contentDescription = decrease }) { Text("A−") }
         Text(stringResource(R.string.font_size_value).replace("{size}", reading.fontSizeSp.toString()).replace("{unit}", "sp"),
-            Modifier.testTag("font-value"))
+            Modifier.testTag("${tagPrefix}font-value"))
         OutlinedButton(onClick = { step(1) }, enabled = enabled && reading.fontSizeSp < ReadingPolicy.readerFontMaxSp,
-            modifier = Modifier.testTag("font-increase").semantics { contentDescription = increase }) { Text("A+") }
+            modifier = Modifier.testTag("${tagPrefix}font-increase").semantics { contentDescription = increase }) { Text("A+") }
     }
     Text(stringResource(R.string.reading_density), style = MaterialTheme.typography.labelLarge)
     Row(Modifier.fillMaxWidth()) {
@@ -35,7 +36,7 @@ fun ReadingControls(reading: ReadingPreferences, enabled: Boolean, step: (Int) -
                 else -> error("Unsupported reading density")
             }
             FilterChip(selected = reading.density == value, onClick = { density(value) }, enabled = enabled,
-                label = { Text(stringResource(label)) }, modifier = Modifier.weight(1f).testTag("density-$value"))
+                label = { Text(stringResource(label)) }, modifier = Modifier.weight(1f).testTag("${tagPrefix}density-$value"))
         }
     }
 }
