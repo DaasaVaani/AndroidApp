@@ -970,6 +970,43 @@ complete requirement acceptance nor production/release readiness.
 
 ## Validation
 
+### Owned native settings admission
+
+The [configuration validator](tools/validate-config.mjs) maps to SET-01/02 and
+QUAL-06. `npm run config` first executes all
+[native settings tests](tools/validate-config.test.mjs), then validates the complete
+owned configuration before loading dependent profiles or writing generated
+Kotlin, properties or resources. Root/UI/palette objects are closed and all
+existing fields mandatory. Unknown `lyric*` fields cannot enter generated
+settings. Missing/null/unsafe/fractional/coerced values fail explicitly, with no
+defaults or personal-data writes.
+
+[Native settings](settings/android.yml) remain the single source of current
+values: timeouts are milliseconds, byte budgets are bytes, counts are integers,
+font/line height are sp, spacing is dp and density factors are percentages.
+Positive integer knobs are bounded by the signed32-bit platform domain; SDK
+ordering, fixed application identity/API26 minimum, fixture-only isolation,
+font range/step alignment and increasing density choices are independently
+validated. Compression level remains inclusive0..9. Native byte bounds remain
+independently checked against the pinned Shared policy during generation;
+the platform ceiling does not grant permission to exceed portable policy.
+
+Public lyric and canonical-link addresses must be exact credential-free HTTPS
+with no normalization or even empty query/fragment delimiters. The canonical
+sharing base remains host-root-only under the existing Android link contract.
+The fixture endpoint retains explicit HTTP/HTTPS `latest.json` support, including
+the emulator-loopback development address; this is not production HTTP permission.
+All current root strings reject transport/configuration control whitespace.
+Endpoint/file/version/identity changes require their own compatibility and
+distribution review, not an inferred migration.
+
+Tests enumerate every current root/nested field for removal/null rejection and
+exercise unknown fields, exact/+1 integer bounds, endpoint ambiguity and reader/
+SDK cross-field failures. This covers the current owned tree, not future
+production settings, complete Shared language contracts or native release parity.
+No new generated values, Shared pin, content preparation, backup activation or
+credential provisioning accompanies the validation adapter.
+
 ```powershell
 npm ci
 npm run config

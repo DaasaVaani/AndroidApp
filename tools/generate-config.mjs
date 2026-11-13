@@ -1,7 +1,9 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { strictYaml } from "../shared/tools/generate-catalog.mjs";
+import { validateAndroidSettings } from "./validate-config.mjs";
 const root = new URL("../", import.meta.url);
 const config = strictYaml(await readFile(new URL("settings/android.yml", root), "utf8"));
+validateAndroidSettings(config);
 const bounds = strictYaml(await readFile(new URL("shared/settings/publication-policy.yml", root), "utf8"));
 const search = strictYaml(await readFile(new URL("shared/settings/search.yml", root), "utf8"));
 const personal = strictYaml(await readFile(new URL("shared/settings/personal-transfer.yml", root), "utf8"));
@@ -22,40 +24,8 @@ if (personal.formatVersion !== 1 || !["maxFavorites", "maxPersonalStoredBytes", 
     .every(key => Number.isSafeInteger(personal[key]) && personal[key] > 0)) throw new Error("Invalid personal settings");
 if (!search || search.formatVersion !== 1 || !Number.isInteger(search.maxQueryCodePoints) ||
     !Number.isInteger(search.maxTerms) || !Number.isInteger(search.pageSize)) throw new Error("Invalid trusted search settings");
-if (!config || typeof config !== "object" || config.formatVersion !== 1 || config.fixtureOnly !== true ||
-    config.applicationId !== "in.daasavaani.app" || config.minSdk !== 26 ||
-    !Number.isInteger(config.compileSdk) || !Number.isInteger(config.targetSdk) ||
-    !Number.isInteger(config.versionCode) || typeof config.versionName !== "string" ||
-    !Number.isInteger(config.connectTimeoutMs) || !Number.isInteger(config.readTimeoutMs) ||
-    typeof config.descriptorUrl !== "string" || !config.ui ||
-    !["spacingDp", "contentPaddingDp", "readerFontSizeSp", "readerLineHeightSp", "readerLineSpacingDp",
-      "readerFontMinSp", "readerFontMaxSp", "readerFontStepSp",
-      "densityCompactPercent", "densityNormalPercent", "densityRelaxedPercent"]
-      .every(key => Number.isInteger(config.ui[key]) && config.ui[key] > 0) ||
-    !config.ui.colors || !["background", "surface", "text", "primary"]
-      .every(key => typeof config.ui.colors[key] === "string" && /^#[0-9a-fA-F]{6}$/.test(config.ui.colors[key]))) throw new Error("Invalid Android fixture settings");
 const ui = config.ui;
-const uiKeys = ["spacingDp", "contentPaddingDp", "readerFontSizeSp", "readerLineHeightSp", "readerLineSpacingDp",
-  "readerFontMinSp", "readerFontMaxSp", "readerFontStepSp", "densityCompactPercent", "densityNormalPercent", "densityRelaxedPercent", "colors"];
-if (Object.keys(ui).some(key => !uiKeys.includes(key)) ||
-    ui.readerFontMinSp > ui.readerFontSizeSp || ui.readerFontSizeSp > ui.readerFontMaxSp ||
-    (ui.readerFontMaxSp - ui.readerFontMinSp) % ui.readerFontStepSp !== 0 ||
-    (ui.readerFontSizeSp - ui.readerFontMinSp) % ui.readerFontStepSp !== 0 ||
-    ui.readerLineHeightSp < ui.readerFontSizeSp || ui.densityNormalPercent !== 100 ||
-    ui.densityCompactPercent >= ui.densityNormalPercent || ui.densityRelaxedPercent <= ui.densityNormalPercent ||
-    uiKeys.filter(key => key !== "colors").some(key => !Number.isSafeInteger(ui[key]) || ui[key] > 2147483647))
-  throw new Error("Invalid native reading settings");
-const url = new URL(config.descriptorUrl);
-if (!["http:", "https:"].includes(url.protocol)) throw new Error("Invalid descriptor URL");
-const lyricUrl = new URL(config.lyricDescriptorUrl);
 const lyricBounds = Object.fromEntries(Object.entries(config).filter(([key]) => key.startsWith("lyric") && key !== "lyricDescriptorUrl"));
-if (lyricUrl.protocol !== "https:" || lyricUrl.username || lyricUrl.password || lyricUrl.search || lyricUrl.hash ||
-    !lyricUrl.pathname.endsWith("/latest.json") ||
-    !["lyricDescriptorBytes", "lyricManifestEncodedBytes", "lyricManifestDecodedBytes", "lyricItemEncodedBytes",
-      "lyricItemDecodedBytes", "lyricCatalogItems", "lyricLines", "lyricTextCodePoints", "lyricTags", "lyricQueryCodePoints",
-      "lyricJsonDepth", "lyricCallTimeoutMs", "lyricPreparedEncodedBytes", "lyricPreparedDecodedBytes"]
-      .every(key => Number.isSafeInteger(lyricBounds[key]) && lyricBounds[key] > 0 && lyricBounds[key] <= 2147483647))
-  throw new Error("Invalid prelaunch lyric settings");
 for (const [native, portable] of Object.entries({
   lyricDescriptorBytes: "maxDescriptorBytes", lyricManifestEncodedBytes: "maxManifestEncodedBytes",
   lyricManifestDecodedBytes: "maxManifestDecodedBytes", lyricItemEncodedBytes: "maxItemEncodedBytes",
@@ -64,13 +34,6 @@ for (const [native, portable] of Object.entries({
   if (!Number.isSafeInteger(bounds[portable]) || lyricBounds[native] > bounds[portable])
     throw new Error(`Native lyric bound exceeds portable policy: ${native}`);
 }
-const canonical = new URL(config.canonicalBaseUrl);
-if (canonical.protocol !== "https:" || canonical.username || canonical.password || canonical.search || canonical.hash ||
-    canonical.pathname !== "/" || typeof config.listLinkPath !== "string" || !/^[A-Za-z0-9_-]+\/$/.test(config.listLinkPath) ||
-    typeof config.listFileName !== "string" || !/^[A-Za-z0-9._-]+\.dvlist\.json\.gz$/.test(config.listFileName) ||
-    typeof config.backupFileName !== "string" || !/^[A-Za-z0-9._-]+\.dvbackup\.json\.gz$/.test(config.backupFileName) ||
-    !Number.isInteger(config.listCompressionLevel) || config.listCompressionLevel < 0 || config.listCompressionLevel > 9)
-  throw new Error("Invalid list transport settings");
 await mkdir(new URL("build/generated", root), { recursive: true });
 await mkdir(new URL("build/generated/kotlin", root), { recursive: true });
 await writeFile(new URL("build/generated/kotlin/PersonalPolicy.kt", root),

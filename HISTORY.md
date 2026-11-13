@@ -1,5 +1,58 @@
 # Documentation history
 
+## 2026-11-13: exhaustive current native settings admission
+
+- Continued the next unblocked current-settings task while Website full browser
+  validation ran. Read the native root instructions, generator/settings/build and
+  validation guide; worktree was clean. Actual connected device inventory was
+  initially empty. Existing JDK/SDK binaries were present; no tools/dependencies
+  were installed and no real App key or source-review evidence was substituted.
+- Extracted owned native admission from config generation, validated it before
+  dependent-profile lookups/output, and closed root/UI/palette field sets.
+  Preserved fixed application/API26/fixture and host-root sharing profiles,
+  positive32-bit safety domains, reader step/alignment and Shared policy caps.
+  Rejected unsafe SDK ordering, unknown lyric fields, transport/config controls
+  and URL normalization/empty query/fragment ambiguity. Current values unchanged.
+- `npm run config` now runs the seven Node admission tests before generation.
+  Tests cover the complete current field tree, required/null/unknown rejection,
+  integer equality/+1 and reader/SDK/endpoint constraints without network or
+  personal writes. First run passed7/7; all four existing generated configuration
+  files remained SHA256-identical. Full native/device validation remains required
+  before publication; this is not full production/native requirement closure.
+- Website settings4da30156c068b130dd9762266af37604e19bac1c was published after
+  full388 units/609 browsers, build/types and ancillary checks. Exact hosted
+  checks/deployment43376538097 and CodeQL43376537792 passed; actual hosted388/
+  609 counts matched. Live root/open HTML and JS matched artifact14014238536,
+  retaining original known byte identities. No production runtime output changed.
+- Started only the existing owned API36 AVD on initially empty emulator5556 and
+  pinned fixture server on the previously free5173 slot. HTTP200 descriptor and
+  actual boot-completed/device readiness were verified before device checks.
+  First full Gradle invocation failed before tasks because PowerShell split the
+  unquoted instrumentation output property. Reran the same complete suite with
+  that property quoted, not a narrowed suite or relaxed test.
+- Superseded generator admission tolerated extra root/lyric/palette keys and
+  canonicalized some endpoint spellings; only the UI field list was closed.
+  The new validator closes all current owned objects and rejects those ambiguous
+  spellings before generation. Current approved YAML/generated outputs are unchanged.
+- Full `.\gradlew.bat :core:build :app:build :app:lintDebug :app:lintRelease
+  :app:connectedDebugAndroidTest --no-daemon --max-workers=1` with quoted
+  `-Pandroid.testInstrumentationRunnerArguments.additionalTestOutputDir=/sdcard/Android/media/in.daasavaani.app/rec04-diagnostics`
+  passed in19m6s:135 tasks,6 executed/129 up-to-date for unchanged runtime inputs.
+  Actual connected XML confirmed171 tests,0 failures/errors/skips. Debug lint
+  retained62 warnings/release64, both0 errors; existing SDK XML3/4 tooling warning
+  remained explicit. No warning suppression/toolchain installation was performed.
+- Additionally `.\gradlew.bat :core:test --rerun-tasks --no-daemon --max-workers=1`
+  freshly executed all7 tasks and all69 tests across14 suites, with0 failures/
+  errors/skips. App JVM suites remain NO-SOURCE, not invented tests. Owned emulator/
+  fixture server were stopped after device validation; device inventory returned
+  empty, without stopping any unrelated server/device.
+- `npm run config` passed all7 Node tests and SHA256-identical four generated
+  files; repository hygiene138, strict YAML6, actionlint1.7.12/ShellCheck0.11.0
+  and staged/unstaged whitespace checks passed. Fresh native main matched origin;
+  owner admin and unchanged active no-bypass force/delete and approved role5
+  PR/check routing were verified. No Shared pin, runtime settings value, source,
+  backup activation or production permission changed.
+
 ## 2026-11-02: owner-approved Android public canonical lyric links
 
 - The owner explicitly approved this next native-only UX-01/UX-07 slice,

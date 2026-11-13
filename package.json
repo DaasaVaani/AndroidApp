@@ -1,5 +1,5 @@
 {
   "name": "@daasavaani/android-build-settings", "version": "0.1.0", "private": true,
-  "type": "module", "scripts": { "config": "node tools/generate-config.mjs" },
+  "type": "module", "scripts": { "test": "node --test tools/validate-config.test.mjs", "config": "npm test && node tools/generate-config.mjs" },
   "dependencies": { "yaml": "2.9.1" }
 }
